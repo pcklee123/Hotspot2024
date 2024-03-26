@@ -8,6 +8,11 @@
             "cwd": "${workspaceFolder}",
             "binaryPath": "${workspaceFolder}/TS3.exe",
             "binaryArgs": []
+        },
+        {
+            "cwd": "d:\\Hotspot2024",
+            "binaryPath": "d:\\Hotspot2024\\TS3",
+            "binaryArgs": []
         }
     ]
 }
