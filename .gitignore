@@ -1,0 +1,7 @@
+#**/.vscode/
+obj/*.o
+obj_debug/*.o
+*.csv
+*.exe
+TS3.
+~.*
