@@ -35,13 +35,13 @@ $(ODIR)/%.o: %.cpp $(DEPS)
 
 $(DODIR)/%.o: %.cpp $(DEPS)
 	$(dir_guard)
-	$(CC) -g -c -o $@ $< $(CFLAGSd)
+	$(CC) -g -c -o $@ $< $(CFLAGS)
 
 TS3: $(OBJ)
 	$(CC) -o $@ $^ $(CFLAGS) $(LIBS)
 
 debug: $(DOBJ)
-	$(CC) -v -o TS3$@ $^ $(CFLAGSd) $(LIBS)
+	$(CC) -g -v -o TS3$@ $^ $(CFLAGS) $(LIBS)
 
 .PHONY: clean
 
