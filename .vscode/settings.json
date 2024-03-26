@@ -13,6 +13,11 @@
             "cwd": "d:\\Hotspot2024",
             "binaryPath": "d:\\Hotspot2024\\TS3",
             "binaryArgs": []
+        },
+        {
+            "cwd": "c:\\Users\\pcklee123\\OneDrive\\Desktop\\Hotspot2024",
+            "binaryPath": "c:\\Users\\pcklee123\\OneDrive\\Desktop\\Hotspot2024\\TS3",
+            "binaryArgs": []
         }
     ]
 }

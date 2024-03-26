@@ -1,6 +1,6 @@
 #define RamDisk // whether to use RamDisk if no ramdisk files will be in temp directory
 #define maxcells 32
-#define cldevice 0 // 0 usually means integrated GPU
+#define cldevice 1 // 0 usually means integrated GPU
 // #define sphere        // do hot spot  problem
 #define impl_sphere // do hot spot  problem
 // #define cylinder //do hot rod problem
@@ -11,9 +11,9 @@ constexpr int f2 = f1 * 1.2;
 constexpr float incf = 1.2f;        // increment
 constexpr float decf = 1.0f / incf; // decrement factor
 
-constexpr int n_space = 128;                                     // should be 2 to power of n for sater FFT
+constexpr int n_space = 256;                                     // should be 2 to power of n for sater FFT
 constexpr float nback = 1;                                       // background particles per cell - improves stability
-constexpr int n_partd = n_space * n_space * n_space * nback * 2; // must be 2 to power of n
+constexpr int n_partd = n_space * n_space * n_space * nback * 1; // must be 2 to power of n
 constexpr int n_parte = n_partd;
 
 constexpr float R_s = n_space / 1; // LPF smoothing radius
@@ -42,12 +42,12 @@ constexpr int n_output_part = (n_partd > 9369) ? 9369 : n_partd; // maximum numb
 // const int nprtd=floor(n_partd/n_output_part);
 
 constexpr int ndatapoints = 300; // total number of time steps to calculate
-constexpr int nc1 = 4;           // f1 * 1;      // number of times to calculate E and B between printouts
+constexpr int nc1 = 8;           // f1 * 1;      // number of times to calculate E and B between printouts
 constexpr int md_me = 60;        // ratio of electron speed/deuteron speed at the same KE. Used to calculate electron motion more often than deuteron motion
 
 #define Hist_n 512
 // #define Hist_max Temp_e / 11600 * 60 // in eV Kelvin to eV is divide by 11600
-#define Hist_max 5000 // 50keV
+#define Hist_max 10000 // 50keV
 #define trilinon_
 #define Uon_ // whether to calculate the electric (V) potential and potential energy (U). Needs Eon to be enabled.
 #define Eon_ // whether to calculate the electric (E) field

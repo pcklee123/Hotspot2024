@@ -93,8 +93,12 @@ void cl_start(par *par)
     default_platform.getDevices(CL_DEVICE_TYPE_ALL, &devices);
     cl::Device default_device;
     cout << "device_id = " << device_id << endl;
-    device_id = device_id >= cldevice ? cldevice : device_id;
-    default_device = devices[device_id];
+    //if (device_id==2) device_id=1;
+    //device_id = device_id >= cldevice ? cldevice : device_id;
+    default_device = devices[device_id-1];
+
+
+    
     info_file << "\t\tDevice Name: " << default_device.getInfo<CL_DEVICE_NAME>() << "device_id =" << device_id << endl;
     info_file << "OpenCL Version: " << default_device.getInfo<CL_DEVICE_VERSION>() << std::endl;
 
