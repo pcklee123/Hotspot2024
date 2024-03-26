@@ -5,8 +5,8 @@
     },
     "makefile.launchConfigurations": [
         {
-            "cwd": "d:\\Hotspot2024",
-            "binaryPath": "d:\\Hotspot2024\\TS3",
+            "cwd": "${workspaceFolder}",
+            "binaryPath": "${workspaceFolder}/TS3.exe",
             "binaryArgs": []
         }
     ]
