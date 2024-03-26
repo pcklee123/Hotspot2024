@@ -13,8 +13,8 @@ constexpr float decf = 1.0f / incf; // decrement factor
 
 constexpr int n_space = 128;                                     // should be 2 to power of n for sater FFT
 constexpr float nback = 1;                                       // background particles per cell - improves stability
-constexpr int n_partd = n_space * n_space * n_space * nback * 1; // must be 2 to power of n
-constexpr int n_parte = n_partd;
+constexpr int n_partd = ((n_space * n_space * n_space * nback * (8-nback))>16000000) ? 16000000 : n_space * n_space * n_space * nback * (8-nback); // must be 2 to power of n
+constexpr int n_parte = n_partd; //GPU ram needed n_space^3 (ne,je, trilinear constants) + n_partd(e,d,interpolated E,B)
 
 constexpr float R_s = n_space / 1; // LPF smoothing radius
 constexpr float r0_f = 16;         //  radius of sphere or cylinder
@@ -25,7 +25,7 @@ constexpr float Bmax0 = 1.001; // in T earth's magnetic field is of the order of
 constexpr float Emax0 = 1e5;   // 1e11V/m is approximately interatomic E field -extremely large fields implies poor numerical stability
 
 constexpr float Bz0 = 0.001; // in T, static constant fields
-constexpr float Btheta0 = 1; // in T, static constant fields
+constexpr float Btheta0 = 0.1; // in T, static constant fields
 constexpr float Ez0 = 0.0f;  // in V/m
 constexpr float vz0 = 0.0f;
 constexpr float a0 = 1.0e-5;       // typical dimensions of a cell in m This needs to be smaller than debye length otherwise energy is not conserved if a particle moves across a cell
