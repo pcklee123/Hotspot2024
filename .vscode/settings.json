@@ -2,5 +2,12 @@
     "files.associations": {
         "cmath": "cpp",
         "complex": "cpp"
-    }
+    },
+    "makefile.launchConfigurations": [
+        {
+            "cwd": "d:\\Hotspot2024",
+            "binaryPath": "d:\\Hotspot2024\\TS3",
+            "binaryArgs": []
+        }
+    ]
 }

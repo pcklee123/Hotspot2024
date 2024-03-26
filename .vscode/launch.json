@@ -1,14 +1,15 @@
 {
     "version": "0.2.0",
     "configurations": [
+
         {
             "name": "(gdb) Launch",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/TS3debug.exe",
+            "program": "${workspaceFolder}/TS3.exe",
             "args": [],
             "stopAtEntry": false,
-            "cwd": "${fileDirname}",
+            "cwd": "${workspaceFolder}",
             "environment": [],
             "externalConsole": false,
             "MIMode": "gdb",
