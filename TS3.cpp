@@ -54,18 +54,19 @@ int main()
     int i_time = 0;
     //  cout << "get_densityfields " << endl;
     get_densityfields(fi, pt, par);
-    //  cout << "get_densityfields done" << endl;
+    cout << "get_densityfields done" << endl;
     int cdt = calcEBV(fi, par);
     // int cdt=0;
     changedt(pt, cdt, par); /* change time step if E or B too big*/
-
+    cout << "calcEBV done" << endl;
 #ifdef Uon_
     // cout << "calculate the total potential energy U\n";
-    //                  timer.mark();
+    timer.mark();
     calcU(fi, pt, par);
-    // cout << "U: " << timer.elapsed() << "s, ";
+    cout << "calculate the total potential energy U done\n"
+         << "U: " << timer.elapsed() << "s, ";
 #endif
-    // cout << "savefiles" << endl;
+    cout << "savefiles" << endl;
     info(par); // printout initial info.csv file
     save_files(i_time, t, fi, pt, par);
     //    cout << "logentry" << endl;

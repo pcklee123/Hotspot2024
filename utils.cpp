@@ -173,6 +173,7 @@ void info(par *par)
         info_file << "number of particles per cell = ," << n_partd / (n_space * n_space * n_space) << endl;
         info_file << "time for electrons to leave box = ," << n_space * a0 / sqrt(2 * kb * Temp_e / e_mass) << ",s" << endl;
         info_file << "time for ions to leave box = ," << n_space * a0 * md_me / sqrt(2 * kb * Temp_d / e_mass) << ",s" << endl;
+       // info_file << "estimated CPU RAM = ," <<powl(n_space,3)
     }
 }
 

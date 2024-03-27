@@ -6,7 +6,7 @@
 // #define cylinder //do hot rod problem
 #define Temp_e 1e6     // in Kelvin 1e7 ~1keV
 #define Temp_d 1e6     // in Kelvin
-constexpr int f1 = 8; // make bigger to make smaller time steps // 8 is min for sphere slight increas in KE
+constexpr int f1 = 64; // make bigger to make smaller time steps // 8 is min for sphere slight increas in KE
 constexpr int f2 = f1 * 1.2;
 constexpr float incf = 1.2f;        // increment
 constexpr float decf = 1.0f / incf; // decrement factor
@@ -48,9 +48,9 @@ constexpr int md_me = 60;        // ratio of electron speed/deuteron speed at th
 #define Hist_n 512
 // #define Hist_max Temp_e / 11600 * 60 // in eV Kelvin to eV is divide by 11600
 #define Hist_max 10000 // 50keV
-#define trilinon_
-#define Uon_ // whether to calculate the electric (V) potential and potential energy (U). Needs Eon to be enabled.
+#define trilinon
 #define Eon_ // whether to calculate the electric (E) field
+//#define Uon_ // whether to calculate the electric (V) potential and potential energy (U). Needs Eon to be enabled.
 #define UE_field
 #define Bon_ // whether to calculate the magnetic (B) field
 #define UB_field
