@@ -4,7 +4,7 @@
 #define sphere     // do hot spot  problem
 // #define cylinder //do hot rod problem
 #define Weibull
-constexpr double weibullb = 8; // b factor for weibull. larger means closer to a shell. ~1 means filled more at the center.
+constexpr double weibullb = 3; // b factor for weibull. larger means closer to a shell. ~1 means filled more at the center.
 #define Temp_e 1e6     // in Kelvin 1e7 ~1keV
 #define Temp_d 1e6     // in Kelvin
 constexpr int f1 = 64; // make bigger to make smaller time steps // 8 is min for sphere slight increas in KE
@@ -24,7 +24,7 @@ constexpr float Bz0 = 0.001;   // in T, static constant fields
 constexpr float Btheta0 = 0.1; // in T, static constant fields
 constexpr float Ez0 = 0.0f;    // in V/m
 constexpr float vz0 = 0.0f;
-constexpr float a0 = 1.0e-5;       // typical dimensions of a cell in m This needs to be smaller than debye length otherwise energy is not conserved if a particle moves across a cell
+constexpr float a0 = 5.0e-6;       // typical dimensions of a cell in m This needs to be smaller than debye length otherwise energy is not conserved if a particle moves across a cell
 constexpr float target_part = 1e10; // 3.5e22 particles per m^3 per torr of ideal gas. 7e22 electrons for 1 torr of deuterium
 constexpr float v0_r = -3e5;       // initial directed radial velocity outwards is positive
 
