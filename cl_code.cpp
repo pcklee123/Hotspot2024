@@ -96,7 +96,7 @@ void cl_start(par *par)
     cout << "device_id = " << device_id << endl;
     device_id = (device_id >= cldevice) ? cldevice : device_id; // use dGPU only if available
     default_device = devices[device_id];
-    info_file << "\t\tDevice Name: " << default_device.getInfo<CL_DEVICE_NAME>() << "device_id =" << device_id << endl;
+    info_file << "\t\tDevice Name: " << default_device.getInfo<CL_DEVICE_NAME>() << "\ndevice_id =" << device_id << endl;
     info_file << "OpenCL Version: " << default_device.getInfo<CL_DEVICE_VERSION>() << std::endl;
 
     cl::Context context({default_device});
