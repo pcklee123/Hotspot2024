@@ -18,8 +18,8 @@ constexpr int n_partd = n_space * n_space * n_space * nback * 16; // must be 2 t
 constexpr int n_parte = n_partd;
 
 constexpr float R_s = n_space / 1; // LPF smoothing radius
-constexpr float r0_f = 16;         //  radius of sphere or cylinder
-
+constexpr float r0_f[3] = {16,1,16};         //  radius of sphere or cylinder (electron, ion, plasma)
+  
 constexpr float Bz0 = 0.001;   // in T, static constant fields
 constexpr float Btheta0 = 0.1; // in T, static constant fields
 constexpr float Ez0 = 0.0f;    // in V/m

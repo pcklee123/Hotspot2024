@@ -6,9 +6,9 @@ void generate_rand_sphere(particles *pt, par *par)
     // initial bulk electron, ion velocity
     float v0[2][3] = {{0, 0, -vz0}, {0, 0, vz0 / 60}};
 
-    float r0 = r0_f * a0; // if sphere this is the radius
-    float area = 4 * pi * r0 * r0;
-    float volume = 4 / 3 * pi * r0 * r0 * r0;
+    float r0[3] = {r0_f[0] * a0, r0_f[1] * a0, r0_f[2] * a0}; // if sphere this is the radius
+    float area = 4 * pi * r0[0] * r0[0];
+    float volume = 4 / 3 * pi * r0[0] * r0[0] * r0[0];
 
     // calculated plasma parameters
     float Density_e = (n_partd - ((n_space_divx - 2) * (n_space_divy - 2) * (n_space_divz - 2) * nback)) / volume * r_part_spart;
@@ -77,7 +77,7 @@ void generate_rand_sphere(particles *pt, par *par)
         for (int n = na; n < n_partd; n++)
         {
 #ifdef Weibull
-            float r = gsl_ran_weibull(rng, r0, weibullb);
+            float r = gsl_ran_weibull(rng, r0[p], weibullb);
 #else
             float r = r0 * pow(gsl_ran_flat(rng, 0, 1), 0.3333333333);
             // float r = gsl_ran_gaussian(rng, r0);
@@ -110,9 +110,9 @@ void generate_rand_cylinder(particles *pt, par *par)
     // initial bulk electron, ion velocity
     float v0[2][3] = {{0, 0, -vz0}, {0, 0, vz0 / 60}}; /*1e6*/
 
-    float r0 = r0_f * a0; // the radius
-    float area = pi * r0 * r0;
-    float volume = pi * r0 * r0 * n_space * a0;
+    float r0[3] = {r0_f[0] * a0, r0_f[1] * a0, r0_f[2] * a0}; // if sphere this is the radius
+    float area =  pi * r0[0] * r0[0];
+    float volume = pi * r0[0] * r0[0] * n_space * a0;
 
     // calculated plasma parameters
     info_file << "initial e Temperature, = " << Temp_e / 11600 << "eV, initial d Temperature, = " << Temp_d / 11600 << " eV\n";
@@ -121,8 +121,8 @@ void generate_rand_cylinder(particles *pt, par *par)
     info_file << "initial density = " << Density_e << "background density = " << Density_e1 << endl;
     float initial_current = Density_e * e_charge * v0[0][2] * area;
     info_file << "initial current = " << initial_current << endl;
-    float Bmaxi = initial_current * 2e-7 / r0;
-    info_file << "initial Bmax = " << Bmaxi << endl;
+    float Bmaxi = initial_current * 2e-7 / r0[0];
+    info_file << "initial electron Bmax = " << Bmaxi << endl;
     float plasma_freq = sqrt(Density_e * e_charge * e_charge_mass / (mp[0] * epsilon0)) / (2 * pi);
     float plasma_period = 1 / plasma_freq;
     float Debye_Length = sqrt(epsilon0 * kb * Temp[0] / (Density_e * e_charge * e_charge));
@@ -195,7 +195,7 @@ void generate_rand_cylinder(particles *pt, par *par)
         // #pragma omp parallel for ordered
         for (int n = na; n < n_partd; n++)
         {
-            float r = r0 * pow(gsl_ran_flat(rng, 0, 1), 0.5);
+            float r = r0[p] * pow(gsl_ran_flat(rng, 0, 1), 0.5);
             double x, y, z;
             z = gsl_ran_flat(rng, -1.0, 1.0) * a0 * (n_space - 3) * 0.5;
             gsl_ran_dir_2d(rng, &x, &y);

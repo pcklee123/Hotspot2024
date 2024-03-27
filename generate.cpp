@@ -221,7 +221,7 @@ void generateConstantBField(float Ee[3][n_space_divz][n_space_divy][n_space_divx
 void generateZpinchField(float Ee[3][n_space_divz][n_space_divy][n_space_divx], float Be[3][n_space_divz][n_space_divy][n_space_divx])
 {
     // radius of z-pinch
-    double r0 = r0_f * a0;
+    double r0 = r0_f[2] * a0;
     for ( int i = 0; i < n_space_divx; i++)
     {
         double x = (i - n_space_divx / 2) * a0;
