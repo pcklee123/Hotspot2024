@@ -24,7 +24,7 @@ int main()
     const unsigned int n_cells = n_space_divx * n_space_divy * n_space_divz;
     fields *fi = alloc_fields(par);
     int total_ncalc[2] = {0, 0}; // particle 0 - electron, particle 1 deuteron
-    info(par);                   // printout initial info.csv file
+
     cout << "Start up time = " << timer.replace() << "s\n";
     // startup stuff set output path opencl and print initial info
 
@@ -66,6 +66,7 @@ int main()
     // cout << "U: " << timer.elapsed() << "s, ";
 #endif
     // cout << "savefiles" << endl;
+    info(par); // printout initial info.csv file
     save_files(i_time, t, fi, pt, par);
     //    cout << "logentry" << endl;
     log_entry(0, 0, cdt, total_ncalc, t, par); // Write everything to log
@@ -76,12 +77,12 @@ int main()
 
     for (i_time = 1; i_time < ndatapoints; i_time++)
     {
-        timer.mark();     // For timestep
-        //timer.mark();     // Work out motion
+        timer.mark(); // For timestep
+        // timer.mark();     // Work out motion
         tnp(fi, pt, par); //  calculate the next position par->ncalcp[p] times
         for (int p = 0; p < 2; ++p)
             total_ncalc[p] += par->nc * par->ncalcp[p];
-//        cout << "motion: " << timer.elapsed() << "s, ";
+        //        cout << "motion: " << timer.elapsed() << "s, ";
         t += par->dt[0] * par->ncalcp[0] * par->nc;
 
         cout << i_time << "." << par->nc << " t = " << t << "(compute_time = " << timer.elapsed() << "s) : ";
