@@ -2,6 +2,7 @@
     "files.associations": {
         "cmath": "cpp",
         "complex": "cpp"
+        "Makefile.*": "makefile"
     },
     "makefile.launchConfigurations": [
         {
