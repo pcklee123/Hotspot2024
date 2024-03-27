@@ -1,9 +1,10 @@
 #define RamDisk // whether to use RamDisk if no ramdisk files will be in temp directory
 #define maxcells 32
 #define cldevice 1 // 0 usually means integrated GPU
-// #define sphere        // do hot spot  problem
-#define impl_sphere // do hot spot  problem
+#define sphere     // do hot spot  problem
 // #define cylinder //do hot rod problem
+#define Weibull
+constexpr double weibullb = 8; // b factor for weibull. larger means closer to a shell. ~1 means filled more at the center.
 #define Temp_e 1e6     // in Kelvin 1e7 ~1keV
 #define Temp_d 1e6     // in Kelvin
 constexpr int f1 = 16; // make bigger to make smaller time steps // 8 is min for sphere slight increas in KE
@@ -19,18 +20,18 @@ constexpr int n_parte = n_partd;
 constexpr float R_s = n_space / 1; // LPF smoothing radius
 constexpr float r0_f = 16;         //  radius of sphere or cylinder
 
-constexpr float Bz0 = 0.001; // in T, static constant fields
+constexpr float Bz0 = 0.001;   // in T, static constant fields
 constexpr float Btheta0 = 0.1; // in T, static constant fields
-constexpr float Ez0 = 0.0f;  // in V/m
+constexpr float Ez0 = 0.0f;    // in V/m
 constexpr float vz0 = 0.0f;
 constexpr float a0 = 1.0e-5;       // typical dimensions of a cell in m This needs to be smaller than debye length otherwise energy is not conserved if a particle moves across a cell
 constexpr float target_part = 1e9; // 3.5e22 particles per m^3 per torr of ideal gas. 7e22 electrons for 1 torr of deuterium
-constexpr float v0_r = 3.0e5;      // implosion velocity inwards is positive
+constexpr float v0_r = -3e5;       // initial directed radial velocity outwards is positive
 
 // The maximum expected E and B fields. If fields go beyond this, the the time step, cell size etc will be wrong. Should adjust and recalculate.
 //  maximum expected magnetic field
-constexpr float Bmax0 = Bz0+Btheta0; // in T earth's magnetic field is of the order of ~ 1e-4 T DPF ~ 100T
-constexpr float Emax0 = Ez0+1;   // 1e11V/m is approximately interatomic E field -extremely large fields implies poor numerical stability
+constexpr float Bmax0 = Bz0 + Btheta0; // in T earth's magnetic field is of the order of ~ 1e-4 T DPF ~ 100T
+constexpr float Emax0 = Ez0 + 1;       // 1e11V/m is approximately interatomic E field -extremely large fields implies poor numerical stability
 
 // technical parameters
 
