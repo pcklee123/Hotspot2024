@@ -182,7 +182,7 @@ void save_vtp(string filename, int i, uint64_t num, double t, int p, particles *
     dpos *= dpos;
     dpos2 += dpos;
     KE = 0.5 * pt->m[p][n] * (dpos2) / (e_charge_mass * par->dt[p] * par->dt[p]);
-     if (KE>1)
+     if (KE>=0)
     {
       kineticEnergy->InsertNextValue(KE);
       // in units of eV

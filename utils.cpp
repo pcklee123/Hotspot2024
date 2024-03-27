@@ -133,6 +133,8 @@ void info(par *par)
         info_file << "Maximum expected B = ," << par->Bmax << endl;
         info_file << "cell size =," << a0 << ",m" << endl;
         info_file << "number of particles per cell = ," << n_partd / (n_space * n_space * n_space) << endl;
+        info_file << "number of particles per super particle = ," << r_part_spart << endl;
+        info_file << "density per super particle = ," << r_part_spart/(a0*a0*a0) << endl;
         info_file << "time for electrons to leave box = ," << n_space * a0 / sqrt(2 * kb * Temp_e / e_mass) << ",s" << endl;
         info_file << "time for ions to leave box = ," << n_space * a0 * md_me / sqrt(2 * kb * Temp_d / e_mass) << ",s" << endl;
         info_file << "time step between prints = ," << par->dt[0] * par->ncalcp[0] * par->nc << ",s" << endl;
