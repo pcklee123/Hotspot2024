@@ -24,6 +24,7 @@ int main()
     const unsigned int n_cells = n_space_divx * n_space_divy * n_space_divz;
     fields *fi = alloc_fields(par);
     int total_ncalc[2] = {0, 0}; // particle 0 - electron, particle 1 deuteron
+
     info_file.open("info.csv");
     info_file << std::scientific;
     info_file.precision(3);
@@ -70,9 +71,6 @@ int main()
 #ifdef sphere
     generate_rand_sphere(pt, par);
 #endif // sphere
-#ifdef impl_sphere
-    generate_rand_impl_sphere(pt, par);
-#endif // sphere
 #ifdef cylinder
     generate_rand_cylinder(pt, par);
 #endif // cylinder
@@ -103,10 +101,6 @@ int main()
 #endif
     // cout << "savefiles" << endl;
     info(par); // printout initial info.csv file re do this with updated info
-    // info_file << "time step between prints = ," << par->dt[0] * par->ncalcp[0] * par->nc << ",s" << endl;
-    // info_file << "time step between EBcalc = ," << par->dt[0] * par->ncalcp[0] << ",s" << endl;
-    // info_file << "dt_e = ," << par->dt[0] << ",s" << endl;
-    // info_file << "dt_i = ," << par->dt[1] << ",s" << endl;
     save_files(i_time, t, fi, pt, par);
     //    cout << "logentry" << endl;
     log_headers();                             // log file start with headers
