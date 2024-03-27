@@ -70,7 +70,7 @@ void cl_start(par *par)
             info_file << "Number of Devices: " << devices.size() << std::endl;
             info_file << "\tDevice " << device_id++ << ": " << std::endl;
             info_file << "\t\tDevice Name: " << device.getInfo<CL_DEVICE_NAME>() << std::endl;
-            info_file << "\t\tDevice Type: " << device.getInfo<CL_DEVICE_TYPE>() ;
+            info_file << "\t\tDevice Type: " << device.getInfo<CL_DEVICE_TYPE>();
             info_file << " (GPU: " << CL_DEVICE_TYPE_GPU << ", CPU: " << CL_DEVICE_TYPE_CPU << ")" << std::endl;
             info_file << "\t\tDevice Vendor: " << device.getInfo<CL_DEVICE_VENDOR>() << std::endl;
             info_file << "\t\tDevice Max Compute Units: " << device.getInfo<CL_DEVICE_MAX_COMPUTE_UNITS>() << std::endl;
@@ -89,15 +89,14 @@ void cl_start(par *par)
 
     cl::Platform default_platform = platforms[0];
     info_file << "Using platform: " << default_platform.getInfo<CL_PLATFORM_NAME>() << "\n";
-    //cout << "getdevice\n";
+    cout << "getdevice\n";
     default_platform.getDevices(CL_DEVICE_TYPE_ALL, &devices);
     cl::Device default_device;
-    //cout << "device_id = " << device_id << endl;
-    // if (device_id==2) device_id=1;
-    // device_id = device_id >= cldevice ? cldevice : device_id;
-    default_device = devices[device_id - 1];
-
-    info_file << "\t\tDevice Name: " << default_device.getInfo<CL_DEVICE_NAME>() << "\ndevice_id =" << device_id << endl;
+    device_id--;
+    cout << "device_id = " << device_id << endl;
+    device_id = (device_id >= cldevice) ? cldevice : device_id; // use dGPU only if available
+    default_device = devices[device_id];
+    info_file << "\t\tDevice Name: " << default_device.getInfo<CL_DEVICE_NAME>() << "device_id =" << device_id << endl;
     info_file << "OpenCL Version: " << default_device.getInfo<CL_DEVICE_VERSION>() << std::endl;
 
     cl::Context context({default_device});

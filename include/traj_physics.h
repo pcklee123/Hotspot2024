@@ -1,28 +1,23 @@
 #define RamDisk // whether to use RamDisk if no ramdisk files will be in temp directory
 #define maxcells 32
-#define cldevice 1 // 0 usually means integrated GPU not used
+#define cldevice 1 // 0 usually means integrated GPU
 // #define sphere        // do hot spot  problem
 #define impl_sphere // do hot spot  problem
 // #define cylinder //do hot rod problem
 #define Temp_e 1e6     // in Kelvin 1e7 ~1keV
 #define Temp_d 1e6     // in Kelvin
-constexpr int f1 = 64; // make bigger to make smaller time steps // 8 is min for sphere slight increas in KE
+constexpr int f1 = 16; // make bigger to make smaller time steps // 8 is min for sphere slight increas in KE
 constexpr int f2 = f1 * 1.2;
 constexpr float incf = 1.2f;        // increment
 constexpr float decf = 1.0f / incf; // decrement factor
 
 constexpr int n_space = 128;                                     // should be 2 to power of n for sater FFT
 constexpr float nback = 1;                                       // background particles per cell - improves stability
-constexpr int n_partd = ((n_space * n_space * n_space * nback * (8-nback))>16000000) ? 16000000 : n_space * n_space * n_space * nback * (8-nback); // must be 2 to power of n
-constexpr int n_parte = n_partd; //GPU ram needed n_space^3 (ne,je, trilinear constants) + n_partd(e,d,interpolated E,B)
+constexpr int n_partd = n_space * n_space * n_space * nback * 2; // must be 2 to power of n
+constexpr int n_parte = n_partd;
 
 constexpr float R_s = n_space / 1; // LPF smoothing radius
 constexpr float r0_f = 16;         //  radius of sphere or cylinder
-
-// The maximum expected E and B fields. If fields go beyond this, the the time step, cell size etc will be wrong. Should adjust and recalculate.
-//  maximum expected magnetic field
-constexpr float Bmax0 = 1.001; // in T earth's magnetic field is of the order of ~ 1e-4 T DPF ~ 100T
-constexpr float Emax0 = 1e5;   // 1e11V/m is approximately interatomic E field -extremely large fields implies poor numerical stability
 
 constexpr float Bz0 = 0.001; // in T, static constant fields
 constexpr float Btheta0 = 0.1; // in T, static constant fields
@@ -31,6 +26,12 @@ constexpr float vz0 = 0.0f;
 constexpr float a0 = 1.0e-5;       // typical dimensions of a cell in m This needs to be smaller than debye length otherwise energy is not conserved if a particle moves across a cell
 constexpr float target_part = 1e9; // 3.5e22 particles per m^3 per torr of ideal gas. 7e22 electrons for 1 torr of deuterium
 constexpr float v0_r = 3.0e5;      // implosion velocity inwards is positive
+
+// The maximum expected E and B fields. If fields go beyond this, the the time step, cell size etc will be wrong. Should adjust and recalculate.
+//  maximum expected magnetic field
+constexpr float Bmax0 = Bz0+Btheta0; // in T earth's magnetic field is of the order of ~ 1e-4 T DPF ~ 100T
+constexpr float Emax0 = Ez0+1;   // 1e11V/m is approximately interatomic E field -extremely large fields implies poor numerical stability
+
 // technical parameters
 
 // Te 1e7,Td 1e7,B 0.1,E 1e8,nback 64, a0 0.1e-3,part 1e10,nspace 32 npartd *4 sphere, r1=1.8
@@ -47,10 +48,10 @@ constexpr int md_me = 60;        // ratio of electron speed/deuteron speed at th
 
 #define Hist_n 512
 // #define Hist_max Temp_e / 11600 * 60 // in eV Kelvin to eV is divide by 11600
-#define Hist_max 10000 // 50keV
-#define trilinon
+#define Hist_max 50000 // 50keV
+#define trilinon_
+#define Uon_ // whether to calculate the electric (V) potential and potential energy (U). Needs Eon to be enabled.
 #define Eon_ // whether to calculate the electric (E) field
-//#define Uon_ // whether to calculate the electric (V) potential and potential energy (U). Needs Eon to be enabled.
 #define UE_field
 #define Bon_ // whether to calculate the magnetic (B) field
 #define UB_field

@@ -1,24 +1,10 @@
 {
     "files.associations": {
+        "Makefile.*": "makefile",
         "cmath": "cpp",
-        "complex": "cpp"
-        "Makefile.*": "makefile"
-    },
-    "makefile.launchConfigurations": [
-        {
-            "cwd": "${workspaceFolder}",
-            "binaryPath": "${workspaceFolder}/TS3.exe",
-            "binaryArgs": []
-        },
-        {
-            "cwd": "d:\\Hotspot2024",
-            "binaryPath": "d:\\Hotspot2024\\TS3",
-            "binaryArgs": []
-        },
-        {
-            "cwd": "c:\\Users\\pcklee123\\OneDrive\\Desktop\\Hotspot2024",
-            "binaryPath": "c:\\Users\\pcklee123\\OneDrive\\Desktop\\Hotspot2024\\TS3",
-            "binaryArgs": []
-        }
-    ]
+        "complex": "cpp",
+        "fstream": "cpp",
+        "iostream": "cpp",
+        "ostream": "cpp"
+    }
 }

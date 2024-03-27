@@ -17,9 +17,9 @@ void get_densityfields(fields *fi, particles *pt, par *par)
       bool temp;
       default_device_g.getInfo(CL_DEVICE_HOST_UNIFIED_MEMORY, &temp);
       if (temp == true)
-         info_file << "Using unified memory: " << temp << " ";
+         info_file << "Using unified memory: " << temp << " \n";
       else
-         info_file << "No unified memory: " << temp << " ";
+         info_file << "No unified memory: " << temp << " \n";
       fastIO = temp;
       fastIO = false;
    }

@@ -35,7 +35,8 @@ Log::Log()
 {
     if (!log_file.is_open())
         log_file.open("log.csv");
-    log_file << setprecision(5);
+    log_file << std::scientific;
+    log_file << setprecision(3);
 }
 
 void Log::newline()
@@ -92,9 +93,9 @@ void log_entry(int i_time, int ntime, int cdt, int total_ncalc[2], double t, par
     logger.write(par->KEtot[1] / par->nt[1]);
     logger.write(par->UE / ntall);
     logger.write(par->UB / ntall);
-    logger.write((par->KEtot[0] + par->KEtot[1] + par->UB + par->UE*0.5) / ntall);
+    logger.write((par->KEtot[0] + par->KEtot[1] + par->UB + par->UE * 0.5) / ntall);
     logger.write(par->Emax);
-    logger.write(par->Bmax*1000);
+    logger.write(par->Bmax * 1000);
     logger.write(par->Ecoef[0] * 1e21);
     logger.write(par->Bcoef[0] * 1e9);
     logger.write(par->Ecoef[1] * 1e21);
@@ -115,42 +116,7 @@ float maxvalf(float *data_1d, int n)
 
 void info(par *par)
 {
-    info_file.open("info.csv");
-    omp_set_nested(true);
-    nthreads = omp_get_max_threads(); // omp_set_num_threads(nthreads);
-
-    cin.tie(NULL); // Fast printing
-    // ios_base::sync_with_stdio(false);
-    cout << std::scientific;
-    cout.precision(1);
-    cerr << std::scientific;
-    cerr.precision(3);
-
-    try
-    {
-        if (!std::filesystem::create_directory(outpath1))
-            par->outpath = outpath1;
-        else if (!std::filesystem::create_directory(outpath2))
-            par->outpath = outpath2;
-    }
-    catch (const std::filesystem::__cxx11::filesystem_error &e)
-    {
-        std::cerr << "Error creating output directory: " << e.what() << '\n';
-        try
-        {
-            if (!std::filesystem::create_directory(outpath2))
-                par->outpath = outpath2;
-        }
-        catch (const std::filesystem::__cxx11::filesystem_error &e)
-        {
-            std::cerr << "Error creating output directory: " << e.what() << '\n';
-        }
-    }
     info_file << "Output dir: " << par->outpath << "\n";
-    cl_set_build_options(par);
-    cl_start(par);
-
-    log_headers();
 
     // print initial conditions
     {
@@ -165,15 +131,14 @@ void info(par *par)
         info_file << "Data extent z, 0," << n_space - 1 << endl;
         info_file << "electron Temp+e = ," << Temp_e << ",K" << endl;
         info_file << "Maximum expected B = ," << par->Bmax << endl;
-        info_file << "time step between prints = ," << par->dt[0] * par->ncalcp[0] * par->nc << ",s" << endl;
-        info_file << "time step between EBcalc = ," << par->dt[0] * par->ncalcp[0] << ",s" << endl;
-        info_file << "dt_e = ," << par->dt[0] << ",s" << endl;
-        info_file << "dt_i = ," << par->dt[1] << ",s" << endl;
         info_file << "cell size =," << a0 << ",m" << endl;
         info_file << "number of particles per cell = ," << n_partd / (n_space * n_space * n_space) << endl;
         info_file << "time for electrons to leave box = ," << n_space * a0 / sqrt(2 * kb * Temp_e / e_mass) << ",s" << endl;
         info_file << "time for ions to leave box = ," << n_space * a0 * md_me / sqrt(2 * kb * Temp_d / e_mass) << ",s" << endl;
-       // info_file << "estimated CPU RAM = ," <<powl(n_space,3)
+        info_file << "time step between prints = ," << par->dt[0] * par->ncalcp[0] * par->nc << ",s" << endl;
+        info_file << "time step between EBcalc = ," << par->dt[0] * par->ncalcp[0] << ",s" << endl;
+        info_file << "dt_e = ," << par->dt[0] << ",s" << endl;
+        info_file << "dt_i = ," << par->dt[1] << ",s" << endl;
     }
 }
 
