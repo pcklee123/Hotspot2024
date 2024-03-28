@@ -9,6 +9,7 @@ unsigned int n_space_div[3] = {n_space_divx, n_space_divy, n_space_divz};
 unsigned int n_space_div2[3] = {n_space_divx2, n_space_divy2, n_space_divz2};
 par par1;
 par *par = &par1;
+int nt0prev;
 // particles particl1;
 // particles *pt = &particl1; //= alloc_particles( par);
 //  string outpath;
@@ -102,6 +103,7 @@ int main()
     // cout << "savefiles" << endl;
     info(par); // printout initial info.csv file re do this with updated info
     save_files(i_time, t, fi, pt, par);
+     nt0prev= par->nt[0];
     //    cout << "logentry" << endl;
     log_headers();                             // log file start with headers
     log_entry(0, 0, cdt, total_ncalc, t, par); // Write everything to log
@@ -132,6 +134,10 @@ int main()
         timer.mark();                       //      cout << "savefiles" << endl;
         save_files(i_time, t, fi, pt, par); // print out all files for paraview
         //        cout << "logentry" << endl;
+        if(par->nt[0]>nt0prev)
+        {
+            cout << "make cells bigger" << endl;
+        }
         log_entry(i_time, 0, cdt, total_ncalc, t, par); // cout<<"log entry done"<<endl;
         cout << "print data: " << timer.elapsed() << "s (no. of electron time steps calculated: " << total_ncalc[0] << ")\n";
     }
