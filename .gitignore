@@ -5,3 +5,5 @@ obj_debug/*.o
 *.exe
 TS3.
 ~.*
+*.vti
+*.vtp
