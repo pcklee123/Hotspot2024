@@ -78,6 +78,7 @@ void generate_rand_sphere(particles *pt, par *par)
         {
 #ifdef Weibull
             float r = gsl_ran_weibull(rng, r0[p], weibullb);
+            while (fabs(r)>=((float)n_space/4.0*a0)) r = gsl_ran_weibull(rng, r0[p], weibullb);
 #else
             float r = r0 * pow(gsl_ran_flat(rng, 0, 1), 0.3333333333);
             // float r = gsl_ran_gaussian(rng, r0);

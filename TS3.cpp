@@ -103,7 +103,7 @@ int main()
     // cout << "savefiles" << endl;
     info(par); // printout initial info.csv file re do this with updated info
     save_files(i_time, t, fi, pt, par);
-     nt0prev= par->nt[0];
+    nt0prev = par->nt[0];
     //    cout << "logentry" << endl;
     log_headers();                             // log file start with headers
     log_entry(0, 0, cdt, total_ncalc, t, par); // Write everything to log
@@ -134,9 +134,10 @@ int main()
         timer.mark();                       //      cout << "savefiles" << endl;
         save_files(i_time, t, fi, pt, par); // print out all files for paraview
         //        cout << "logentry" << endl;
-        if(par->nt[0]>nt0prev)
+        if (par->nt[0] > nt0prev)
         {
-            cout << "make cells bigger" << endl;
+            cout << "make cells bigger" << par->nt[0] << nt0prev << endl;
+            nt0prev = par->nt[0];
         }
         log_entry(i_time, 0, cdt, total_ncalc, t, par); // cout<<"log entry done"<<endl;
         cout << "print data: " << timer.elapsed() << "s (no. of electron time steps calculated: " << total_ncalc[0] << ")\n";
