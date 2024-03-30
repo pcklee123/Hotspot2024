@@ -12,13 +12,13 @@ constexpr int f2 = f1 * 1.2;
 constexpr float incf = 1.2f;        // increment
 constexpr float decf = 1.0f / incf; // decrement factor
 
-constexpr int n_space = 128;                                       // should be 2 to power of n for sater FFT
+constexpr int n_space = 64;                                       // should be 2 to power of n for sater FFT
 constexpr float nback = 1;                                        // background particles per cell - improves stability
 constexpr int n_partd = n_space * n_space * n_space * nback * 16; // must be 2 to power of n
 constexpr int n_parte = n_partd;
 
 constexpr float R_s = n_space / 1;     // LPF smoothing radius
-constexpr float r0_f[3] = {16, 4, 16}; //  radius of sphere or cylinder (electron, ion, plasma)
+constexpr float r0_f[3] = {9, 8, 16}; //  radius of sphere or cylinder (electron, ion, plasma)
 
 constexpr float Bz0 = 0.001;   // in T, static constant fields
 constexpr float Btheta0 = 0.1; // in T, static constant fields
@@ -26,8 +26,8 @@ constexpr float Ez0 = 0.0f;    // in V/m
 constexpr float vz0 = 0.0f;
 constexpr float a0 = 5.0e-6; // typical dimensions of a cell in m This needs to be smaller than debye length otherwise energy is not conserved if a particle moves across a cell
 constexpr float a0_ff = 1.1;
-constexpr float target_part = 1e9; // 3.5e22 particles per m^3 per torr of ideal gas. 7e22 electrons for 1 torr of deuterium
-constexpr float v0_r = -3e5;       // initial directed radial velocity outwards is positive
+constexpr float target_part = 1e11; // 3.5e22 particles per m^3 per torr of ideal gas. 7e22 electrons for 1 torr of deuterium
+constexpr float v0_r = 0;       // initial directed radial velocity outwards is positive
 
 // The maximum expected E and B fields. If fields go beyond this, the the time step, cell size etc will be wrong. Should adjust and recalculate.
 //  maximum expected magnetic field

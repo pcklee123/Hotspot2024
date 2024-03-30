@@ -144,13 +144,12 @@ int calcEBV(fields *fi, par *par)
     static unsigned int *n_space_div2;
     if (first)
     { // allocate and initialize to 0
-        auto precalc_r2_base = new float[N2][N1][N0];
-        auto precalc_r3_base = new float[2][3][N2][N1][N0];
 
         int dims[3] = {N0, N1, N2};
-
+        auto precalc_r3_base = new float[2][3][N2][N1][N0];
         fi->precalc_r3 = (reinterpret_cast<float *>(precalc_r3));
 #ifdef Uon_ // similar arrays for U, but kept separately in one ifdef
+        auto precalc_r2_base = new float[N2][N1][N0];
         fi->precalc_r2 = (reinterpret_cast<float *>(precalc_r2));
 #endif
 
@@ -268,7 +267,10 @@ int calcEBV(fields *fi, par *par)
                     }
                 }*/
         delete[] precalc_r3_base;
+#ifdef Uon_
         delete[] precalc_r2_base;
+#endif
+
         first = 0;
         //        cout<<"precalc done\n";
     }

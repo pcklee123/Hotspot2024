@@ -162,15 +162,6 @@ void save_vtp(string filename, int i, uint64_t num, double t, int p, particles *
   for (int nprt = 0; nprt < n_output_part; nprt++)
   {
     int n = nr[nprt];
-   /* if (nprtd == 0 && n >= par->n_part[p])
-    {
-      //  KE[p][nprt] = 0;
-      //  posp[p][nprt][0] = 0;
-      //  posp[p][nprt][1] = 0;
-      //  posp[p][nprt][2] = 0;
-      continue;
-    }
-    */
     float KE, dpos, dpos2 = 0;
     dpos = (pt->pos1x[p][n] - pt->pos0x[p][n]);
     dpos *= dpos;
