@@ -4,28 +4,29 @@
 #define sphere     // do hot spot  problem
 // #define cylinder //do hot rod problem
 #define Weibull
-constexpr double weibullb = 3; // b factor for weibull. larger means closer to a shell. ~1 means filled more at the center.
-#define Temp_e 1e6     // in Kelvin 1e7 ~1keV
-#define Temp_d 1e6     // in Kelvin
-constexpr int f1 = 64; // make bigger to make smaller time steps // 8 is min for sphere slight increas in KE
+constexpr double weibullb = 5; // b factor for weibull. larger means closer to a shell. ~1 means filled more at the center.
+#define Temp_e 1e6             // in Kelvin 1e7 ~1keV
+#define Temp_d 1e6             // in Kelvin
+constexpr int f1 = 8;          // make bigger to make smaller time steps // 8 is min for sphere slight increas in KE
 constexpr int f2 = f1 * 1.2;
 constexpr float incf = 1.2f;        // increment
 constexpr float decf = 1.0f / incf; // decrement factor
 
-constexpr int n_space = 128;                                     // should be 2 to power of n for sater FFT
-constexpr float nback = 1;                                       // background particles per cell - improves stability
+constexpr int n_space = 128;                                       // should be 2 to power of n for sater FFT
+constexpr float nback = 1;                                        // background particles per cell - improves stability
 constexpr int n_partd = n_space * n_space * n_space * nback * 16; // must be 2 to power of n
 constexpr int n_parte = n_partd;
 
-constexpr float R_s = n_space / 1; // LPF smoothing radius
-constexpr float r0_f[3] = {16,1,16};         //  radius of sphere or cylinder (electron, ion, plasma)
-  
+constexpr float R_s = n_space / 1;     // LPF smoothing radius
+constexpr float r0_f[3] = {16, 4, 16}; //  radius of sphere or cylinder (electron, ion, plasma)
+
 constexpr float Bz0 = 0.001;   // in T, static constant fields
 constexpr float Btheta0 = 0.1; // in T, static constant fields
 constexpr float Ez0 = 0.0f;    // in V/m
 constexpr float vz0 = 0.0f;
-constexpr float a0 = 5.0e-6;       // typical dimensions of a cell in m This needs to be smaller than debye length otherwise energy is not conserved if a particle moves across a cell
-constexpr float target_part = 3e8; // 3.5e22 particles per m^3 per torr of ideal gas. 7e22 electrons for 1 torr of deuterium
+constexpr float a0 = 5.0e-6; // typical dimensions of a cell in m This needs to be smaller than debye length otherwise energy is not conserved if a particle moves across a cell
+constexpr float a0_ff = 1.1;
+constexpr float target_part = 1e9; // 3.5e22 particles per m^3 per torr of ideal gas. 7e22 electrons for 1 torr of deuterium
 constexpr float v0_r = -3e5;       // initial directed radial velocity outwards is positive
 
 // The maximum expected E and B fields. If fields go beyond this, the the time step, cell size etc will be wrong. Should adjust and recalculate.
@@ -51,8 +52,9 @@ constexpr int md_me = 60;        // ratio of electron speed/deuteron speed at th
 // #define Hist_max Temp_e / 11600 * 60 // in eV Kelvin to eV is divide by 11600
 #define Hist_max 50000 // 50keV
 #define trilinon_
-#define Uon_ // whether to calculate the electric (V) potential and potential energy (U). Needs Eon to be enabled.
+
 #define Eon_ // whether to calculate the electric (E) field
+// #define Uon_ // whether to calculate the electric (V) potential and potential energy (U). Needs Eon to be enabled.
 #define UE_field
 #define Bon_ // whether to calculate the magnetic (B) field
 #define UB_field
@@ -76,6 +78,11 @@ constexpr int n_space_divy2 = n_space_divy * 2;
 constexpr int n_space_divz2 = n_space_divz * 2;
 constexpr int n_cells = n_space_divx * n_space_divy * n_space_divz;
 constexpr int n_cells8 = n_cells * 8;
+constexpr size_t N0 = n_space_divx2, N1 = n_space_divy2, N2 = n_space_divz2,
+                 N0N1 = N0 * N1, N0N1_2 = N0N1 / 2,
+                 N2_c = N2 / 2 + 1; // Dimension to store the complex data, as required by fftw (from their docs)
+constexpr size_t n_cells4 = N0 * N1 * N2_c;
+
 // physical "constants"
 constexpr float kb = 1.38064852e-23;       // m^2kss^-2K-1
 constexpr float e_charge = 1.60217662e-19; // C
@@ -90,6 +97,7 @@ constexpr float u0 = 4e-7 * pi;
 constexpr int ncalc0[2] = {md_me, 1};
 constexpr int qs[2] = {-1, 1}; // Sign of charge
 constexpr int mp[2] = {1, 1835 * 2};
+
 struct par // useful parameters
 {
     float dt[2]; // time step electron,deuteron
@@ -120,6 +128,7 @@ struct par // useful parameters
     unsigned int n_partp[2] = {n_parte, n_partd}; // 0,number of "super" electrons, electron +deuteriom ions, total
     unsigned int cl_align = 4096;
     std::string outpath;
+    float a0_f = 1.0; // factor to scale cell size
 };
 
 struct particles // particles
@@ -158,4 +167,9 @@ struct fields                                              // particles
     int (*cji)[n_space_divz][n_space_divy][n_space_divx]; //[3][z][y][x]
     int (*cj_centeri)[3][n_space_divz][n_space_divy][n_space_divx];
     float (*jc)[n_space_divz][n_space_divy][n_space_divx];
+    //  pre-calculate 1/ r3 to make it faster to calculate electric and magnetic fields
+    float *precalc_r3;
+#ifdef Uon_ // similar arrays for U, but kept separately in one ifdef
+    float *precalc_r2;
+#endif
 };

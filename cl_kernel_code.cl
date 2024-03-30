@@ -1,30 +1,30 @@
 // Preprocessor things for compilation of tnp
-#ifndef XLOW
-#define XLOW 0.f
+#ifndef XLOWo
+#define XLOWo 0.f
 #endif
-#ifndef YLOW
-#define YLOW 0.f
+#ifndef YLOWo
+#define YLOWo 0.f
 #endif
-#ifndef ZLOW
-#define ZLOW 0.f
+#ifndef ZLOWo
+#define ZLOWo 0.f
 #endif
-#ifndef XHIGH
-#define XHIGH 0.f
+#ifndef XHIGHo
+#define XHIGHo 0.f
 #endif
-#ifndef YHIGH
-#define YHIGH 0.f
+#ifndef YHIGHo
+#define YHIGHo 0.f
 #endif
-#ifndef ZHIGH
-#define ZHIGH 0.f
+#ifndef ZHIGHo
+#define ZHIGHo 0.f
 #endif
-#ifndef DX
-#define DX 0
+#ifndef DXo
+#define DXo 0
 #endif
-#ifndef DY
-#define DY 0
+#ifndef DYo
+#define DYo 0
 #endif
-#ifndef DZ
-#define DZ 0
+#ifndef DZo
+#define DZo 0
 #endif
 #ifndef NX
 #define NX 0
@@ -87,7 +87,7 @@ void kernel tnp_k_implicit(global const float8 *a1,
                            global float *z1, // current pos
                            float Bcoef,
                            float Ecoef, // Bcoeff, Ecoeff
-                           const unsigned int n,
+                           float a0_f, const unsigned int n,
                            const unsigned int ncalc, // n, ncalc
                            global int *q) {
 
@@ -101,10 +101,19 @@ void kernel tnp_k_implicit(global const float8 *a1,
   float8 store0, store1, store2, store3, store4, store5;
   const float Bcoeff = Bcoef / r1;
   const float Ecoeff = Ecoef / r1;
-  const float XL = XLOW + 1.5f * DX, YL = YLOW + 1.5f * DY,
-              ZL = ZLOW + 1.5f * DZ;
-  const float XH = XHIGH - 1.5f * DX, YH = YHIGH - 1.5f * DY,
-              ZH = ZHIGH - 1.5f * DZ;
+  const float DX = DXo * a0_f, DY = DYo * a0_f, DZ = DZo * a0_f;
+  const float XLOW = XLOWo * a0_f, YLOW = YLOWo * a0_f, ZLOW = ZLOWo * a0_f;
+  const float XHIGH = XHIGHo * a0_f, YHIGH = YHIGHo * a0_f,
+              ZHIGH = ZHIGHo * a0_f;
+  const float XL = (XLOW + 1.5f * DX), YL = (YLOW + 1.5f * DY),
+              ZL = (ZLOW + 1.5f * DZ);
+  const float XH = (XHIGH - 1.5f * DX), YH = (YHIGH - 1.5f * DY),
+              ZH = (ZHIGH - 1.5f * DZ);
+  /*
+const float XL = XLOW + 1.5f * DX, YL = YLOW + 1.5f * DY,
+  ZL = ZLOW + 1.5f * DZ;
+const float XH = XHIGH - 1.5f * DX, YH = YHIGH - 1.5f * DY,
+  ZH = ZHIGH - 1.5f * DZ;*/
   const float8 ones = (float8)(1, 1, 1, 1, 1, 1, 1, 1);
   for (int t = 0; t < ncalc; t++) {
 
@@ -115,7 +124,7 @@ void kernel tnp_k_implicit(global const float8 *a1,
     uint idx =
         ((uint)((z - ZLOW) / DZ) * NZ + (uint)((y - YLOW) / DY)) * NY +
         (uint)((x - XLOW) / DX); // round down the cells - this is intentional
-    idx *= 3; // find out the index to which cell the particle is in. 
+    idx *= 3; // find out the index to which cell the particle is in.
     pos = (float8)(1.f, x, y, z, xy, xz, yz, xyz);
     // Is there no better way to do this? Why does float8 not have dot()?
     if (prev_idx != idx) {
@@ -128,7 +137,7 @@ void kernel tnp_k_implicit(global const float8 *a1,
       prev_idx = idx;
     }
     temp = store0 * pos;
-    //get interpolated Electric field at particle position
+    // get interpolated Electric field at particle position
     float xE = temp.s0 + temp.s1 + temp.s2 + temp.s3 + temp.s4 + temp.s5 +
                temp.s6 + temp.s7;
     temp = store1 * pos;
@@ -137,7 +146,7 @@ void kernel tnp_k_implicit(global const float8 *a1,
     temp = store2 * pos;
     float zE = temp.s0 + temp.s1 + temp.s2 + temp.s3 + temp.s4 + temp.s5 +
                temp.s6 + temp.s7;
-    //get interpolated Magnetic field at particle position
+    // get interpolated Magnetic field at particle position
     temp = store3 * pos;
     float xP = temp.s0 + temp.s1 + temp.s2 + temp.s3 + temp.s4 + temp.s5 +
                temp.s6 + temp.s7;
@@ -213,7 +222,7 @@ void kernel tnp_k_implicitz(global const float8 *a1,
                             global float *z1, // current pos
                             float Bcoef,
                             float Ecoef, // Bcoeff, Ecoeff
-                            const unsigned int n,
+                            float a0_f, const unsigned int n,
                             const unsigned int ncalc, // n, ncalc
                             global int *q) {
 
@@ -227,11 +236,21 @@ void kernel tnp_k_implicitz(global const float8 *a1,
   float8 store0, store1, store2, store3, store4, store5;
   const float Bcoeff = Bcoef / r1;
   const float Ecoeff = Ecoef / r1;
-  const float XL = XLOW + 1.5f * DX, YL = YLOW + 1.5f * DY,
-              ZL = ZLOW + 1.5f * DZ;
-  const float XH = XHIGH - 1.5f * DX, YH = YHIGH - 1.5f * DY,
-              ZH = ZHIGH - 1.5f * DZ;
-  const float ZDZ = ZH - ZL - DZ/10;
+  const float DX = DXo * a0_f, DY = DYo * a0_f, DZ = DZo * a0_f;
+  const float XLOW = XLOWo * a0_f, YLOW = YLOWo * a0_f, ZLOW = ZLOWo * a0_f;
+  const float XHIGH = XHIGHo * a0_f, YHIGH = YHIGHo * a0_f,
+              ZHIGH = ZHIGHo * a0_f;
+  const float XL = (XLOW + 1.5f * DX), YL = (YLOW + 1.5f * DY),
+              ZL = (ZLOW + 1.5f * DZ);
+  const float XH = (XHIGH - 1.5f * DX), YH = (YHIGH - 1.5f * DY),
+              ZH = (ZHIGH - 1.5f * DZ);
+  /*
+const float XL = XLOW + 1.5f * DX, YL = YLOW + 1.5f * DY,
+  ZL = ZLOW + 1.5f * DZ;
+const float XH = XHIGH - 1.5f * DX, YH = YHIGH - 1.5f * DY,
+  ZH = ZHIGH - 1.5f * DZ;
+*/
+  const float ZDZ = ZH - ZL - DZ / 10;
   const float8 ones = (float8)(1, 1, 1, 1, 1, 1, 1, 1);
   for (int t = 0; t < ncalc; t++) {
 
@@ -335,11 +354,17 @@ void kernel density(global const float *x0, global const float *y0,
                     global const float *z0, // prev pos
                     global const float *x1, global const float *y1,
                     global const float *z1, // current pos
-                    global int *npi, global int *cji, global int *q) {
-  const float XL = XLOW + 1.5f * DX, YL = YLOW + 1.5f * DY,
-              ZL = ZLOW + 1.5f * DZ;
-  const float XH = XHIGH - 1.5f * DX, YH = YHIGH - 1.5f * DY,
-              ZH = ZHIGH - 1.5f * DZ;
+                    global int *npi, global int *cji, global int *q,
+                    float a0_f) {
+  const float DX = DXo * a0_f, DY = DYo * a0_f, DZ = DZo * a0_f;
+  const float XLOW = XLOWo * a0_f, YLOW = YLOWo * a0_f, ZLOW = ZLOWo * a0_f;
+  const float XHIGH = XHIGHo * a0_f, YHIGH = YHIGHo * a0_f,
+              ZHIGH = ZHIGHo * a0_f;
+  const float XL = (XLOW + 1.5f * DX), YL = (YLOW + 1.5f * DY),
+              ZL = (ZLOW + 1.5f * DZ);
+  const float XH = (XHIGH - 1.5f * DX), YH = (YHIGH - 1.5f * DY),
+              ZH = (ZHIGH - 1.5f * DZ);
+
   const float invDX = 1.0f / DX, invDY = 1.0f / DY, invDZ = 1.0f / DZ;
   int8 f; // = (1, 0, 0, 0, 0, 0, 0, 0);
   uint id = get_global_id(0);
@@ -430,9 +455,9 @@ void kernel density(global const float *x0, global const float *y0,
 }
 
 void kernel df(global float *np, global const int *npi, global float *currentj,
-               global const int *cji) {
-  float dx = DX * 1.1920929e-7f, dy = DY * 1.1920929e-7f,
-        dz = DZ * 1.1920929e-7f;
+               global const int *cji, float a0_f) {
+  float dx = DXo * a0_f * 1.1920929e-7f, dy = DYo * a0_f * 1.1920929e-7f,
+        dz = DZo * a0_f * 1.1920929e-7f;
   float dn = 0.0078125f;
   uint idx00 = get_global_id(0);
   uint idx01 = idx00 + NZ * NY * NX;
@@ -445,9 +470,14 @@ void kernel df(global float *np, global const int *npi, global float *currentj,
 
 void kernel trilin_k(
     global float8 *Ea, // E, B coeff Ea[k][j][i][3][8] according to tnp_k
-    global const float *E_flat // E or B 3 components per cell E[3][k][j][i]
-) {
+    global const float *E_flat, // E or B 3 components per cell E[3][k][j][i]
+    float a0_f) {
   // return;
+  const float DX = DXo * a0_f, DY = DYo * a0_f, DZ = DZo * a0_f;
+  const float XLOW = XLOWo * a0_f, YLOW = YLOWo * a0_f, ZLOW = ZLOWo * a0_f;
+  const float XHIGH = XHIGHo * a0_f, YHIGH = YHIGHo * a0_f,
+              ZHIGH = ZHIGHo * a0_f;
+
   const float dV = DX * DY * DZ;
   const float dV1 = 1.0f / dV;
   const float dx2 = DX * DX;

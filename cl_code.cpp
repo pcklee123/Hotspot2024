@@ -19,15 +19,15 @@ void add_build_option(string name, float param)
 
 void cl_set_build_options(par *par)
 {
-    add_build_option("XLOW", par->posL[0]);
-    add_build_option("YLOW", par->posL[1]);
-    add_build_option("ZLOW", par->posL[2]);
-    add_build_option("XHIGH", par->posH[0]);
-    add_build_option("YHIGH", par->posH[1]);
-    add_build_option("ZHIGH", par->posH[2]);
-    add_build_option("DX", par->dd[0]);
-    add_build_option("DY", par->dd[1]);
-    add_build_option("DZ", par->dd[2]);
+    add_build_option("XLOWo", par->posL[0]);
+    add_build_option("YLOWo", par->posL[1]);
+    add_build_option("ZLOWo", par->posL[2]);
+    add_build_option("XHIGHo", par->posH[0]);
+    add_build_option("YHIGHo", par->posH[1]);
+    add_build_option("ZHIGHo", par->posH[2]);
+    add_build_option("DXo", par->dd[0]);
+    add_build_option("DYo", par->dd[1]);
+    add_build_option("DZo", par->dd[2]);
     add_build_option("NX", (int)par->n_space_div[0]);
     add_build_option("NY", (int)par->n_space_div[1]);
     add_build_option("NZ", (int)par->n_space_div[2]);

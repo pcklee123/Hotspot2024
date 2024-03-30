@@ -10,7 +10,7 @@ void tnp(fields *fi, particles *pt, par *par)
    unsigned int n_cellsf = n_cells * sizeof(float);
    static bool fastIO;
    static bool first = true;
- //  static int ncalc_e = 0, ncalc_i = 0;
+   //  static int ncalc_e = 0, ncalc_i = 0;
 
    if (first)
    { // get whether or not we are on an iGPU/similar, and can use certain memmory optimizations
@@ -64,7 +64,7 @@ void tnp(fields *fi, particles *pt, par *par)
                                                                                                                                 // */
    // cout << "command q" << endl; //  create queue to which we will push commands for the device.
    static cl::CommandQueue queue(context_g, default_device_g);
-#ifdef sphere 
+#ifdef sphere
    cl::Kernel kernel_tnp = cl::Kernel(program_g, "tnp_k_implicit"); // select the kernel program to run
 #endif
 #ifdef impl_sphere
@@ -76,10 +76,10 @@ void tnp(fields *fi, particles *pt, par *par)
    cl::Kernel kernel_trilin = cl::Kernel(program_g, "trilin_k"); // select the kernel program to run
    cl::Kernel kernel_density = cl::Kernel(program_g, "density"); // select the kernel program to run
    cl::Kernel kernel_df = cl::Kernel(program_g, "df");           // select the kernel program to run
-  // ncalc_e = par->ncalcp[0];
-  // ncalc_i = par->ncalcp[1];
+                                                                 // ncalc_e = par->ncalcp[0];
+                                                                 // ncalc_i = par->ncalcp[1];
 #ifdef BFon_
-//check minus sign
+   // check minus sign
    par->Bcoef[0] = -(float)qs[0] * e_charge_mass / (float)mp[0] * par->dt[0] * 0.5f;
    par->Bcoef[1] = -(float)qs[1] * e_charge_mass / (float)mp[1] * par->dt[1] * 0.5f;
 #else
@@ -155,31 +155,33 @@ void tnp(fields *fi, particles *pt, par *par)
       kernel_tnp.setArg(7, buff_z1_e);                      // z1
       kernel_tnp.setArg(8, sizeof(float), &par->Bcoef[0]);  // Bconst
       kernel_tnp.setArg(9, sizeof(float), &par->Ecoef[0]);  // Econst
-      kernel_tnp.setArg(10, sizeof(int), &par->n_partp[0]); // npart
-      kernel_tnp.setArg(11, sizeof(int), &par->ncalcp[0]);         // ncalc
-      kernel_tnp.setArg(12, buff_q_e);                      // q
+      kernel_tnp.setArg(10, sizeof(float), &par->a0_f);     // scale factor
+      kernel_tnp.setArg(11, sizeof(int), &par->n_partp[0]); // npart
+      kernel_tnp.setArg(12, sizeof(int), &par->ncalcp[0]);  // ncalc
+      kernel_tnp.setArg(13, buff_q_e);                      // q
 
       // cout << "run kernel for electron" << endl;
       queue.enqueueNDRangeKernel(kernel_tnp, cl::NullRange, cl::NDRange(n0), cl::NullRange);
 
-      kernel_density.setArg(0, buff_x0_e); // x0
-      kernel_density.setArg(1, buff_y0_e); // y0
-      kernel_density.setArg(2, buff_z0_e); // z0
-      kernel_density.setArg(3, buff_x1_e); // x1
-      kernel_density.setArg(4, buff_y1_e); // y1
-      kernel_density.setArg(5, buff_z1_e); // z1
-      kernel_density.setArg(6, buff_npi);  // np integer temp
-      kernel_density.setArg(7, buff_cji);  // current
-      kernel_density.setArg(8, buff_q_e);  // q
-
-      queue.finish(); // wait for the end of the tnp electron to finish before starting density electron
+      kernel_density.setArg(0, buff_x0_e);                 // x0
+      kernel_density.setArg(1, buff_y0_e);                 // y0
+      kernel_density.setArg(2, buff_z0_e);                 // z0
+      kernel_density.setArg(3, buff_x1_e);                 // x1
+      kernel_density.setArg(4, buff_y1_e);                 // y1
+      kernel_density.setArg(5, buff_z1_e);                 // z1
+      kernel_density.setArg(6, buff_npi);                  // np integer temp
+      kernel_density.setArg(7, buff_cji);                  // current
+      kernel_density.setArg(8, buff_q_e);                  // q
+      kernel_density.setArg(9, sizeof(float), &par->a0_f); // scale factor
+      queue.finish();                                      // wait for the end of the tnp electron to finish before starting density electron
       // run the kernel tyo get electron density
       queue.enqueueNDRangeKernel(kernel_density, cl::NullRange, cl::NDRange(n0), cl::NullRange);
 
-      kernel_df.setArg(0, buff_np_e);       // np
-      kernel_df.setArg(1, buff_npi);        // npt
-      kernel_df.setArg(2, buff_currentj_e); // current
-      kernel_df.setArg(3, buff_cji);        // current
+      kernel_df.setArg(0, buff_np_e);                 // np
+      kernel_df.setArg(1, buff_npi);                  // npt
+      kernel_df.setArg(2, buff_currentj_e);           // current
+      kernel_df.setArg(3, buff_cji);                  // current
+      kernel_df.setArg(4, sizeof(float), &par->a0_f); // scale factor
       queue.enqueueNDRangeKernel(kernel_df, cl::NullRange, cl::NDRange(n_cells), cl::NullRange);
       queue.finish();
 
@@ -194,9 +196,10 @@ void tnp(fields *fi, particles *pt, par *par)
       kernel_tnp.setArg(7, buff_z1_i);                      // z1
       kernel_tnp.setArg(8, sizeof(float), &par->Bcoef[1]);  // Bconst
       kernel_tnp.setArg(9, sizeof(float), &par->Ecoef[1]);  // Econst
-      kernel_tnp.setArg(10, sizeof(int), &par->n_partp[1]); // npart
-      kernel_tnp.setArg(11, sizeof(int), &par->ncalcp[1]);         //
-      kernel_tnp.setArg(12, buff_q_i);                      // q
+      kernel_tnp.setArg(10, sizeof(float), &par->a0_f);     // scale factor
+      kernel_tnp.setArg(11, sizeof(int), &par->n_partp[1]); // npart
+      kernel_tnp.setArg(12, sizeof(int), &par->ncalcp[1]);  //
+      kernel_tnp.setArg(13, buff_q_i);                      // q
 
       // cout << "run kernel for ions" << endl;
       queue.enqueueNDRangeKernel(kernel_tnp, cl::NullRange, cl::NDRange(n0), cl::NullRange);
@@ -206,25 +209,27 @@ void tnp(fields *fi, particles *pt, par *par)
 
       queue.finish(); // wait for the tnp for ions to finish before
 
-      kernel_density.setArg(0, buff_x0_i); // x0
-      kernel_density.setArg(1, buff_y0_i); // y0
-      kernel_density.setArg(2, buff_z0_i); // z0
-      kernel_density.setArg(3, buff_x1_i); // x1
-      kernel_density.setArg(4, buff_y1_i); // y1
-      kernel_density.setArg(5, buff_z1_i); // z1
-      kernel_density.setArg(6, buff_npi);  // np temp integer
-      kernel_density.setArg(7, buff_cji);  // current
-      kernel_density.setArg(8, buff_q_i);  // q
+      kernel_density.setArg(0, buff_x0_i);                 // x0
+      kernel_density.setArg(1, buff_y0_i);                 // y0
+      kernel_density.setArg(2, buff_z0_i);                 // z0
+      kernel_density.setArg(3, buff_x1_i);                 // x1
+      kernel_density.setArg(4, buff_y1_i);                 // y1
+      kernel_density.setArg(5, buff_z1_i);                 // z1
+      kernel_density.setArg(6, buff_npi);                  // np temp integer
+      kernel_density.setArg(7, buff_cji);                  // current
+      kernel_density.setArg(8, buff_q_i);                  // q
+      kernel_density.setArg(9, sizeof(float), &par->a0_f); // scale factor
 
       // cout << "run kernel for electron" << endl;
       // wait for the end of the tnp ion to finish before starting density ion
       // run the kernel to get ion density
       queue.enqueueNDRangeKernel(kernel_density, cl::NullRange, cl::NDRange(n0), cl::NullRange);
       queue.finish();
-      kernel_df.setArg(0, buff_np_i);       // np ion
-      kernel_df.setArg(1, buff_npi);        // np ion temp integer
-      kernel_df.setArg(2, buff_currentj_i); // current
-      kernel_df.setArg(3, buff_cji);        // current
+      kernel_df.setArg(0, buff_np_i);                 // np ion
+      kernel_df.setArg(1, buff_npi);                  // np ion temp integer
+      kernel_df.setArg(2, buff_currentj_i);           // current
+      kernel_df.setArg(3, buff_cji);                  // current
+      kernel_df.setArg(4, sizeof(float), &par->a0_f); // scale factor
       queue.enqueueNDRangeKernel(kernel_df, cl::NullRange, cl::NDRange(n_cells), cl::NullRange);
       queue.finish();
       // read result arrays from the device to main memory

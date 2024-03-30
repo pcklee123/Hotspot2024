@@ -9,7 +9,7 @@ unsigned int n_space_div[3] = {n_space_divx, n_space_divy, n_space_divz};
 unsigned int n_space_div2[3] = {n_space_divx2, n_space_divy2, n_space_divz2};
 par par1;
 par *par = &par1;
-int nt0prev;
+float nt0prev;
 // particles particl1;
 // particles *pt = &particl1; //= alloc_particles( par);
 //  string outpath;
@@ -103,11 +103,12 @@ int main()
     // cout << "savefiles" << endl;
     info(par); // printout initial info.csv file re do this with updated info
     save_files(i_time, t, fi, pt, par);
-    nt0prev = par->nt[0];
+
     //    cout << "logentry" << endl;
     log_headers();                             // log file start with headers
     log_entry(0, 0, cdt, total_ncalc, t, par); // Write everything to log
-
+    nt0prev = par->nt[0];
+    cout << par->nt[0] << " " << nt0prev << endl;
 #pragma omp barrier
 
     cout << "print data: " << timer.elapsed() << "s (no. of electron time steps calculated: " << 0 << ")\n";
@@ -124,21 +125,59 @@ int main()
 
         cout << i_time << "." << par->nc << " t = " << t << "(compute_time = " << timer.elapsed() << "s) : ";
 
+
+        timer.mark();                       //      cout << "savefiles" << endl;
+        save_files(i_time, t, fi, pt, par); // print out all files for paraview
+        //        cout << "logentry" << endl;
+        if (par->nt[0] > nt0prev)
+        {
+            par->a0_f *= a0_ff; // Lowest position of cells (x,y,z)
+            par->posL[0] *= a0_ff;
+            par->posL[1] *= a0_ff;
+            par->posL[2] *= a0_ff;
+            par->posH[0] *= a0_ff; // Highes position of cells (x,y,z)
+            par->posH[1] *= a0_ff;
+            par->posH[2] *= a0_ff;
+            par->posL_1[0] *= a0_ff; // Lowest position of cells (x,y,z)
+            par->posL_1[1] *= a0_ff;
+            par->posL_1[2] *= a0_ff;
+            par->posH_1[0] *= a0_ff; // Highes position of cells (x,y,z)
+            par->posH_1[1] *= a0_ff;
+            par->posH_1[2] *= a0_ff;
+            par->posL_15[0] *= a0_ff; // Lowest position of cells (x,y,z)
+            par->posL_15[1] *= a0_ff;
+            par->posL_15[2] *= a0_ff;
+            par->posH_15[0] *= a0_ff; // Highes position of cells (x,y,z)
+            par->posH_15[1] *= a0_ff;
+            par->posH_15[2] *= a0_ff;
+            par->posL2[0] *= a0_ff; // Lowest position of cells (x,y,z)
+            par->posL2[1] *= a0_ff;
+            par->posL2[2] *= a0_ff;
+            //    par->posH_2[0] *= a0_ff; // Highes position of cells (x,y,z)
+            //   par->posH_2[1] *= a0_ff;
+            //   par->posH_2[2] *= a0_ff;
+            par->dd[0] *= a0_ff;
+            par->dd[1] *= a0_ff;
+            par->dd[2] *= a0_ff;
+
+            const size_t n_cells4 = n_space_divx2 * n_space_divy2 * (n_space_divz2 / 2 + 1); // NOTE: This is not actually n_cells * 4, there is an additional buffer that fftw requires.
+#pragma omp parallel for simd num_threads(nthreads)
+            for (unsigned long i = 0; i < n_cells4 * 3 * 2; i++)
+                (reinterpret_cast<float *>(fi->precalc_r3))[i] *= 1 / (a0_ff * a0_ff);
 #ifdef Uon_
+            for (unsigned long i = 0; i < n_cells4 * 2; i++)
+                (reinterpret_cast<float *>(fi->precalc_r2))[i] *= 1 / a0_ff;
+#endif
+            cout << "make cells bigger " << par->nt[0] << " " << nt0prev << ",ao_f = " << par->a0_f << endl;
+            nt0prev = par->nt[0];
+        }
+        #ifdef Uon_
         //        cout << "calculate the total potential energy U\n";
         // timer.mark();// calculate the total potential energy U
         calcU(fi, pt, par);
         //       cout << "calculate the total potential energy U done\n";
         // cout << "U: " << timer.elapsed() << "s, ";
 #endif
-        timer.mark();                       //      cout << "savefiles" << endl;
-        save_files(i_time, t, fi, pt, par); // print out all files for paraview
-        //        cout << "logentry" << endl;
-        if (par->nt[0] > nt0prev)
-        {
-            cout << "make cells bigger" << par->nt[0] << nt0prev << endl;
-            nt0prev = par->nt[0];
-        }
         log_entry(i_time, 0, cdt, total_ncalc, t, par); // cout<<"log entry done"<<endl;
         cout << "print data: " << timer.elapsed() << "s (no. of electron time steps calculated: " << total_ncalc[0] << ")\n";
     }

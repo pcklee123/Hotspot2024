@@ -87,26 +87,28 @@ void get_densityfields(fields *fi, particles *pt, par *par)
    //  set arguments to be fed into the kernel program
    // cout << "kernel arguments for electron" << endl;
 
-   kernel_density.setArg(0, buff_x0_e); // x0
-   kernel_density.setArg(1, buff_y0_e); // y0
-   kernel_density.setArg(2, buff_z0_e); // z0
-   kernel_density.setArg(3, buff_x1_e); // x1
-   kernel_density.setArg(4, buff_y1_e); // y1
-   kernel_density.setArg(5, buff_z1_e); // z1
-   kernel_density.setArg(6, buff_npi);  // npt
-   kernel_density.setArg(7, buff_cji);  // current
-   kernel_density.setArg(8, buff_q_e);  // q
-                                        // kernel_density.setArg(14, sizeof(int), n_cells);          // ncells
-                                        // cout << "run kernel for electron" << endl;
+   kernel_density.setArg(0, buff_x0_e);                 // x0
+   kernel_density.setArg(1, buff_y0_e);                 // y0
+   kernel_density.setArg(2, buff_z0_e);                 // z0
+   kernel_density.setArg(3, buff_x1_e);                 // x1
+   kernel_density.setArg(4, buff_y1_e);                 // y1
+   kernel_density.setArg(5, buff_z1_e);                 // z1
+   kernel_density.setArg(6, buff_npi);                  // npt
+   kernel_density.setArg(7, buff_cji);                  // current
+   kernel_density.setArg(8, buff_q_e);                  // q
+   kernel_density.setArg(9, sizeof(float), &par->a0_f); // scale factor
+                                                        // kernel_density.setArg(14, sizeof(int), n_cells);          // ncells
+                                                        // cout << "run kernel for electron" << endl;
 
    // run the kernel
    queue.enqueueNDRangeKernel(kernel_density, cl::NullRange, cl::NDRange(n0), cl::NullRange);
    // cout << "run kernel for electron done" << endl;
    queue.finish();
-   kernel_df.setArg(0, buff_np_e);       // np ion
-   kernel_df.setArg(1, buff_npi);        // np ion temp integer
-   kernel_df.setArg(2, buff_currentj_e); // current
-   kernel_df.setArg(3, buff_cji);        // current
+   kernel_df.setArg(0, buff_np_e);                 // np ion
+   kernel_df.setArg(1, buff_npi);                  // np ion temp integer
+   kernel_df.setArg(2, buff_currentj_e);           // current
+   kernel_df.setArg(3, buff_cji);                  // current
+   kernel_df.setArg(4, sizeof(float), &par->a0_f); // scale factor
    queue.enqueueNDRangeKernel(kernel_df, cl::NullRange, cl::NDRange(n_cells), cl::NullRange);
    queue.finish();
    // cout << "read electron density" << endl;
@@ -132,24 +134,26 @@ void get_densityfields(fields *fi, particles *pt, par *par)
    queue.enqueueFillBuffer(buff_npi, 0, 0, n_cellsi);
    queue.enqueueFillBuffer(buff_cji, 0, 0, n_cellsi * 3);
    //  set arguments to be fed into the kernel program
-   kernel_density.setArg(0, buff_x0_i); // x0
-   kernel_density.setArg(1, buff_y0_i); // y0
-   kernel_density.setArg(2, buff_z0_i); // z0
-   kernel_density.setArg(3, buff_x1_i); // x1
-   kernel_density.setArg(4, buff_y1_i); // y1
-   kernel_density.setArg(5, buff_z1_i); // z1
-   kernel_density.setArg(6, buff_npi);  // npt
-   kernel_density.setArg(7, buff_cji);  // current
-   kernel_density.setArg(8, buff_q_i);  // q
-                                        // kernel_density.setArg(14, sizeof(int), &n_cells);          // ncells
-                                        // cout << "run kernel for ions" << endl;
+   kernel_density.setArg(0, buff_x0_i);                 // x0
+   kernel_density.setArg(1, buff_y0_i);                 // y0
+   kernel_density.setArg(2, buff_z0_i);                 // z0
+   kernel_density.setArg(3, buff_x1_i);                 // x1
+   kernel_density.setArg(4, buff_y1_i);                 // y1
+   kernel_density.setArg(5, buff_z1_i);                 // z1
+   kernel_density.setArg(6, buff_npi);                  // npt
+   kernel_density.setArg(7, buff_cji);                  // current
+   kernel_density.setArg(8, buff_q_i);                  // q
+   kernel_density.setArg(9, sizeof(float), &par->a0_f); // scale factor
+                                                        // kernel_density.setArg(14, sizeof(int), &n_cells);          // ncells
+                                                        // cout << "run kernel for ions" << endl;
    //  run the kernel
    queue.enqueueNDRangeKernel(kernel_density, cl::NullRange, cl::NDRange(n0), cl::NullRange);
-   queue.finish();                       // wait for the end of the kernel program
-   kernel_df.setArg(0, buff_np_i);       // np ion
-   kernel_df.setArg(1, buff_npi);        // np ion temp integer
-   kernel_df.setArg(2, buff_currentj_i); // current
-   kernel_df.setArg(3, buff_cji);        // current
+   queue.finish();                                 // wait for the end of the kernel program
+   kernel_df.setArg(0, buff_np_i);                 // np ion
+   kernel_df.setArg(1, buff_npi);                  // np ion temp integer
+   kernel_df.setArg(2, buff_currentj_i);           // current
+   kernel_df.setArg(3, buff_cji);                  // current
+   kernel_df.setArg(4, sizeof(float), &par->a0_f); // scale factor
    queue.enqueueNDRangeKernel(kernel_df, cl::NullRange, cl::NDRange(n_cells), cl::NullRange);
    queue.finish();
    // read result arrays from the device to main memory

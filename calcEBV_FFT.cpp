@@ -96,11 +96,11 @@ int checkInRange(string name, float data[3][n_space_divz][n_space_divy][n_space_
 }
 
 // Shorthand for cleaner code
-const size_t N0 = n_space_divx2, N1 = n_space_divy2, N2 = n_space_divz2,
+/*const size_t N0 = n_space_divx2, N1 = n_space_divy2, N2 = n_space_divz2,
              N0N1 = N0 * N1, N0N1_2 = N0N1 / 2,
              N2_c = N2 / 2 + 1;         // Dimension to store the complex data, as required by fftw (from their docs)
 const size_t n_cells4 = N0 * N1 * N2_c; // NOTE: This is not actually n_cells * 4, there is an additional buffer that fftw requires.
-
+*/
 /*
 The flow of this function is as follows, note that the FFT we are using converts real to complex, and the IFFT converts complex to real.
 This is because we are making use of the fact that our original data is fully reall, and this saves about half the memory/computation
@@ -130,7 +130,6 @@ auto *fft_real = reinterpret_cast<float (&)[4][n_cells8]>(*fftwf_alloc_real(n_ce
 auto *fft_complex = reinterpret_cast<fftwf_complex (&)[4][n_cells4]>(*fftwf_alloc_complex(4 * n_cells4));
 //  pre-calculate 1/ r3 to make it faster to calculate electric and magnetic fields
 auto *precalc_r3 = reinterpret_cast<fftwf_complex (&)[2][3][N2_c][N1][N0]>(*fftwf_alloc_complex(2 * 3 * n_cells4));
-
 #ifdef Uon_ // similar arrays for U, but kept separately in one ifdef
 auto *precalc_r2 = reinterpret_cast<fftwf_complex (&)[N2_c][N1][N0]>(*fftwf_alloc_complex(n_cells4));
 #endif
@@ -149,6 +148,11 @@ int calcEBV(fields *fi, par *par)
         auto precalc_r3_base = new float[2][3][N2][N1][N0];
 
         int dims[3] = {N0, N1, N2};
+
+        fi->precalc_r3 = (reinterpret_cast<float *>(precalc_r3));
+#ifdef Uon_ // similar arrays for U, but kept separately in one ifdef
+        fi->precalc_r2 = (reinterpret_cast<float *>(precalc_r2));
+#endif
 
         // Create fftw plans
         cout << "omp_get_max_threads " << omp_get_max_threads() << endl;
@@ -218,54 +222,55 @@ int calcEBV(fields *fi, par *par)
 
         fftwf_execute(planfor_k); // fft of kernel arr3=fft(arr)
         fftwf_destroy_plan(planfor_k);
-/*
-        cout << "filter" << endl; // filter
-        for (k = 0; k < n_space_divz; k++)
-        {
-            loc_k = k + (k < 0 ? n_space_divz2 : 0); // The "logical" array position
-                                                     //     cout << loc_k << " ";
-            // We wrap around values smaller than 0 to the other side of the array, since 0, 0, 0 is defined as the center of the convolution pattern an hence rz should be 0
-            rz = k; // The change in z coordinate for the k-th cell.
-            rz2 = rz * rz;
-            for (j = -n_space_divy; j < n_space_divy; j++)
-            {
-                loc_j = j + (j < 0 ? n_space_divy2 : 0);
-                ry = j;
-                ry2 = ry * ry + rz2;
-                for (i = -n_space_divx; i < n_space_divx; i++)
+        /*
+                cout << "filter" << endl; // filter
+                for (k = 0; k < n_space_divz; k++)
                 {
-                    loc_i = i + (i < 0 ? n_space_divx2 : 0);
-                    rx = i;
-                    rx2 = rx * rx + ry2;
-                    float r = pi * sqrt(rx2) / R_s;
-                    float w = r > pi / 2 ? 0.f : cos(r);
-                    w *= w;
-                    precalc_r3[0][0][loc_k][loc_j][loc_i][0] *= w;
-                    precalc_r3[0][1][loc_k][loc_j][loc_i][0] *= w;
-                    precalc_r3[0][2][loc_k][loc_j][loc_i][0] *= w;
-                    /*precalc_r3[0][0][loc_k][loc_j][loc_i][1] *= w;
-                                        precalc_r3[0][1][loc_k][loc_j][loc_i][1] *= w;
-                                        precalc_r3[0][2][loc_k][loc_j][loc_i][1] *= w;
-                                                    precalc_r3[1][0][loc_k][loc_j][loc_i][1] *= w;
-                                        precalc_r3[1][1][loc_k][loc_j][loc_i][1] *= w;
-                                        precalc_r3[1][2][loc_k][loc_j][loc_i][1] *= w;
-                                        //*
-                    precalc_r3[1][0][loc_k][loc_j][loc_i][0] *= w;
-                    precalc_r3[1][1][loc_k][loc_j][loc_i][0] *= w;
-                    precalc_r3[1][2][loc_k][loc_j][loc_i][0] *= w;
+                    loc_k = k + (k < 0 ? n_space_divz2 : 0); // The "logical" array position
+                                                             //     cout << loc_k << " ";
+                    // We wrap around values smaller than 0 to the other side of the array, since 0, 0, 0 is defined as the center of the convolution pattern an hence rz should be 0
+                    rz = k; // The change in z coordinate for the k-th cell.
+                    rz2 = rz * rz;
+                    for (j = -n_space_divy; j < n_space_divy; j++)
+                    {
+                        loc_j = j + (j < 0 ? n_space_divy2 : 0);
+                        ry = j;
+                        ry2 = ry * ry + rz2;
+                        for (i = -n_space_divx; i < n_space_divx; i++)
+                        {
+                            loc_i = i + (i < 0 ? n_space_divx2 : 0);
+                            rx = i;
+                            rx2 = rx * rx + ry2;
+                            float r = pi * sqrt(rx2) / R_s;
+                            float w = r > pi / 2 ? 0.f : cos(r);
+                            w *= w;
+                            precalc_r3[0][0][loc_k][loc_j][loc_i][0] *= w;
+                            precalc_r3[0][1][loc_k][loc_j][loc_i][0] *= w;
+                            precalc_r3[0][2][loc_k][loc_j][loc_i][0] *= w;
+                            /*precalc_r3[0][0][loc_k][loc_j][loc_i][1] *= w;
+                                                precalc_r3[0][1][loc_k][loc_j][loc_i][1] *= w;
+                                                precalc_r3[0][2][loc_k][loc_j][loc_i][1] *= w;
+                                                            precalc_r3[1][0][loc_k][loc_j][loc_i][1] *= w;
+                                                precalc_r3[1][1][loc_k][loc_j][loc_i][1] *= w;
+                                                precalc_r3[1][2][loc_k][loc_j][loc_i][1] *= w;
+                                                //*
+                            precalc_r3[1][0][loc_k][loc_j][loc_i][0] *= w;
+                            precalc_r3[1][1][loc_k][loc_j][loc_i][0] *= w;
+                            precalc_r3[1][2][loc_k][loc_j][loc_i][0] *= w;
 
-#ifdef Uon_
-                    // precalc_r2[loc_k][loc_j][loc_i][0] = r > pi ? 0.f : w;
-                    // precalc_r2[loc_k][loc_j][loc_i][1] = r > pi ? 0.f : w;
-                    precalc_r2[loc_k][loc_j][loc_i][0] *= w;
-                    //     precalc_r2[loc_k][loc_j][loc_i][1] *=  w;
-#endif
-                }
-            }
-        }*/
+        #ifdef Uon_
+                            // precalc_r2[loc_k][loc_j][loc_i][0] = r > pi ? 0.f : w;
+                            // precalc_r2[loc_k][loc_j][loc_i][1] = r > pi ? 0.f : w;
+                            precalc_r2[loc_k][loc_j][loc_i][0] *= w;
+                            //     precalc_r2[loc_k][loc_j][loc_i][1] *=  w;
+        #endif
+                        }
+                    }
+                }*/
         delete[] precalc_r3_base;
         delete[] precalc_r2_base;
         first = 0;
+        //        cout<<"precalc done\n";
     }
 
 #ifdef Eon_
@@ -289,7 +294,7 @@ int calcEBV(fields *fi, par *par)
                 }
                 jj += N0N1_2;
             }
-            //          cout << "density\n";
+
             fftwf_execute(planforE); // arrn1 = fft(arrn) multiply fft charge with fft of kernel(i.e field associated with 1 charge)
             for (int c = 0; c < 3; c++)
             {
@@ -342,7 +347,7 @@ int calcEBV(fields *fi, par *par)
 #else
     memcpy(reinterpret_cast<float *>(E), reinterpret_cast<float *>(Ee), 3 * n_cells * sizeof(float));
 #endif
-
+    //                  cout << "E done\n";
 #ifdef Bon_
     {
         fill(&fft_real[0][0], &fft_real[2][n_cells8], 0.f);
@@ -393,7 +398,7 @@ int calcEBV(fields *fi, par *par)
 #else
     memcpy(reinterpret_cast<float *>(B), reinterpret_cast<float *>(Be), 3 * n_cells * sizeof(float));
 #endif
-
+    //                     cout << "B done\n";
 #ifdef Uon_
 #ifdef Eon_ // if both Uon and Eon are defined
 /*
@@ -426,9 +431,9 @@ int calcEBV(fields *fi, par *par)
     float Tcyclotron = 2.0 * pi * mp[0] / (e_charge_mass * (par->Bmax + 1e-5f));
     float acc_e = par->Emax * e_charge_mass;
     float vel_e = sqrt(kb * Temp_e / e_mass);
-    float TE = (sqrt(vel_e * vel_e / (acc_e * acc_e) + 2 * a0 / acc_e) - vel_e / acc_e)*1000;
-    float TE1= a0/par->Emax *(par->Bmax+.00001);
-    TE=max(TE,TE1);
+    float TE = (sqrt(vel_e * vel_e / (acc_e * acc_e) + 2 * a0 / acc_e) - vel_e / acc_e) * 1000;
+    float TE1 = a0 / par->Emax * (par->Bmax + .00001);
+    TE = max(TE, TE1);
     // cout << "Tcyclotron=" << Tcyclotron << ",Bmax= " << par->Bmax << ", TE=" << TE << ",Emax= " << par->Emax << endl;
     if (TE < (par->dt[0] * 2 * f1 * ncalc0[0])) // if ideal time step is lower than actual timestep
         E_exceeds = 1;
@@ -438,6 +443,6 @@ int calcEBV(fields *fi, par *par)
         B_exceeds = 4;
     else if (Tcyclotron > (par->dt[0] * 4 * f2 * ncalc0[0]))
         B_exceeds = 8;
-
+    // cout <<"calcEBV\n";
     return (E_exceeds + B_exceeds);
 }
