@@ -5,28 +5,28 @@
 // #define cylinder //do hot rod problem
 #define Weibull
 constexpr double weibullb = 5; // b factor for weibull. larger means closer to a shell. ~1 means filled more at the center.
-#define Temp_e 1e6             // in Kelvin 1e7 ~1keV
-#define Temp_d 1e6             // in Kelvin
+#define Temp_e 1e5             // in Kelvin 1e7 ~1keV
+#define Temp_d 1e7             // in Kelvin
 constexpr int f1 = 8;          // make bigger to make smaller time steps // 8 is min for sphere slight increas in KE
 constexpr int f2 = f1 * 1.2;
 constexpr float incf = 1.2f;        // increment
 constexpr float decf = 1.0f / incf; // decrement factor
 
 constexpr int n_space = 64;                                       // should be 2 to power of n for sater FFT
-constexpr float nback = 1;                                        // background particles per cell - improves stability
-constexpr int n_partd = n_space * n_space * n_space * nback * 16; // must be 2 to power of n
+constexpr float nback = 0;                                        // background particles per cell - improves stability
+constexpr int n_partd = n_space * n_space * n_space * 1 * 16; // must be 2 to power of n
 constexpr int n_parte = n_partd;
 
 constexpr float R_s = n_space / 1;     // LPF smoothing radius
 constexpr float r0_f[3] = {9, 8, 16}; //  radius of sphere or cylinder (electron, ion, plasma)
 
-constexpr float Bz0 = 0.001;   // in T, static constant fields
-constexpr float Btheta0 = 0.1; // in T, static constant fields
+constexpr float Bz0 = 0.0001;   // in T, static constant fields
+constexpr float Btheta0 = 0.0001; // in T, static constant fields
 constexpr float Ez0 = 0.0f;    // in V/m
 constexpr float vz0 = 0.0f;
-constexpr float a0 = 5.0e-6; // typical dimensions of a cell in m This needs to be smaller than debye length otherwise energy is not conserved if a particle moves across a cell
-constexpr float a0_ff = 1.1;
-constexpr float target_part = 1e13; // 3.5e22 particles per m^3 per torr of ideal gas. 7e22 electrons for 1 torr of deuterium
+constexpr float a0 = 1e-6; // typical dimensions of a cell in m This needs to be smaller than debye length otherwise energy is not conserved if a particle moves across a cell
+constexpr float a0_ff = 1.01;
+constexpr float target_part = 1e9; // 3.5e22 particles per m^3 per torr of ideal gas. 7e22 electrons for 1 torr of deuterium
 constexpr float v0_r = 0;       // initial directed radial velocity outwards is positive
 
 // The maximum expected E and B fields. If fields go beyond this, the the time step, cell size etc will be wrong. Should adjust and recalculate.
@@ -54,7 +54,7 @@ constexpr int md_me = 60;        // ratio of electron speed/deuteron speed at th
 #define trilinon_
 
 #define Eon_ // whether to calculate the electric (E) field
-// #define Uon_ // whether to calculate the electric (V) potential and potential energy (U). Needs Eon to be enabled.
+ #define Uon_ // whether to calculate the electric (V) potential and potential energy (U). Needs Eon to be enabled.
 #define UE_field
 #define Bon_ // whether to calculate the magnetic (B) field
 #define UB_field

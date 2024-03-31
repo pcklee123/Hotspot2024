@@ -126,14 +126,16 @@ void tnp(fields *fi, particles *pt, par *par)
    int cdt;
    for (int ntime = 0; ntime < par->nc; ntime++)
    {
-      kernel_trilin.setArg(0, buff_Ea); // the 1st argument to the kernel program Ea
-      kernel_trilin.setArg(1, buff_E);  // Ba
+      kernel_trilin.setArg(0, buff_Ea);   // the 1st argument to the kernel program Ea
+      kernel_trilin.setArg(1, buff_E);    // Ba
+      kernel_trilin.setArg(2, sizeof(float),&par->a0_f); // scale
       // run the kernel
       queue.enqueueNDRangeKernel(kernel_trilin, cl::NullRange, cl::NDRange(n_cells), cl::NullRange);
       // queue.finish(); // wait for the end of the kernel program
 
-      kernel_trilin.setArg(0, buff_Ba); // the 1st argument to the kernel program Ea
-      kernel_trilin.setArg(1, buff_B);  // Ba
+      kernel_trilin.setArg(0, buff_Ba);   // the 1st argument to the kernel program Ea
+      kernel_trilin.setArg(1, buff_B);    // Ba
+      kernel_trilin.setArg(2, sizeof(float),&par->a0_f); // scale
       queue.enqueueNDRangeKernel(kernel_trilin, cl::NullRange, cl::NDRange(n_cells), cl::NullRange);
       //
 
