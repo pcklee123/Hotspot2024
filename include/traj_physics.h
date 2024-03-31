@@ -12,7 +12,7 @@ constexpr int f2 = f1 * 1.2;
 constexpr float incf = 1.2f;        // increment
 constexpr float decf = 1.0f / incf; // decrement factor
 
-constexpr int n_space = 256;                                       // should be 2 to power of n for sater FFT
+constexpr int n_space = 128;                                       // should be 2 to power of n for sater FFT
 constexpr float nback = 0;                                        // background particles per cell - improves stability
 constexpr int n_partd = 4194304;//n_space * n_space * n_space * 1 * 16; // must be 2 to power of n
 constexpr int n_parte = n_partd;
@@ -26,7 +26,7 @@ constexpr float Ez0 = 0.0f;    // in V/m
 constexpr float vz0 = 0.0f;
 constexpr float a0 = 10.e-6; // typical dimensions of a cell in m This needs to be smaller than debye length otherwise energy is not conserved if a particle moves across a cell
 constexpr float a0_ff = 1.0+2.0/(float)n_space;
-constexpr float target_part = 1e12; // 3.5e22 particles per m^3 per torr of ideal gas. 7e22 electrons for 1 torr of deuterium
+constexpr float target_part = 3e11; // 3.5e22 particles per m^3 per torr of ideal gas. 7e22 electrons for 1 torr of deuterium
 constexpr float v0_r = 0;       // initial directed radial velocity outwards is positive
 
 // The maximum expected E and B fields. If fields go beyond this, the the time step, cell size etc will be wrong. Should adjust and recalculate.
