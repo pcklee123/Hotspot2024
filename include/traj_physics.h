@@ -60,7 +60,7 @@ constexpr int md_me = 60;        // ratio of electron speed/deuteron speed at th
 //#define Bon_ // whether to calculate the magnetic (B) field
 #define UB_field
 #define EFon_ // whether to apply electric force
-#define BFon_ // whether to apply magnetic force
+//#define BFon_ // whether to apply magnetic force
 #define printDensity
 #define printParticles
 // #define printV // print out V

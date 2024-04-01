@@ -83,13 +83,15 @@ void tnp(fields *fi, particles *pt, par *par)
    par->Bcoef[0] = -(float)qs[0] * e_charge_mass / (float)mp[0] * par->dt[0] * 0.5f;
    par->Bcoef[1] = -(float)qs[1] * e_charge_mass / (float)mp[1] * par->dt[1] * 0.5f;
 #else
-   par->Bcoef = {0, 0};
+   par->Bcoef[0] = 0;
+   par->Bcoef[1] = 1;
 #endif
 #ifdef EFon_
-   par->Ecoef[0] = par->Bcoef[0] * par->dt[0]; // multiply by dt because of the later portion of cl code
-   par->Ecoef[1] = par->Bcoef[1] * par->dt[1]; // multiply by dt because of the later portion of cl code
+   par->Ecoef[0] = -(float)qs[0] * e_charge_mass / (float)mp[0] * par->dt[0] * 0.5f* par->dt[0]; // multiply by dt because of the later portion of cl code
+   par->Ecoef[1] = -(float)qs[1] * e_charge_mass / (float)mp[1] * par->dt[1] * 0.5f * par->dt[1]; // multiply by dt because of the later portion of cl code
 #else
-   par->Ecoef = {0, 0};
+   par->Ecoef[0] = 0;
+   par->Ecoef[1] = 1;
 #endif
    // cout << " Bconst=" << par->Bcoef[0] << ", Econst=" << par->Ecoef[0] << endl;
    if (fastIO)
@@ -126,16 +128,16 @@ void tnp(fields *fi, particles *pt, par *par)
    int cdt;
    for (int ntime = 0; ntime < par->nc; ntime++)
    {
-      kernel_trilin.setArg(0, buff_Ea);   // the 1st argument to the kernel program Ea
-      kernel_trilin.setArg(1, buff_E);    // Ba
-      kernel_trilin.setArg(2, sizeof(float),&par->a0_f); // scale
+      kernel_trilin.setArg(0, buff_Ea);                   // the 1st argument to the kernel program Ea
+      kernel_trilin.setArg(1, buff_E);                    // Ba
+      kernel_trilin.setArg(2, sizeof(float), &par->a0_f); // scale
       // run the kernel
       queue.enqueueNDRangeKernel(kernel_trilin, cl::NullRange, cl::NDRange(n_cells), cl::NullRange);
       // queue.finish(); // wait for the end of the kernel program
 
-      kernel_trilin.setArg(0, buff_Ba);   // the 1st argument to the kernel program Ea
-      kernel_trilin.setArg(1, buff_B);    // Ba
-      kernel_trilin.setArg(2, sizeof(float),&par->a0_f); // scale
+      kernel_trilin.setArg(0, buff_Ba);                   // the 1st argument to the kernel program Ea
+      kernel_trilin.setArg(1, buff_B);                    // Ba
+      kernel_trilin.setArg(2, sizeof(float), &par->a0_f); // scale
       queue.enqueueNDRangeKernel(kernel_trilin, cl::NullRange, cl::NDRange(n_cells), cl::NullRange);
       //
 
