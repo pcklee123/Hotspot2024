@@ -11,8 +11,8 @@ void generate_rand_sphere(particles *pt, par *par)
     float volume = 4 / 3 * pi * r0[0] * r0[0] * r0[0];
 
     // calculated plasma parameters
-    float Density_e = (n_partd - ((n_space_divx - 2) * (n_space_divy - 2) * (n_space_divz - 2) * nback)) / volume * r_part_spart;
-    float Density_e1 = nback * r_part_spart / (a0 * a0 * a0);
+    float Density_e = (n_partd - nback) * r_part_spart / volume;
+    float Density_e1 = nback * r_part_spart / (powf(n_space * a0, 3));
 
     info_file << "initial density = " << Density_e << "/m^3,  background density = " << Density_e1 << "/m^3 \n";
     float plasma_freq = sqrt(Density_e * e_charge * e_charge_mass / (mp[0] * epsilon0)) / (2 * pi);
@@ -47,38 +47,26 @@ void generate_rand_sphere(particles *pt, par *par)
     seed = time(&myTime);
     info_file << "seed=" << seed << "\n";
     gsl_rng_set(rng, seed); // set seed
-
+    size_t na = 0;
     for (int p = 0; p < 2; p++)
     {
-        int na = 0;
-        for (int n = 0; n < nback; ++n) // set number of particles per cell in background
+#pragma omp parallel for
+        for (na = 0; na < nback; ++na) // set number of particles per cell in background
         {
-            for (int k = 2; k < n_space_divz - 2; ++k)
-            {
-                for (int j = 2; j < n_space_divy - 2; ++j)
-                    for (int i = 2; i < n_space_divx - 2; ++i)
-                    {
-                        pt->pos0x[p][na] = ((float)(i - n_space_divx / 2) + (float)rand() / RAND_MAX) * a0;
-                        pt->pos0y[p][na] = ((float)(j - n_space_divy / 2) + (float)rand() / RAND_MAX) * a0;
-                        pt->pos0z[p][na] = ((float)(k - n_space_divz / 2) + (float)rand() / RAND_MAX) * a0;
-
-                        pt->pos1x[p][na] = pt->pos0x[p][na];
-                        pt->pos1y[p][na] = pt->pos0y[p][na];
-                        pt->pos1z[p][na] = pt->pos0z[p][na];
-                        pt->q[p][na] = qs[p];
-                        pt->m[p][na] = mp[p];
-                        na++;
-                    }
-                //         cout << pt->pos1z[p][na - 1] << " ";
-            }
+            pt->pos1x[p][na] = pt->pos0x[p][na] = gsl_ran_flat(rng, par->posL_15[0], par->posH_15[0]);
+            pt->pos1y[p][na] = pt->pos0y[p][na] = gsl_ran_flat(rng, par->posL_15[1], par->posH_15[1]);
+            pt->pos1z[p][na] = pt->pos0z[p][na] = gsl_ran_flat(rng, par->posL_15[2], par->posH_15[2]);
+            pt->q[p][na] = qs[p];
+            pt->m[p][na] = mp[p];
         }
-
+        //         cout << pt->pos1z[p][na - 1] << " ";
 #pragma omp parallel for ordered
         for (int n = na; n < n_partd; n++)
         {
 #ifdef Weibull
             float r = gsl_ran_weibull(rng, r0[p], weibullb);
-            while (fabs(r)>=((float)n_space/4.0*a0)) r = gsl_ran_weibull(rng, r0[p], weibullb);
+            while (fabs(r) >= ((float)n_space / 4.0 * a0))
+                r = gsl_ran_weibull(rng, r0[p], weibullb);
 #else
             float r = r0 * pow(gsl_ran_flat(rng, 0, 1), 0.3333333333);
             // float r = gsl_ran_gaussian(rng, r0);
@@ -95,7 +83,6 @@ void generate_rand_sphere(particles *pt, par *par)
             pt->pos1z[p][n] = pt->pos0z[p][n] + (gsl_ran_gaussian(rng, sigma[p]) + v0[p][2] + z * v0_r) * par->dt[p];
             pt->q[p][n] = qs[p];
             pt->m[p][n] = mp[p];
-
             //         nt[p] += q[p][n];
         }
     }
@@ -104,7 +91,6 @@ void generate_rand_sphere(particles *pt, par *par)
 }
 
 void generate_rand_cylinder(particles *pt, par *par)
-
 {
     // cylindrical plasma radius is r0_f*a0 .
     float Temp[2] = {Temp_e, Temp_d}; // in K convert to eV divide by 1.160451812e4
@@ -112,13 +98,16 @@ void generate_rand_cylinder(particles *pt, par *par)
     float v0[2][3] = {{0, 0, -vz0}, {0, 0, vz0 / 60}}; /*1e6*/
 
     float r0[3] = {r0_f[0] * a0, r0_f[1] * a0, r0_f[2] * a0}; // if sphere this is the radius
-    float area =  pi * r0[0] * r0[0];
+    float area = pi * r0[0] * r0[0];
     float volume = pi * r0[0] * r0[0] * n_space * a0;
 
     // calculated plasma parameters
     info_file << "initial e Temperature, = " << Temp_e / 11600 << "eV, initial d Temperature, = " << Temp_d / 11600 << " eV\n";
-    float Density_e = (n_partd - (n_space_divx - 2) * (n_space_divy - 2) * (n_space_divz - 2) * nback) / volume * r_part_spart;
-    float Density_e1 = nback * r_part_spart / (a0 * a0 * a0);
+    // float Density_e = (n_partd - (n_space_divx - 2) * (n_space_divy - 2) * (n_space_divz - 2) * nback) / volume * r_part_spart;
+    // float Density_e1 = nback * r_part_spart / (a0 * a0 * a0);
+    float Density_e = (n_partd - nback) * r_part_spart / volume;
+    float Density_e1 = nback * r_part_spart / (powf(n_space * a0, 3));
+
     info_file << "initial density = " << Density_e << "background density = " << Density_e1 << endl;
     float initial_current = Density_e * e_charge * v0[0][2] * area;
     info_file << "initial current = " << initial_current << endl;
@@ -169,28 +158,17 @@ void generate_rand_cylinder(particles *pt, par *par)
     info_file << "seed=" << seed << "\n";
     gsl_rng_set(rng, seed); // set seed
 
+    size_t na = 0;
     for (int p = 0; p < 2; p++)
     {
-        int na = 0;
-        for (int n = 0; n < nback; ++n) // set number of particles per cell in background
+#pragma omp parallel for
+        for (na = 0; na < nback; ++na) // set number of particles per cell in background
         {
-            for (int k = 2; k < n_space_divz - 2; ++k)
-            {
-                for (int j = 2; j < n_space_divy - 2; ++j)
-                    for (int i = 2; i < n_space_divx - 2; ++i)
-                    {
-                        pt->pos0x[p][na] = ((float)(i - n_space_divx / 2) + (float)rand() / RAND_MAX) * a0;
-                        pt->pos0y[p][na] = ((float)(j - n_space_divy / 2) + (float)rand() / RAND_MAX) * a0;
-                        pt->pos0z[p][na] = ((float)(k - n_space_divz / 2) + (float)rand() / RAND_MAX) * a0;
-                        pt->pos1x[p][na] = pt->pos0x[p][na];
-                        pt->pos1y[p][na] = pt->pos0y[p][na];
-                        pt->pos1z[p][na] = pt->pos0z[p][na];
-                        pt->q[p][na] = qs[p];
-                        pt->m[p][na] = mp[p];
-                        na++;
-                    }
-                //      cout << pt->pos1z[p][na - 1] << " ";
-            }
+            pt->pos1x[p][na] = pt->pos0x[p][na] = gsl_ran_flat(rng, par->posL_15[0], par->posH_15[0]);
+            pt->pos1y[p][na] = pt->pos0y[p][na] = gsl_ran_flat(rng, par->posL_15[1], par->posH_15[1]);
+            pt->pos1z[p][na] = pt->pos0z[p][na] = gsl_ran_flat(rng, par->posL_15[2], par->posH_15[2]);
+            pt->q[p][na] = qs[p];
+            pt->m[p][na] = mp[p];
         }
 
         // #pragma omp parallel for ordered

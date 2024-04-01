@@ -134,11 +134,11 @@ int main()
         }
 
 #ifdef Uon_
-        cout << "calculate the total potential energy U\n";
+        //cout << "calculate the total potential energy U\n";
         // timer.mark();// calculate the total potential energy U
         calcU(fi, pt, par);
-        cout << "calculate the total potential energy U done\n";
-        /// cout << "U: " << timer.elapsed() << "s, ";
+        //cout << "calculate the total potential energy U done\n";
+        // cout << "U: " << timer.elapsed() << "s, ";
 #endif
         //        cout << "logentry" << endl;
         log_entry(i_time, 0, cdt, total_ncalc, t, par); // cout<<"log entry done"<<endl;

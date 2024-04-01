@@ -311,7 +311,7 @@ int calcEBV(fields *fi, par *par)
         }
     }
 #else
-    memcpy(reinterpret_cast<float *>(B), reinterpret_cast<float *>(Be), 3 * n_cells * sizeof(float));
+    memcpy(reinterpret_cast<float *>(fi->B), reinterpret_cast<float *>(fi->Be), 3 * n_cells * sizeof(float));
 #endif
     //                     cout << "B done\n";
 #ifdef Uon_

@@ -73,6 +73,7 @@ void log_headers()
     logger.write("Bcoeff_e");
     logger.write("Ecoeff_i");
     logger.write("Bcoeff_i");
+    logger.write("a0_f");
     logger.newline();
 }
 
