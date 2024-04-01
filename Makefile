@@ -1,5 +1,5 @@
 _DEPS = traj.h traj_physics.h
-_OBJ = utils.o TS3.o tnp.o generate.o generaterandp.o  save.o cl_code.o changedt.o calcEBV_FFT.o calcU.o  get_densityfields.o
+_OBJ = utils.o TS3.o tnp.o generate.o generaterandp.o  save.o cl_code.o changedtdx.o calcEBV_FFT.o calcU.o  get_densityfields.o
 #sel_part_print.o smoothfield.o calc_trilin_constants.o
 IDIR = include
 dir_guard=@mkdir -p $(@D)

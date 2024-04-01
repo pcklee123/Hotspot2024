@@ -36,8 +36,8 @@
 #include <complex>
 // #include <infft.h>
 
-//#include <nfft3.h>
-// #include "nfft3mp.h"
+// #include <nfft3.h>
+//  #include "nfft3mp.h"
 #include <fftw3.h>
 
 using namespace std;
@@ -130,6 +130,7 @@ void smoothscalarfield(float f[n_space_divz][n_space_divy][n_space_divx], float 
                        float fc[n_space_divz][n_space_divy][n_space_divx][3], int s);
 float maxvalf(float *data_1d, int n);
 void info(par *par);
+void changedx(fields *fi, par *par);
 particles *alloc_particles(par *par);
 fields *alloc_fields(par *par);
 #endif // TRAJ_H_INCLUDED

@@ -24,9 +24,9 @@ constexpr float Bz0 = 0.0001;   // in T, static constant fields
 constexpr float Btheta0 = 0.0001; // in T, static constant fields
 constexpr float Ez0 = 0.0f;    // in V/m
 constexpr float vz0 = 0.0f;
-constexpr float a0 = 10.e-6; // typical dimensions of a cell in m This needs to be smaller than debye length otherwise energy is not conserved if a particle moves across a cell
+constexpr float a0 = 1.e-6; // typical dimensions of a cell in m This needs to be smaller than debye length otherwise energy is not conserved if a particle moves across a cell
 constexpr float a0_ff = 1.0+2.0/(float)n_space;
-constexpr float target_part = 3e11; // 3.5e22 particles per m^3 per torr of ideal gas. 7e22 electrons for 1 torr of deuterium
+constexpr float target_part = 3e9; // 3.5e22 particles per m^3 per torr of ideal gas. 7e22 electrons for 1 torr of deuterium
 constexpr float v0_r = 0;       // initial directed radial velocity outwards is positive
 
 // The maximum expected E and B fields. If fields go beyond this, the the time step, cell size etc will be wrong. Should adjust and recalculate.

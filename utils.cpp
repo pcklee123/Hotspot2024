@@ -100,6 +100,7 @@ void log_entry(int i_time, int ntime, int cdt, int total_ncalc[2], double t, par
     logger.write(par->Bcoef[0] * 1e9);
     logger.write(par->Ecoef[1] * 1e21);
     logger.write(par->Bcoef[1] * 1e9);
+    logger.write(par->a0_f);
     logger.newline();
 }
 float maxvalf(float *data_1d, int n)
@@ -134,7 +135,7 @@ void info(par *par)
         info_file << "cell size =," << a0 << ",m" << endl;
         info_file << "number of particles per cell = ," << n_partd / (n_space * n_space * n_space) << endl;
         info_file << "number of particles per super particle = ," << r_part_spart << endl;
-        info_file << "density per super particle = ," << r_part_spart/(a0*a0*a0) << endl;
+        info_file << "density per super particle = ," << r_part_spart / (a0 * a0 * a0) << endl;
         info_file << "time for electrons to leave box = ," << n_space * a0 / sqrt(2 * kb * Temp_e / e_mass) << ",s" << endl;
         info_file << "time for ions to leave box = ," << n_space * a0 * md_me / sqrt(2 * kb * Temp_d / e_mass) << ",s" << endl;
         info_file << "time step between prints = ," << par->dt[0] * par->ncalcp[0] * par->nc << ",s" << endl;
