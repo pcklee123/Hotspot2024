@@ -79,9 +79,6 @@ void changedx(fields *fi, par *par)
     par->posL2[0] *= a0_ff; // Lowest position of cells (x,y,z)
     par->posL2[1] *= a0_ff;
     par->posL2[2] *= a0_ff;
-    //    par->posH_2[0] *= a0_ff; // Highes position of cells (x,y,z)
-    //   par->posH_2[1] *= a0_ff;
-    //   par->posH_2[2] *= a0_ff;
     par->dd[0] *= a0_ff;
     par->dd[1] *= a0_ff;
     par->dd[2] *= a0_ff;
