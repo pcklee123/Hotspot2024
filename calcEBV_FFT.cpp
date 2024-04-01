@@ -2,98 +2,6 @@
 #include <math.h>
 #include <complex>
 #include <fftw3.h>
-void vector_muls(float *A, float Bb, int n)
-{
-    // Create a command queue
-    cl::CommandQueue queue(context_g, default_device_g);
-    float B[1] = {Bb};
-    //  cout << B[0] << endl;
-    // Create memory buffers on the device for each vector
-    cl::Buffer buffer_A(context_g, CL_MEM_READ_WRITE, sizeof(float) * n);
-    cl::Buffer buffer_B(context_g, CL_MEM_READ_ONLY, sizeof(float));
-
-    // Copy the lists C and B to their respective memory buffers
-    queue.enqueueWriteBuffer(buffer_A, CL_TRUE, 0, sizeof(float) * n, A);
-    queue.enqueueWriteBuffer(buffer_B, CL_TRUE, 0, sizeof(float), B);
-
-    // Create the OpenCL kernel
-    cl::Kernel kernel_add = cl::Kernel(program_g, "vector_muls"); // select the kernel program to run
-
-    // Set the arguments of the kernel
-    kernel_add.setArg(0, buffer_A); // the 1st argument to the kernel program
-    kernel_add.setArg(1, buffer_B);
-    queue.enqueueNDRangeKernel(kernel_add, cl::NullRange, cl::NDRange(n), cl::NullRange);
-    queue.finish(); // wait for the end of the kernel program
-    // read result arrays from the device to main memory
-    queue.enqueueReadBuffer(buffer_A, CL_TRUE, 0, sizeof(float) * n, A);
-}
-
-// Vector multiplication for complex numbers. Note that this is not in-place.
-void vector_muls(fftwf_complex *dst, fftwf_complex *A, fftwf_complex *B, int n)
-{
-    // Create a command queue
-    cl::CommandQueue queue(context_g, default_device_g);
-    // Create memory buffers on the device for each vector
-    cl::Buffer buffer_A(context_g, CL_MEM_WRITE_ONLY, sizeof(fftwf_complex) * n);
-    cl::Buffer buffer_B(context_g, CL_MEM_READ_ONLY, sizeof(fftwf_complex) * n);
-    cl::Buffer buffer_C(context_g, CL_MEM_READ_ONLY, sizeof(fftwf_complex) * n);
-
-    // Copy the lists C and B to their respective memory buffers
-    queue.enqueueWriteBuffer(buffer_B, CL_TRUE, 0, sizeof(fftwf_complex) * n, A);
-    queue.enqueueWriteBuffer(buffer_C, CL_TRUE, 0, sizeof(fftwf_complex) * n, B);
-
-    // Create the OpenCL kernel
-    cl::Kernel kernel_add = cl::Kernel(program_g, "vector_mul_complex"); // select the kernel program to run
-
-    // Set the arguments of the kernel
-    kernel_add.setArg(0, buffer_A); // the 1st argument to the kernel program
-    kernel_add.setArg(1, buffer_B);
-    kernel_add.setArg(2, buffer_C);
-
-    queue.enqueueNDRangeKernel(kernel_add, cl::NullRange, cl::NDRange(n), cl::NullRange);
-    queue.finish(); // wait for the end of the kernel program
-    // read result arrays from the device to main memory
-    queue.enqueueReadBuffer(buffer_A, CL_TRUE, 0, sizeof(fftwf_complex) * n, dst);
-}
-
-int checkInRange(string name, float data[3][n_space_divz][n_space_divy][n_space_divz], float minval, float maxval)
-{
-    bool toolow = true, toohigh = false;
-    const float *data_1d = reinterpret_cast<float *>(data);
-    for (unsigned int i = 0; i < n_cells * 3; ++i)
-    {
-        toolow &= fabs(data_1d[i]) < minval;
-        toohigh |= fabs(data_1d[i]) > maxval;
-    }
-    if (toohigh)
-    {
-        const float *maxelement = max_element(data_1d, data_1d + 3 * n_cells);
-        size_t pos = maxelement - &data[0][0][0][0];
-        int count = 0;
-        for (unsigned int n = 0; n < n_cells * 3; ++n)
-            count += fabs(data_1d[n]) > maxval;
-        int x, y, z;
-        id_to_cell(pos, &x, &y, &z);
-        cout << "Max " << name << ": " << *maxelement << " (" << x << "," << y << "," << z << ") (" << count << " values above threshold)\n";
-        return 1;
-    }
-    if (toolow)
-    {
-        /*
-        const float *minelement = min_element(data_1d, data_1d + 3 * n_cells);
-         size_t pos = minelement - &data[0][0][0][0];
-         int count = 0;
-         for (unsigned int n = 0; n < n_cells * 3; ++n)
-             count += fabs(data_1d[n]) > minval;
-         int x, y, z;
-         id_to_cell(pos, &x, &y, &z);
-         cout << "Min " << name << ": " << *minelement << " (" << x << "," << y << "," << z << ") (" << count << " values above threshold)\n";
-         */
-        return 2;
-    }
-
-    return 0;
-}
 
 // Shorthand for cleaner code
 /*const size_t N0 = n_space_divx2, N1 = n_space_divy2, N2 = n_space_divz2,
@@ -210,17 +118,23 @@ int calcEBV(fields *fi, par *par)
         // Multiply by the respective constants here, since it is faster to parallelize it
         const float Vconst = kc * e_charge * r_part_spart / n_cells8;
         const float Aconst = 1e-7 * e_charge * r_part_spart / n_cells8;
-
-        vector_muls(reinterpret_cast<float *>(precalc_r3_base[0]), Vconst, n_cells8 * 3);
-        vector_muls(reinterpret_cast<float *>(precalc_r3_base[1]), Aconst, n_cells8 * 3);
+        //    const size_t n_cells4 = n_space_divx2 * n_space_divy2 * (n_space_divz2 / 2 + 1); // NOTE: This is not actually n_cells * 4, there is an additional buffer that fftw requires.
+#pragma omp parallel for simd num_threads(nthreads)
+        for (size_t i = 0; i < n_cells8 * 3; i++)
+            reinterpret_cast<float *>(precalc_r3_base[0])[i] *= Vconst; //  vector_muls(reinterpret_cast<float *>(precalc_r3_base[0]), Vconst, n_cells8 * 3);
+#pragma omp parallel for simd num_threads(nthreads)
+        for (size_t i = 0; i < n_cells8 * 3; i++)
+            reinterpret_cast<float *>(precalc_r3_base[1])[i] *= Aconst; //   vector_muls(reinterpret_cast<float *>(precalc_r3_base[1]), Aconst, n_cells8 * 3);
+        fftwf_execute(planfor_k);                                       // fft of kernel arr3=fft(arr)
+        fftwf_destroy_plan(planfor_k);
 #ifdef Uon_
-        vector_muls(reinterpret_cast<float *>(precalc_r2_base), Vconst, n_cells8);
+#pragma omp parallel for simd num_threads(nthreads)
+        for (size_t i = 0; i < n_cells8; i++)
+            (reinterpret_cast<float *>(fi->precalc_r2))[i] *= Vconst; // vector_muls(reinterpret_cast<float *>(precalc_r2_base), Vconst, n_cells8);
         fftwf_execute(planfor_k2);
         fftwf_destroy_plan(planfor_k2);
 #endif
 
-        fftwf_execute(planfor_k); // fft of kernel arr3=fft(arr)
-        fftwf_destroy_plan(planfor_k);
         /*
                 cout << "filter" << endl; // filter
                 for (k = 0; k < n_space_divz; k++)
@@ -270,7 +184,6 @@ int calcEBV(fields *fi, par *par)
 #ifdef Uon_
         delete[] precalc_r2_base;
 #endif
-
         first = 0;
         //        cout<<"precalc done\n";
     }
