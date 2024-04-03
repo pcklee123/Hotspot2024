@@ -14,7 +14,7 @@ constexpr float decf = 1.0f / incf; // decrement factor
 
 constexpr int n_space = 128;     // should be 2 to power of n for sater FFT
                                 
-constexpr size_t n_partd = 4194304*8; // n_space * n_space * n_space * 1 * 16; // must be 2 to power of n
+constexpr size_t n_partd = 4194304; // n_space * n_space * n_space * 1 * 16; // must be 2 to power of n
 constexpr size_t n_parte = n_partd;
 constexpr size_t nback = n_partd / 16; // background stationary particles distributed over all cells - improves stability
 

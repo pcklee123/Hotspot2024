@@ -64,7 +64,7 @@ void generate_rand_sphere(particles *pt, par *par)
         for (int n = na; n < n_partd; n++)
         {
 #ifdef Weibull
-            float r = gsl_ran_weibull(rng, r0[p], weibullb);
+            double r = gsl_ran_weibull(rng, r0[p], weibullb);
             while (fabs(r) >= ((float)n_space / 4.0 * a0))
                 r = gsl_ran_weibull(rng, r0[p], weibullb);
 #else

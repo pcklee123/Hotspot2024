@@ -14,7 +14,7 @@ Original code in 2021 by Hilary,Yin Yue and Chloe, extensive improvements by Sam
 - MSYS2
 - to avoid confusion, use either of "mingw64" or "ucrt" and do not mix the two. The following examples make use of ucrt  
 - Tools: 
-    - > pacman -S base-devel cmake git mingw-w64-ucrt-x86_64-gcc 
+    - > pacman -S base-devel git mingw-w64-ucrt-x86_64-cmake mingw-w64-ucrt-x86_64-gcc 
     - install windows native paraview, visual studio code
 
 - Libs (Opencl, OpenMP, gsl, fftw, vtk, nfftw)

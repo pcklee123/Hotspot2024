@@ -50,6 +50,7 @@ int calcEBV(fields *fi, par *par)
 
     static float posL2[3];
     static unsigned int *n_space_div2;
+    fftwf_plan planfor_k, planfor_k2;
     if (first)
     { // allocate and initialize to 0
 
@@ -60,12 +61,11 @@ int calcEBV(fields *fi, par *par)
         auto precalc_r2_base = new float[N2][N1][N0];
         fi->precalc_r2 = (reinterpret_cast<float *>(precalc_r2));
 #endif
-
-        // Create fftw plans
-        cout << "omp_get_max_threads " << omp_get_max_threads() << endl;
+        // Create fftw plans not thread safe
+        //        cout << "omp_get_max_threads " << omp_get_max_threads() << endl;
         fftwf_plan_with_nthreads(omp_get_max_threads() * 1);
-
-        fftwf_plan planfor_k = fftwf_plan_many_dft_r2c(3, dims, 6, reinterpret_cast<float *>(precalc_r3_base[0][0]), NULL, 1, n_cells8, reinterpret_cast<fftwf_complex *>(precalc_r3[0][0]), NULL, 1, n_cells4, FFTW_ESTIMATE);
+        planfor_k = fftwf_plan_many_dft_r2c(3, dims, 6, reinterpret_cast<float *>(precalc_r3_base[0][0]), NULL, 1, n_cells8, reinterpret_cast<fftwf_complex *>(precalc_r3[0][0]), NULL, 1, n_cells4, FFTW_ESTIMATE);
+        planfor_k2 = fftwf_plan_dft_r2c_3d(N0, N1, N2, reinterpret_cast<float *>(precalc_r2_base), reinterpret_cast<fftwf_complex *>(precalc_r2), FFTW_ESTIMATE);
         planforE = fftwf_plan_dft_r2c_3d(N0, N1, N2, fft_real[0], fft_complex[3], FFTW_MEASURE);
 #ifndef Uon_
         // Perform ifft on the first 3/4 of the array for 3 components of E field
@@ -73,19 +73,20 @@ int calcEBV(fields *fi, par *par)
 #else
         // Perform ifft on the entire array; the first 3/4 is used for E while the last 1/4 is used for V
         planbacE = fftwf_plan_many_dft_c2r(3, dims, 4, fft_complex[0], NULL, 1, n_cells4, fft_real[0], NULL, 1, n_cells8, FFTW_MEASURE);
-        fftwf_plan planfor_k2 = fftwf_plan_dft_r2c_3d(N0, N1, N2, reinterpret_cast<float *>(precalc_r2_base), reinterpret_cast<fftwf_complex *>(precalc_r2), FFTW_ESTIMATE);
 #endif
         planforB = fftwf_plan_many_dft_r2c(3, dims, 3, fft_real[0], NULL, 1, n_cells8, fft_complex[0], NULL, 1, n_cells4, FFTW_MEASURE);
         planbacB = fftwf_plan_many_dft_c2r(3, dims, 3, fft_complex[0], NULL, 1, n_cells4, fft_real[0], NULL, 1, n_cells8, FFTW_MEASURE);
 
-        //        cout << "allocate done\n";
+#pragma omp barrier
+        cout << "allocate done\n";
         float r3, rx, ry, rz, rx2, ry2, rz2;
         int i, j, k, loc_i, loc_j, loc_k;
         posL2[0] = -par->dd[0] * ((float)n_space_divx - 0.5);
         posL2[1] = -par->dd[1] * ((float)n_space_divy - 0.5);
         posL2[2] = -par->dd[2] * ((float)n_space_divz - 0.5);
         n_space_div2 = new unsigned int[3]{n_space_divx2, n_space_divy2, n_space_divz2};
-        // precalculate 1/r^3 (field) and 1/r^2 (energy)
+// precalculate 1/r^3 (field) and 1/r^2 (energy)
+#pragma omp parallel for simd num_threads(nthreads)
         for (k = -n_space_divz; k < n_space_divz; k++)
         {
             loc_k = k + (k < 0 ? n_space_divz2 : 0); // The "logical" array position
@@ -118,14 +119,15 @@ int calcEBV(fields *fi, par *par)
         // Multiply by the respective constants here, since it is faster to parallelize it
         const float Vconst = kc * e_charge * r_part_spart / n_cells8;
         const float Aconst = 1e-7 * e_charge * r_part_spart / n_cells8;
-        //    const size_t n_cells4 = n_space_divx2 * n_space_divy2 * (n_space_divz2 / 2 + 1); // NOTE: This is not actually n_cells * 4, there is an additional buffer that fftw requires.
+//    const size_t n_cells4 = n_space_divx2 * n_space_divy2 * (n_space_divz2 / 2 + 1); // NOTE: This is not actually n_cells * 4, there is an additional buffer that fftw requires.
 #pragma omp parallel for simd num_threads(nthreads)
         for (size_t i = 0; i < n_cells8 * 3; i++)
             reinterpret_cast<float *>(precalc_r3_base[0])[i] *= Vconst; //  vector_muls(reinterpret_cast<float *>(precalc_r3_base[0]), Vconst, n_cells8 * 3);
 #pragma omp parallel for simd num_threads(nthreads)
         for (size_t i = 0; i < n_cells8 * 3; i++)
             reinterpret_cast<float *>(precalc_r3_base[1])[i] *= Aconst; //   vector_muls(reinterpret_cast<float *>(precalc_r3_base[1]), Aconst, n_cells8 * 3);
-        fftwf_execute(planfor_k);                                       // fft of kernel arr3=fft(arr)
+
+        fftwf_execute(planfor_k); // fft of kernel arr3=fft(arr)
         fftwf_destroy_plan(planfor_k);
 #ifdef Uon_
 #pragma omp parallel for simd num_threads(nthreads)
@@ -192,7 +194,7 @@ int calcEBV(fields *fi, par *par)
     // #pragma omp parallel sections
     {
         fill(&fft_real[0][0], &fft_real[3][n_cells8], 0.f);
-        // #pragma omp section
+        //   #pragma omp section
         {
             // density field
             size_t i, j, k, jj;
@@ -262,7 +264,7 @@ int calcEBV(fields *fi, par *par)
 #else
     memcpy(reinterpret_cast<float *>(E), reinterpret_cast<float *>(Ee), 3 * n_cells * sizeof(float));
 #endif
-    //                  cout << "E done\n";
+//                  cout << "E done\n";
 #ifdef Bon_
     {
         fill(&fft_real[0][0], &fft_real[2][n_cells8], 0.f);
@@ -313,7 +315,7 @@ int calcEBV(fields *fi, par *par)
 #else
     memcpy(reinterpret_cast<float *>(fi->B), reinterpret_cast<float *>(fi->Be), 3 * n_cells * sizeof(float));
 #endif
-    //                     cout << "B done\n";
+//                     cout << "B done\n";
 #ifdef Uon_
 #ifdef Eon_ // if both Uon and Eon are defined
 /*

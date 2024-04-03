@@ -65,7 +65,7 @@ int main()
     // info(par);                   // printout initial info.csv file
     cout << "Start up time = " << timer.replace() << "s\n";
     // startup stuff set output path opencl and print initial info
-
+    cout << "Set initial random positions: ";
     timer.mark();
 #define generateRandom
 #ifdef generateRandom
@@ -82,15 +82,19 @@ int main()
     // get limits and spacing of Field cells
     generateField(fi, par);
 
-    cout << "Set initial random positions: " << timer.replace() << "s\n";
+    cout << timer.replace() << "s\n";//cout << "Set initial random positions: ";
 
     fftwf_init_threads();
 
     int i_time = 0;
-    //  cout << "get_densityfields " << endl;
+    cout << "get_densityfields: ";
+    timer.mark();
     get_densityfields(fi, pt, par);
-    //  cout << "get_densityfields done" << endl;
+    cout  << timer.elapsed() << "s\n ";
+    cout << "calcEBV: ";
+    timer.mark();
     int cdt = calcEBV(fi, par);
+    cout << timer.elapsed() << "s\n ";
     // int cdt=0;
     changedt(pt, cdt, par); /* change time step if E or B too big*/
 
@@ -134,11 +138,11 @@ int main()
         }
 
 #ifdef Uon_
-        //cout << "calculate the total potential energy U\n";
-        // timer.mark();// calculate the total potential energy U
+        // cout << "calculate the total potential energy U\n";
+        //  timer.mark();// calculate the total potential energy U
         calcU(fi, pt, par);
-        //cout << "calculate the total potential energy U done\n";
-        // cout << "U: " << timer.elapsed() << "s, ";
+        // cout << "calculate the total potential energy U done\n";
+        //  cout << "U: " << timer.elapsed() << "s, ";
 #endif
         //        cout << "logentry" << endl;
         log_entry(i_time, 0, cdt, total_ncalc, t, par); // cout<<"log entry done"<<endl;
