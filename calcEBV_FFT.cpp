@@ -252,7 +252,7 @@ int calcEBV(fields *fi, par *par)
                         fi->E[c][k][j][0] = fft_real_c[kk + jj + 0] + fi->Ee[c][k][j][0];
                         for (i = 1; i < n_space_divx; ++i)
                         {
-                            fi->E[c][k][j][i] fi->Ee[c][k][j][i];
+                            fi->E[c][k][j][i] = fi->Ee[c][k][j][i];
                             fi->E[c][k][j][i] += fft_real_c[kk + jj + i] + fft_real_c[kk + jj + N0 - i] + fft_real_c[kk + N0N1 - jj + i] + fft_real_c[kk + N0N1 - jj + N0 - i] + fi->Ee[c][k][j][i];
                             fi->E[c][k][j][i] += fft_real_c[N0N1N2 - kk + jj + i] + fft_real_c[N0N1N2 - kk + jj + N0 - i] + fft_real_c[N0N1N2 - kk + N0N1N2 - jj + i] + fft_real_c[N0N1N2 - kk + N0N1 - jj + N0 - i];
                         }
