@@ -8,14 +8,14 @@
 constexpr double weibullb = 3; // b factor for weibull. larger means closer to a shell. ~1 means filled more at the center.
 #define Temp_e 1e7             // in Kelvin 1e7 ~1keV
 #define Temp_d 1e7             // in Kelvin
-constexpr int f1 = 8;         // make bigger to make smaller time steps // 8 is min for sphere slight increas in KE
+constexpr int f1 = 32;         // make bigger to make smaller time steps // 8 is min for sphere slight increas in KE
 constexpr int f2 = f1 * 1.2;
 constexpr float incf = 1.2f;        // increment
 constexpr float decf = 1.0f / incf; // decrement factor
 
 constexpr int n_space = 128; // should be 2 to power of n for faster FFT
 
-constexpr size_t n_partd = 4194304 / 64; // n_space * n_space * n_space * 1 * 16; // must be 2 to power of n
+constexpr size_t n_partd = 4194304 / 4; // n_space * n_space * n_space * 1 * 16; // must be 2 to power of n
 constexpr size_t n_parte = n_partd;
 constexpr size_t nback = n_partd / 16; // background stationary particles distributed over all cells - improves stability
 
@@ -81,7 +81,7 @@ constexpr int n_space_divz2 = n_space_divz * 2;
 constexpr int n_cells = n_space_divx * n_space_divy * n_space_divz;
 constexpr int n_cells8 = n_cells * 8;
 constexpr size_t N0 = n_space_divx2, N1 = n_space_divy2, N2 = n_space_divz2,
-                 N0N1 = N0 * N1, N0N1_2 = N0N1 / 2,
+                 N0N1 = N0 * N1, N0N1_2 = N0N1 / 2, N0N1N2 = N0 * N1 * N2,
                  N2_c = N2 / 2 + 1; // Dimension to store the complex data, as required by fftw (from their docs)
 constexpr size_t n_cells4 = N0 * N1 * N2_c;
 

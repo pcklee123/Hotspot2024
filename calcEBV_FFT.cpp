@@ -240,20 +240,26 @@ int calcEBV(fields *fi, par *par)
             for (int c = 0; c < 3; c++)
             { // 3 axis
                 const float *fft_real_c = fft_real[c];
-                size_t i, j, k, jj;
+                size_t i, j, k, jj, kk;
                 //               cout << "c " << c << ", thread " << omp_get_thread_num() << ", jj " << jj << endl;
                 jj = 0;
-
+                kk = 0;
                 for (k = 0; k < n_space_divz; ++k)
                 {
                     for (j = 0; j < n_space_divy; ++j)
                     {
                         // #pragma omp parallel for simd num_threads(nthreads)
-                        for (i = 0; i < n_space_divx; ++i)
-                            fi->E[c][k][j][i] = fft_real_c[jj + i] + fi->Ee[c][k][j][i];
+                        fi->E[c][k][j][0] = fft_real_c[kk + jj + 0] + fi->Ee[c][k][j][0];
+                        for (i = 1; i < n_space_divx; ++i)
+                        {
+                            fi->E[c][k][j][i] fi->Ee[c][k][j][i];
+                            fi->E[c][k][j][i] += fft_real_c[kk + jj + i] + fft_real_c[kk + jj + N0 - i] + fft_real_c[kk + N0N1 - jj + i] + fft_real_c[kk + N0N1 - jj + N0 - i] + fi->Ee[c][k][j][i];
+                            fi->E[c][k][j][i] += fft_real_c[N0N1N2 - kk + jj + i] + fft_real_c[N0N1N2 - kk + jj + N0 - i] + fft_real_c[N0N1N2 - kk + N0N1N2 - jj + i] + fft_real_c[N0N1N2 - kk + N0N1 - jj + N0 - i];
+                        }
                         jj += N0;
                     }
-                    jj += N0N1_2;
+                    jj = 0;
+                    kk += N0N1;
                 }
             }
 #ifdef Uon_
@@ -356,7 +362,7 @@ int calcEBV(fields *fi, par *par)
     float Tcyclotron = 2.0 * pi * mp[0] / (e_charge_mass * (par->Bmax + 1e-5f));
     float acc_e = par->Emax * e_charge_mass;
     float vel_e = sqrt(kb * Temp_e / e_mass);
-    float TE = (sqrt(vel_e * vel_e / (acc_e * acc_e) + 2 * a0 / acc_e) - vel_e / acc_e) * 100;
+    float TE = (sqrt(vel_e * vel_e / (acc_e * acc_e) + 2 * a0 / acc_e) - vel_e / acc_e) * 1000;
     float TE1 = a0 / par->Emax * (par->Bmax + .00001);
     TE = max(TE, TE1);
     // cout << "Tcyclotron=" << Tcyclotron << ",Bmax= " << par->Bmax << ", TE=" << TE << ",Emax= " << par->Emax << endl;
