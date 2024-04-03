@@ -358,8 +358,9 @@ void kernel tnp_k_implicito(global const float8 *a1,
   const float XLOW = XLOWo * a0_f, YLOW = YLOWo * a0_f, ZLOW = ZLOWo * a0_f;
   const float XHIGH = XHIGHo * a0_f, YHIGH = YHIGHo * a0_f,
               ZHIGH = ZHIGHo * a0_f;
-  const float XL = (XLOW + 1.5f * DX), YL = (YLOW + 1.5f * DY),
-              ZL = (ZLOW + 1.5f * DZ);
+  // const float XL = (XLOW + 1.5f * DX), YL = (YLOW + 1.5f * DY),
+  //             ZL = (ZLOW + 1.5f * DZ);
+  const float XL = (XLOW + 0.5), YL = (YLOW + 0.5), ZL = (ZLOW + 0.5);
   const float XH = (XHIGH - 1.5f * DX), YH = (YHIGH - 1.5f * DY),
               ZH = (ZHIGH - 1.5f * DZ);
   const float ZDZ = ZH - ZL - DZ / 10;
@@ -468,10 +469,10 @@ void kernel density(global const float *x0, global const float *y0,
   const float XLOW = XLOWo * a0_f, YLOW = YLOWo * a0_f, ZLOW = ZLOWo * a0_f;
   const float XHIGH = XHIGHo * a0_f, YHIGH = YHIGHo * a0_f,
               ZHIGH = ZHIGHo * a0_f;
-  const float XL = (XLOW + 1.5f * DX), YL = (YLOW + 1.5f * DY),
-              ZL = (ZLOW + 1.5f * DZ);
-  const float XH = (XHIGH - 1.5f * DX), YH = (YHIGH - 1.5f * DY),
-              ZH = (ZHIGH - 1.5f * DZ);
+  // const float XL = (XLOW + 1.5f * DX), YL = (YLOW + 1.5f * DY),
+  //             ZL = (ZLOW + 1.5f * DZ);
+  // const float XH = (XHIGH - 1.5f * DX), YH = (YHIGH - 1.5f * DY),
+  //             ZH = (ZHIGH - 1.5f * DZ);
 
   const float invDX = 1.0f / DX, invDY = 1.0f / DY, invDZ = 1.0f / DZ;
   int8 f; // = (1, 0, 0, 0, 0, 0, 0, 0);

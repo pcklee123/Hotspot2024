@@ -29,9 +29,9 @@ void calcU(fields *fi, particles *pt, par *par)
             float dy = (pt->pos1y[p][n] - par->posL[1]) * dd1;
             float dz = (pt->pos1z[p][n] - par->posL[2]) * dd2;
             int i = ceilf(dx), j = ceilf(dy), k = ceilf(dz); // Round away from 0 roundf or ceilf
-            i = (i < 0) ? 0 : i;
-            j = (j < 0) ? 0 : j;
-            k = (k < 0) ? 0 : k;
+                                                             //  i = (i < 0) ? 0 : i;
+                                                             //  j = (j < 0) ? 0 : j;
+                                                             //   k = (k < 0) ? 0 : k;
             dx -= i;
             dy -= k;
             dz -= k; // and get the "fractional cell" values (ie. located at cell 5.1 -> 0.1)

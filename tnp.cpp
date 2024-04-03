@@ -1,11 +1,11 @@
 #include "include/traj.h"
 void tnp(fields *fi, particles *pt, par *par)
 {
-   unsigned int n0 = n_partd;                 // number of particles ci[0];
-   unsigned int n = n_partd * 2;              // both electron and ion
-   unsigned int n4 = n_partd * sizeof(float); // number of particles * sizeof(float)
-   unsigned int n8 = n * sizeof(float);       // number of particles * sizeof(float)
-   unsigned int nc = n_cells * ncoeff * 3;    // trilin constatnts have 8 coefficients 3 components
+   unsigned int n0 = par->n_part[1];       // number of deuteron particles ;
+   unsigned int n = par->n_part[2];        // both electron and ion
+   unsigned int n4 = n0 * sizeof(float);   // number of particles * sizeof(float)
+   unsigned int n8 = n * sizeof(float);    // number of particles * sizeof(float)
+   unsigned int nc = n_cells * ncoeff * 3; // trilin constatnts have 8 coefficients 3 components
    unsigned int n_cellsi = n_cells * sizeof(int);
    unsigned int n_cellsf = n_cells * sizeof(float);
    static bool fastIO;
@@ -64,13 +64,14 @@ void tnp(fields *fi, particles *pt, par *par)
                                                                                                                                 // */
    // cout << "command q" << endl; //  create queue to which we will push commands for the device.
    static cl::CommandQueue queue(context_g, default_device_g);
-#ifdef sphere
-#ifdef octant
+#if defined(sphere)
+#if defined(octant)
    cl::Kernel kernel_tnp = cl::Kernel(program_g, "tnp_k_implicito"); // select the kernel program to run
+#endif
 #else
    cl::Kernel kernel_tnp = cl::Kernel(program_g, "tnp_k_implicit"); // select the kernel program to run
 #endif
-#endif
+
 #ifdef cylinder
    cl::Kernel kernel_tnp = cl::Kernel(program_g, "tnp_k_implicitz"); // select the kernel program to run
 #endif
@@ -129,27 +130,29 @@ void tnp(fields *fi, particles *pt, par *par)
    int cdt;
    for (int ntime = 0; ntime < par->nc; ntime++)
    {
+      timer.mark();
       kernel_trilin.setArg(0, buff_Ea);                   // the 1st argument to the kernel program Ea
       kernel_trilin.setArg(1, buff_E);                    // Ba
       kernel_trilin.setArg(2, sizeof(float), &par->a0_f); // scale
       // run the kernel
       queue.enqueueNDRangeKernel(kernel_trilin, cl::NullRange, cl::NDRange(n_cells), cl::NullRange);
-      // queue.finish(); // wait for the end of the kernel program
+      //  queue.finish(); // wait for the end of the kernel program
 
       kernel_trilin.setArg(0, buff_Ba);                   // the 1st argument to the kernel program Ea
       kernel_trilin.setArg(1, buff_B);                    // Ba
       kernel_trilin.setArg(2, sizeof(float), &par->a0_f); // scale
       queue.enqueueNDRangeKernel(kernel_trilin, cl::NullRange, cl::NDRange(n_cells), cl::NullRange);
       //
-
+      // queue.finish();
       queue.enqueueFillBuffer(buff_npi, 0, 0, n_cellsi);
+      //    queue.finish();
       // queue.enqueueFillBuffer(buff_np_centeri, 0, 0, n_cellsi * 3);
       queue.enqueueFillBuffer(buff_cji, 0, 0, n_cellsi * 3);
       // queue.enqueueFillBuffer(buff_cj_centeri, 0, 0, n_cellsi * 3 * 3);
       //   set arguments to be fed into the kernel program
       //   cout << "kernel arguments for electron" << endl;
       queue.finish(); // wait for trilinear to end before startin tnp electron
-
+      //      cout << "\ntrilin " << timer.elapsed() << "s, \n";
       kernel_tnp.setArg(0, buff_Ea);                        // the 1st argument to the kernel program Ea
       kernel_tnp.setArg(1, buff_Ba);                        // Ba
       kernel_tnp.setArg(2, buff_x0_e);                      // x0
@@ -165,9 +168,10 @@ void tnp(fields *fi, particles *pt, par *par)
       kernel_tnp.setArg(12, sizeof(int), &par->ncalcp[0]);  // ncalc
       kernel_tnp.setArg(13, buff_q_e);                      // q
 
-      // cout << "run kernel for electron" << endl;
+      // cout << "run kernel_tnp for electron" << endl;
+      //  timer.mark();
       queue.enqueueNDRangeKernel(kernel_tnp, cl::NullRange, cl::NDRange(n0), cl::NullRange);
-
+      queue.finish();
       kernel_density.setArg(0, buff_x0_e);                 // x0
       kernel_density.setArg(1, buff_y0_e);                 // y0
       kernel_density.setArg(2, buff_z0_e);                 // z0
@@ -178,18 +182,25 @@ void tnp(fields *fi, particles *pt, par *par)
       kernel_density.setArg(7, buff_cji);                  // current
       kernel_density.setArg(8, buff_q_e);                  // q
       kernel_density.setArg(9, sizeof(float), &par->a0_f); // scale factor
-      queue.finish();                                      // wait for the end of the tnp electron to finish before starting density electron
-      // run the kernel tyo get electron density
+      queue.finish();
+ 
+      //      cout << "\nelectron tnp " << timer.elapsed() << "s, \n";
+      // wait for the end of the tnp electron to finish before starting density electron
+      // run the kernel to get electron density
+      //  timer.mark();
       queue.enqueueNDRangeKernel(kernel_density, cl::NullRange, cl::NDRange(n0), cl::NullRange);
-
+      queue.finish();
       kernel_df.setArg(0, buff_np_e);                 // np
       kernel_df.setArg(1, buff_npi);                  // npt
       kernel_df.setArg(2, buff_currentj_e);           // current
       kernel_df.setArg(3, buff_cji);                  // current
       kernel_df.setArg(4, sizeof(float), &par->a0_f); // scale factor
+
       queue.enqueueNDRangeKernel(kernel_df, cl::NullRange, cl::NDRange(n_cells), cl::NullRange);
       queue.finish();
-
+ 
+      //  cout << "\nelectron density " << timer.elapsed() << "s, \n";
+      // timer.mark();
       //  set arguments to be fed into the kernel program
       kernel_tnp.setArg(0, buff_Ea);                        // the 1st argument to the kernel program Ea
       kernel_tnp.setArg(1, buff_Ba);                        // Ba
@@ -225,7 +236,6 @@ void tnp(fields *fi, particles *pt, par *par)
       kernel_density.setArg(8, buff_q_i);                  // q
       kernel_density.setArg(9, sizeof(float), &par->a0_f); // scale factor
 
-      // cout << "run kernel for electron" << endl;
       // wait for the end of the tnp ion to finish before starting density ion
       // run the kernel to get ion density
       queue.enqueueNDRangeKernel(kernel_density, cl::NullRange, cl::NDRange(n0), cl::NullRange);
@@ -237,6 +247,7 @@ void tnp(fields *fi, particles *pt, par *par)
       kernel_df.setArg(4, sizeof(float), &par->a0_f); // scale factor
       queue.enqueueNDRangeKernel(kernel_df, cl::NullRange, cl::NDRange(n_cells), cl::NullRange);
       queue.finish();
+
       // read result arrays from the device to main memory
       if (fastIO)
       { // is mapping required?
@@ -253,19 +264,21 @@ void tnp(fields *fi, particles *pt, par *par)
          queue.enqueueReadBuffer(buff_currentj_e, CL_TRUE, 0, n_cellsf * 3, fi->currentj[0]);
          queue.enqueueReadBuffer(buff_currentj_i, CL_TRUE, 0, n_cellsf * 3, fi->currentj[1]);
       }
-#pragma omp parallel for simd num_threads(nthreads)
+          cout << "\neions  " << timer.elapsed() << "s, \n";
+      // #pragma omp parallel for simd num_threads(nthreads)
       for (unsigned int i = 0; i < n_cells; i++)
          (reinterpret_cast<float *>(fi->npt))[i] = (reinterpret_cast<float *>(fi->np[0]))[i] + (reinterpret_cast<float *>(fi->np[1]))[i];
 
-#pragma omp parallel for simd num_threads(nthreads)
+      // #pragma omp parallel for simd num_threads(nthreads)
       for (unsigned int i = 0; i < n_cells * 3; i++)
          (reinterpret_cast<float *>(fi->jc))[i] = (reinterpret_cast<float *>(fi->currentj[0]))[i] / par->dt[0] + (reinterpret_cast<float *>(fi->currentj[1]))[i] / par->dt[1];
-#pragma omp barrier
-      //   timer.mark();
+      // #pragma omp barrier
+
+      // timer.mark();
       // set externally applied fields this is inside time loop so we can set time varying E and B field
       // calcEeBe(Ee,Be,t); // find E field must work out every i,j,k depends on charge in every other cell
       cdt = calcEBV(fi, par);
-      //    cout << "EBV: " << timer.elapsed() << "s, ";
+      // cout << "\nEBV: " << timer.elapsed() << "s, \n";
       if (fastIO)
       { // is mapping required?
         // mapped_buff_x0_e = (float *)queue.enqueueMapBuffer(buff_x0_e, CL_TRUE, CL_MAP_READ, 0, sizeof(float) * n); queue.enqueueUnmapMemObject(buff_x0_e, mapped_buff_x0_e);
@@ -276,6 +289,7 @@ void tnp(fields *fi, particles *pt, par *par)
          queue.enqueueWriteBuffer(buff_B, CL_TRUE, 0, n_cellsf * 3, fi->B);
       }
    }
+
    if (fastIO)
    { // is mapping required?
      // mapped_buff_x0_e = (float *)queue.enqueueMapBuffer(buff_x0_e, CL_TRUE, CL_MAP_READ, 0, sizeof(float) * n); queue.enqueueUnmapMemObject(buff_x0_e, mapped_buff_x0_e);
@@ -298,6 +312,7 @@ void tnp(fields *fi, particles *pt, par *par)
 
       queue.enqueueReadBuffer(buff_q_e, CL_TRUE, 0, n4, pt->q[0]);
       queue.enqueueReadBuffer(buff_q_i, CL_TRUE, 0, n4, pt->q[1]);
+
       if (changedt(pt, cdt, par))
       {
          queue.enqueueWriteBuffer(buff_x0_e, CL_TRUE, 0, n4, pt->pos0x[0]);
@@ -316,5 +331,6 @@ void tnp(fields *fi, particles *pt, par *par)
          // cout<<"change_dt done"<<endl;
       };
    }
+
    first = false;
 }

@@ -50,8 +50,8 @@ void generate_rand_sphere(particles *pt, par *par)
     size_t na = 0;
     for (int p = 0; p < 2; p++)
     {
-//#pragma omp parallel for
-#pragma omp parallel for  simd num_threads(nthreads)
+// #pragma omp parallel for
+#pragma omp parallel for simd num_threads(nthreads)
         for (na = 0; na < nback; ++na) // set number of particles per cell in background
         {
             pt->pos1x[p][na] = pt->pos0x[p][na] = gsl_ran_flat(rng, par->posL_15[0], par->posH_15[0]);
@@ -61,8 +61,8 @@ void generate_rand_sphere(particles *pt, par *par)
             pt->m[p][na] = mp[p];
         }
         //         cout << pt->pos1z[p][na - 1] << " ";
-//#pragma omp parallel for ordered
-#pragma omp parallel for  simd num_threads(nthreads)
+// #pragma omp parallel for ordered
+#pragma omp parallel for simd num_threads(nthreads)
         for (int n = nback; n < n_partd; n++)
         {
 #ifdef Weibull
@@ -77,6 +77,11 @@ void generate_rand_sphere(particles *pt, par *par)
 #endif
             double x, y, z;
             gsl_ran_dir_3d(rng, &x, &y, &z);
+#ifdef octant
+            x = abs(x);
+            y = abs(y);
+            z = abs(z);
+#endif
             pt->pos0x[p][n] = r * x;
             pt->pos1x[p][n] = pt->pos0x[p][n] + (gsl_ran_gaussian(rng, sigma[p]) + v0[p][0] + x * v0_r) * par->dt[p];
             pt->pos0y[p][n] = r * y;
