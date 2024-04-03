@@ -53,7 +53,7 @@ void tnp(fields *fi, particles *pt, par *par)
                                                                                                                                 // */
    // cout << "command q" << endl; //  create queue to which we will push commands for the device.
    static cl::CommandQueue queue(context_g, default_device_g);
-   static auto *mapped_buff_x0_e = (float *)queue.enqueueMapBuffer(buff_x0_e, CL_TRUE, CL_MAP_WRITE, 0, sizeof(float) * n);
+  // static auto *mapped_buff_x0_e = (float *)queue.enqueueMapBuffer(buff_x0_e, CL_TRUE, CL_MAP_WRITE, 0, sizeof(float) * n);
   //    static auto *mapped_buff_x0_e = (float *)queue.enqueueMapBuffer(buff_x0_e, CL_TRUE, CL_MAP_WRITE, 0, sizeof(float) * n);
     //     static auto *mapped_buff_x0_e = (float *)queue.enqueueMapBuffer(buff_x0_e, CL_TRUE, CL_MAP_WRITE, 0, sizeof(float) * n);
 #if defined(sphere)
@@ -95,13 +95,14 @@ void tnp(fields *fi, particles *pt, par *par)
       if (temp == true)
       { // is mapping required? // Yes we might need to map because OpenCL does not guarantee that the data will be shared, alternatively use SVM
          info_file << "Using unified memory: " << temp << " ";
-         queue.enqueueUnmapMemObject(buff_x0_e, mapped_buff_x0_e);
+      //   queue.enqueueUnmapMemObject(buff_x0_e, mapped_buff_x0_e);
       }
       else
       {
          info_file << "No unified memory: " << temp << " ";
       }
       fastIO = temp;
+      fastIO = false;
       //  cout << "write buffer" << endl;
       queue.enqueueWriteBuffer(buff_E, CL_TRUE, 0, n_cellsf * 3, fi->E);
       queue.enqueueWriteBuffer(buff_B, CL_TRUE, 0, n_cellsf * 3, fi->B);
@@ -248,8 +249,8 @@ void tnp(fields *fi, particles *pt, par *par)
       // read result arrays from the device to main memory
       if (fastIO)
       { // is mapping required?
-         mapped_buff_x0_e = (float *)queue.enqueueMapBuffer(buff_x0_e, CL_TRUE, CL_MAP_READ, 0, sizeof(float) * n);
-         queue.enqueueUnmapMemObject(buff_x0_e, mapped_buff_x0_e);
+     //    mapped_buff_x0_e = (float *)queue.enqueueMapBuffer(buff_x0_e, CL_TRUE, CL_MAP_READ, 0, sizeof(float) * n);
+      //   queue.enqueueUnmapMemObject(buff_x0_e, mapped_buff_x0_e);
       }
       else
       {
@@ -279,8 +280,8 @@ void tnp(fields *fi, particles *pt, par *par)
       // cout << "\nEBV: " << timer.elapsed() << "s, \n";
       if (fastIO)
       { // is mapping required?
-         mapped_buff_x0_e = (float *)queue.enqueueMapBuffer(buff_x0_e, CL_TRUE, CL_MAP_READ, 0, sizeof(float) * n);
-         queue.enqueueUnmapMemObject(buff_x0_e, mapped_buff_x0_e);
+    //     mapped_buff_x0_e = (float *)queue.enqueueMapBuffer(buff_x0_e, CL_TRUE, CL_MAP_READ, 0, sizeof(float) * n);
+    //     queue.enqueueUnmapMemObject(buff_x0_e, mapped_buff_x0_e);
       }
       else
       {
@@ -291,8 +292,8 @@ void tnp(fields *fi, particles *pt, par *par)
 
    if (fastIO)
    { // is mapping required?
-      mapped_buff_x0_e = (float *)queue.enqueueMapBuffer(buff_x0_e, CL_TRUE, CL_MAP_READ, 0, sizeof(float) * n);
-      queue.enqueueUnmapMemObject(buff_x0_e, mapped_buff_x0_e);
+  //    mapped_buff_x0_e = (float *)queue.enqueueMapBuffer(buff_x0_e, CL_TRUE, CL_MAP_READ, 0, sizeof(float) * n);
+  //    queue.enqueueUnmapMemObject(buff_x0_e, mapped_buff_x0_e);
    }
    else
    {
