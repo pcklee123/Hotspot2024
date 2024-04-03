@@ -65,14 +65,14 @@ int calcEBV(fields *fi, par *par)
         //        cout << "omp_get_max_threads " << omp_get_max_threads() << endl;
         fftwf_plan_with_nthreads(omp_get_max_threads() * 1);
         planfor_k = fftwf_plan_many_dft_r2c(3, dims, 6, reinterpret_cast<float *>(precalc_r3_base[0][0]), NULL, 1, n_cells8, reinterpret_cast<fftwf_complex *>(precalc_r3[0][0]), NULL, 1, n_cells4, FFTW_ESTIMATE);
-        planfor_k2 = fftwf_plan_dft_r2c_3d(N0, N1, N2, reinterpret_cast<float *>(precalc_r2_base), reinterpret_cast<fftwf_complex *>(precalc_r2), FFTW_ESTIMATE);
         planforE = fftwf_plan_dft_r2c_3d(N0, N1, N2, fft_real[0], fft_complex[3], FFTW_MEASURE);
-#ifndef Uon_
-        // Perform ifft on the first 3/4 of the array for 3 components of E field
-        planbacE = fftwf_plan_many_dft_c2r(3, dims, 3, fft_complex[0], NULL, 1, n_cells4, fft_real[0], NULL, 1, n_cells8, FFTW_MEASURE);
-#else
+#ifdef Uon_
+        planfor_k2 = fftwf_plan_dft_r2c_3d(N0, N1, N2, reinterpret_cast<float *>(precalc_r2_base), reinterpret_cast<fftwf_complex *>(precalc_r2), FFTW_ESTIMATE);
         // Perform ifft on the entire array; the first 3/4 is used for E while the last 1/4 is used for V
         planbacE = fftwf_plan_many_dft_c2r(3, dims, 4, fft_complex[0], NULL, 1, n_cells4, fft_real[0], NULL, 1, n_cells8, FFTW_MEASURE);
+#else
+        // Perform ifft on the first 3/4 of the array for 3 components of E field
+        planbacE = fftwf_plan_many_dft_c2r(3, dims, 3, fft_complex[0], NULL, 1, n_cells4, fft_real[0], NULL, 1, n_cells8, FFTW_MEASURE);
 #endif
         planforB = fftwf_plan_many_dft_r2c(3, dims, 3, fft_real[0], NULL, 1, n_cells8, fft_complex[0], NULL, 1, n_cells4, FFTW_MEASURE);
         planbacB = fftwf_plan_many_dft_c2r(3, dims, 3, fft_complex[0], NULL, 1, n_cells4, fft_real[0], NULL, 1, n_cells8, FFTW_MEASURE);
@@ -204,7 +204,7 @@ int calcEBV(fields *fi, par *par)
             {
                 for (j = 0; j < n_space_divy; ++j)
                 {
-#pragma omp parallel for simd num_threads(nthreads)
+                    // #pragma omp parallel for simd num_threads(nthreads)
                     for (i = 0; i < n_space_divx; ++i)
                     {
                         fft_real[0][jj + i] = fi->npt[k][j][i];
@@ -230,7 +230,7 @@ int calcEBV(fields *fi, par *par)
                 const auto ptr_std = reinterpret_cast<complex<float> *>(fft_complex[3]),
                            precalc_r2_std = reinterpret_cast<complex<float> *>(precalc_r2);
                 complex<float> temp;
-#pragma omp parallel for simd num_threads(nthreads)
+                // #pragma omp parallel for simd num_threads(nthreads)
                 for (int i = 0; i < n_cells4; ++i)
                     ptr_std[i] *= precalc_r2_std[i];
             }
@@ -248,7 +248,7 @@ int calcEBV(fields *fi, par *par)
                 {
                     for (j = 0; j < n_space_divy; ++j)
                     {
-#pragma omp parallel for simd num_threads(nthreads)
+                        // #pragma omp parallel for simd num_threads(nthreads)
                         for (i = 0; i < n_space_divx; ++i)
                             fi->E[c][k][j][i] = fft_real_c[jj + i] + fi->Ee[c][k][j][i];
                         jj += N0;
@@ -261,7 +261,7 @@ int calcEBV(fields *fi, par *par)
 
             for (k = 0; k < n_space_divz; ++k)
             {
-#pragma omp parallel for simd num_threads(nthreads)
+                // #pragma omp parallel for simd num_threads(nthreads)
                 for (j = 0; j < n_space_divy; ++j)
                     memcpy(fi->V[0][k][j], &fft_real[3][jj += N0], sizeof(float) * n_space_divx);
                 jj += N0N1_2;
