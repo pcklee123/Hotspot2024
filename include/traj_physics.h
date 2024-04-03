@@ -2,6 +2,7 @@
 #define maxcells 32
 #define cldevice 1 // 0 usually means integrated GPU
 #define sphere     // do hot spot  problem
+#define octant     // do hot spot  problem 1/8 sphere
 // #define cylinder //do hot rod problem
 #define Weibull
 constexpr double weibullb = 2; // b factor for weibull. larger means closer to a shell. ~1 means filled more at the center.
@@ -12,14 +13,14 @@ constexpr int f2 = f1 * 1.2;
 constexpr float incf = 1.2f;        // increment
 constexpr float decf = 1.0f / incf; // decrement factor
 
-constexpr int n_space = 128;     // should be 2 to power of n for sater FFT
-                                
-constexpr size_t n_partd = 4194304; // n_space * n_space * n_space * 1 * 16; // must be 2 to power of n
+constexpr int n_space = 32; // should be 2 to power of n for sater FFT
+
+constexpr size_t n_partd = 4194304/64; // n_space * n_space * n_space * 1 * 16; // must be 2 to power of n
 constexpr size_t n_parte = n_partd;
 constexpr size_t nback = n_partd / 16; // background stationary particles distributed over all cells - improves stability
 
 constexpr float R_s = n_space / 1;      // LPF smoothing radius
-constexpr float r0_f[3] = {81, 80, 81}; //  radius of sphere or cylinder (electron, ion, plasma)
+constexpr float r0_f[3] = {9, 8, 10}; //  radius of sphere or cylinder (electron, ion, plasma)
 
 constexpr float Bz0 = 0.0001;     // in T, static constant fields
 constexpr float Btheta0 = 0.0001; // in T, static constant fields
@@ -28,7 +29,7 @@ constexpr float vz0 = 0.0f;
 constexpr float a0 = 1.e-6; // typical dimensions of a cell in m This needs to be smaller than debye length otherwise energy is not conserved if a particle moves across a cell
 constexpr float a0_ff = 1.0 + 4.0 / (float)n_space;
 constexpr float target_part = 3e10; // 3.5e22 particles per m^3 per torr of ideal gas. 7e22 electrons for 1 torr of deuterium
-constexpr float v0_r = 0;          // initial directed radial velocity outwards is positive
+constexpr float v0_r = 0;           // initial directed radial velocity outwards is positive
 
 // The maximum expected E and B fields. If fields go beyond this, the the time step, cell size etc will be wrong. Should adjust and recalculate.
 //  maximum expected magnetic field
@@ -57,10 +58,10 @@ constexpr int md_me = 60;        // ratio of electron speed/deuteron speed at th
 #define Eon_ // whether to calculate the electric (E) field
 #define Uon_ // whether to calculate the electric (V) potential and potential energy (U). Needs Eon to be enabled.
 #define UE_field
-//#define Bon_ // whether to calculate the magnetic (B) field
+// #define Bon_ // whether to calculate the magnetic (B) field
 #define UB_field
 #define EFon_ // whether to apply electric force
-//#define BFon_ // whether to apply magnetic force
+// #define BFon_ // whether to apply magnetic force
 #define printDensity
 #define printParticles
 // #define printV // print out V
@@ -104,8 +105,18 @@ struct par // useful parameters
     float dt[2]; // time step electron,deuteron
     float Emax = Emax0;
     float Bmax = Bmax0;
-    float nt[2];                                                                                                            // total number of particles
-    float KEtot[2];                                                                                                         // Total KE of particles
+    float nt[2];    // total number of particles
+    float KEtot[2]; // Total KE of particles
+#ifdef octant
+    float posL[3] = {1e-31, 1e-31, 1e-31};                                                                         // Lowest position of cells (x,y,z)
+    float posH[3] = {a0 * (n_space_divx - 1), a0 *(n_space_divy - 1.0), a0 *(n_space_divz - 1.0)};     // Highes position of cells (x,y,z)
+    float posL_1[3] = {1e-31, 1e-31, 1e-31};                                                                         // Lowest position of cells (x,y,z)
+    float posH_1[3] = {a0 * (n_space_divx - 3), a0 *(n_space_divy - 3.0), a0 *(n_space_divz - 3.0)};   // Highes position of cells (x,y,z)
+    float posL_15[3] = {1e-31, 1e-31, 1e-31};                                                                        // Lowest position of cells (x,y,z)
+    float posH_15[3] = {a0 * (n_space_divx - 4) , a0 *(n_space_divy - 4.0), a0 *(n_space_divz - 4.0)}; // Highes position of cells (x,y,z)
+
+    float posL2[3] = {0, 0, 0};
+#else
     float posL[3] = {-a0 * (n_space_divx - 1) / 2.0f, -a0 *(n_space_divy - 1.0) / 2.0, -a0 *(n_space_divz - 1.0) / 2.0};    // Lowest position of cells (x,y,z)
     float posH[3] = {a0 * (n_space_divx - 1) / 2.0f, a0 *(n_space_divy - 1.0) / 2.0, a0 *(n_space_divz - 1.0) / 2.0};       // Highes position of cells (x,y,z)
     float posL_1[3] = {-a0 * (n_space_divx - 3) / 2.0f, -a0 *(n_space_divy - 3.0) / 2.0, -a0 *(n_space_divz - 3.0) / 2.0};  // Lowest position of cells (x,y,z)
@@ -114,6 +125,7 @@ struct par // useful parameters
     float posH_15[3] = {a0 * (n_space_divx - 4) / 2.0f, a0 *(n_space_divy - 4.0) / 2.0, a0 *(n_space_divz - 4.0) / 2.0};    // Highes position of cells (x,y,z)
 
     float posL2[3] = {-a0 * n_space_divx, -a0 *n_space_divy, a0 *n_space_divz};
+#endif
     float dd[3] = {a0, a0, a0}; // cell spacing (x,y,z)
 
     unsigned int n_space_div[3] = {n_space_divx, n_space_divy, n_space_divz};

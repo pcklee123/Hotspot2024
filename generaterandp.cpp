@@ -50,7 +50,8 @@ void generate_rand_sphere(particles *pt, par *par)
     size_t na = 0;
     for (int p = 0; p < 2; p++)
     {
-#pragma omp parallel for
+//#pragma omp parallel for
+#pragma omp parallel for  simd num_threads(nthreads)
         for (na = 0; na < nback; ++na) // set number of particles per cell in background
         {
             pt->pos1x[p][na] = pt->pos0x[p][na] = gsl_ran_flat(rng, par->posL_15[0], par->posH_15[0]);
@@ -60,8 +61,9 @@ void generate_rand_sphere(particles *pt, par *par)
             pt->m[p][na] = mp[p];
         }
         //         cout << pt->pos1z[p][na - 1] << " ";
-#pragma omp parallel for ordered
-        for (int n = na; n < n_partd; n++)
+//#pragma omp parallel for ordered
+#pragma omp parallel for  simd num_threads(nthreads)
+        for (int n = nback; n < n_partd; n++)
         {
 #ifdef Weibull
             double r = gsl_ran_weibull(rng, r0[p], weibullb);

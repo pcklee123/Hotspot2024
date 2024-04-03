@@ -28,10 +28,16 @@ void calcU(fields *fi, particles *pt, par *par)
             float dx = (pt->pos1x[p][n] - par->posL[0]) * dd0; // Get the cell positions in decimal
             float dy = (pt->pos1y[p][n] - par->posL[1]) * dd1;
             float dz = (pt->pos1z[p][n] - par->posL[2]) * dd2;
-            unsigned int i = roundf(dx), j = roundf(dy), k = roundf(dz); // Round away from 0
+            int i = ceilf(dx), j = ceilf(dy), k = ceilf(dz); // Round away from 0 roundf or ceilf
+            i = (i < 0) ? 0 : i;
+            j = (j < 0) ? 0 : j;
+            k = (k < 0) ? 0 : k;
             dx -= i;
             dy -= k;
             dz -= k; // and get the "fractional cell" values (ie. located at cell 5.1 -> 0.1)
+                     //   dx = (dx < 0) ? 0 : dx;
+                     //   dy = (dy < 0) ? 0 : dy;
+                     //   dz = (dz < 0) ? 0 : dz;
             // Perform trilinear interpolation
             float dx1 = 1 - dx;
             float c00 = fi->V[0][k][j][i] * dx1 + fi->V[0][k][j][i + 1] * dx;

@@ -65,10 +65,11 @@ void tnp(fields *fi, particles *pt, par *par)
    // cout << "command q" << endl; //  create queue to which we will push commands for the device.
    static cl::CommandQueue queue(context_g, default_device_g);
 #ifdef sphere
+#ifdef octant
+   cl::Kernel kernel_tnp = cl::Kernel(program_g, "tnp_k_implicito"); // select the kernel program to run
+#else
    cl::Kernel kernel_tnp = cl::Kernel(program_g, "tnp_k_implicit"); // select the kernel program to run
 #endif
-#ifdef impl_sphere
-   cl::Kernel kernel_tnp = cl::Kernel(program_g, "tnp_k_implicit"); // select the kernel program to run
 #endif
 #ifdef cylinder
    cl::Kernel kernel_tnp = cl::Kernel(program_g, "tnp_k_implicitz"); // select the kernel program to run
@@ -87,7 +88,7 @@ void tnp(fields *fi, particles *pt, par *par)
    par->Bcoef[1] = 0;
 #endif
 #ifdef EFon_
-   par->Ecoef[0] = -(float)qs[0] * e_charge_mass / (float)mp[0] * par->dt[0] * 0.5f* par->dt[0]; // multiply by dt because of the later portion of cl code
+   par->Ecoef[0] = -(float)qs[0] * e_charge_mass / (float)mp[0] * par->dt[0] * 0.5f * par->dt[0]; // multiply by dt because of the later portion of cl code
    par->Ecoef[1] = -(float)qs[1] * e_charge_mass / (float)mp[1] * par->dt[1] * 0.5f * par->dt[1]; // multiply by dt because of the later portion of cl code
 #else
    par->Ecoef[0] = 0;
