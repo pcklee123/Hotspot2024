@@ -84,14 +84,14 @@ void tnp(fields *fi, particles *pt, par *par)
    par->Bcoef[1] = -(float)qs[1] * e_charge_mass / (float)mp[1] * par->dt[1] * 0.5f;
 #else
    par->Bcoef[0] = 0;
-   par->Bcoef[1] = 1;
+   par->Bcoef[1] = 0;
 #endif
 #ifdef EFon_
    par->Ecoef[0] = -(float)qs[0] * e_charge_mass / (float)mp[0] * par->dt[0] * 0.5f* par->dt[0]; // multiply by dt because of the later portion of cl code
    par->Ecoef[1] = -(float)qs[1] * e_charge_mass / (float)mp[1] * par->dt[1] * 0.5f * par->dt[1]; // multiply by dt because of the later portion of cl code
 #else
    par->Ecoef[0] = 0;
-   par->Ecoef[1] = 1;
+   par->Ecoef[1] = 0;
 #endif
    // cout << " Bconst=" << par->Bcoef[0] << ", Econst=" << par->Ecoef[0] << endl;
    if (fastIO)

@@ -199,10 +199,12 @@ int calcEBV(fields *fi, par *par)
             // density field
             size_t i, j, k, jj;
             jj = 0;
+
             for (k = 0; k < n_space_divz; ++k)
             {
                 for (j = 0; j < n_space_divy; ++j)
                 {
+#pragma omp parallel for simd num_threads(nthreads)
                     for (i = 0; i < n_space_divx; ++i)
                     {
                         fft_real[0][jj + i] = fi->npt[k][j][i];
@@ -219,6 +221,7 @@ int calcEBV(fields *fi, par *par)
                 //  ^ read/write is slow, maybe use host pointer iff it is supported
                 const auto dst_std = reinterpret_cast<complex<float> *>(fft_complex[c]), src_std = reinterpret_cast<complex<float> *>(fft_complex[3]),
                            precalc_r3_std = reinterpret_cast<complex<float> *>(precalc_r3[0][c]);
+#pragma omp parallel for simd num_threads(nthreads)
                 for (int i = 0; i < n_cells4; ++i)
                     dst_std[i] = src_std[i] * precalc_r3_std[i];
             }
@@ -227,6 +230,7 @@ int calcEBV(fields *fi, par *par)
                 const auto ptr_std = reinterpret_cast<complex<float> *>(fft_complex[3]),
                            precalc_r2_std = reinterpret_cast<complex<float> *>(precalc_r2);
                 complex<float> temp;
+#pragma omp parallel for simd num_threads(nthreads)
                 for (int i = 0; i < n_cells4; ++i)
                     ptr_std[i] *= precalc_r2_std[i];
             }
@@ -239,10 +243,12 @@ int calcEBV(fields *fi, par *par)
                 size_t i, j, k, jj;
                 //               cout << "c " << c << ", thread " << omp_get_thread_num() << ", jj " << jj << endl;
                 jj = 0;
+
                 for (k = 0; k < n_space_divz; ++k)
                 {
                     for (j = 0; j < n_space_divy; ++j)
                     {
+#pragma omp parallel for simd num_threads(nthreads)
                         for (i = 0; i < n_space_divx; ++i)
                             fi->E[c][k][j][i] = fft_real_c[jj + i] + fi->Ee[c][k][j][i];
                         jj += N0;
@@ -252,8 +258,10 @@ int calcEBV(fields *fi, par *par)
             }
 #ifdef Uon_
             jj = 0;
+
             for (k = 0; k < n_space_divz; ++k)
             {
+#pragma omp parallel for simd num_threads(nthreads)
                 for (j = 0; j < n_space_divy; ++j)
                     memcpy(fi->V[0][k][j], &fft_real[3][jj += N0], sizeof(float) * n_space_divx);
                 jj += N0N1_2;
