@@ -124,7 +124,7 @@ int main()
         tnp(fi, pt, par); //  calculate the next position par->ncalcp[p] times
         for (int p = 0; p < 2; ++p)
             total_ncalc[p] += par->nc * par->ncalcp[p];
-                cout << "\nmotion: " << timer.elapsed() << "s, \n";
+                cout << "motion: " << timer.elapsed() << "s, ";
         t += par->dt[0] * par->ncalcp[0] * par->nc;
 
         cout << i_time << "." << par->nc << " t = " << t << "(compute_time = " << timer.elapsed() << "s) : ";
