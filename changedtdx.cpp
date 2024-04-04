@@ -93,5 +93,5 @@ void changedx(fields *fi, par *par)
         (reinterpret_cast<float *>(fi->precalc_r2))[i] /= a0_ff;
 #endif
   //  cout << "make cells bigger " << par->nt[0] << " " << nt0prev << ",ao_f = " << par->a0_f << endl;
-
+generateField(fi, par);
 }
