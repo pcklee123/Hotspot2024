@@ -13,14 +13,14 @@ constexpr int f2 = f1 * 1.2;
 constexpr float incf = 1.2f;        // increment
 constexpr float decf = 1.0f / incf; // decrement factor
 
-constexpr int n_space = 128; // should be 2 to power of n for faster FFT
+constexpr int n_space = 32; // should be 2 to power of n for faster FFT
 
 constexpr size_t n_partd = 4194304 / 4; // n_space * n_space * n_space * 1 * 16; // must be 2 to power of n
 constexpr size_t n_parte = n_partd;
 constexpr size_t nback = n_partd / 16; // background stationary particles distributed over all cells - improves stability
 
 constexpr float R_s = n_space / 1;    // LPF smoothing radius
-constexpr float r0_f[3] = {9, 8, 10}; //  radius of sphere or cylinder (electron, ion, plasma)
+constexpr float r0_f[3] = {17, 16, 18}; //  radius of sphere or cylinder (electron, ion, plasma)
 
 constexpr float Bz0 = 0.0001;     // in T, static constant fields
 constexpr float Btheta0 = 0.0001; // in T, static constant fields

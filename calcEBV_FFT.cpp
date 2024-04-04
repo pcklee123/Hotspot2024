@@ -237,6 +237,24 @@ int calcEBV(fields *fi, par *par)
 #endif
             fftwf_execute(planbacE); // inverse transform to get convolution
                                      // #pragma omp parallel for
+                                     /*
+       float s000[3] = {+1, +1, +1}; // c=0 is x,c=1 is y,c=2 is z
+       float s001[3] = {+1, +1, -1};
+       float s010[3] = {+1, -1, +1};
+       float s011[3] = {+1, -1, -1};
+       float s100[3] = {-1, +1, +1};
+       float s101[3] = {-1, +1, -1};
+       float s110[3] = {-1, -1, +1};
+       float s111[3] = {-1, -1, -1};
+       */
+            float s000[3] = {+1, +1, +1}; // c=0 is x,c=1 is y,c=2 is z
+            float s001[3] = {-1, +1, +1};
+            float s010[3] = {+1, -1, +1};
+            float s011[3] = {-1, -1, +1};
+            float s100[3] = {+1, +1, -1};
+            float s101[3] = {-1, +1, -1};
+            float s110[3] = {+1, -1, -1};
+            float s111[3] = {-1, -1, -1};
             for (int c = 0; c < 3; c++)
             { // 3 axis
                 const float *fft_real_c = fft_real[c];
@@ -244,17 +262,35 @@ int calcEBV(fields *fi, par *par)
                 //               cout << "c " << c << ", thread " << omp_get_thread_num() << ", jj " << jj << endl;
                 jj = 0;
                 kk = 0;
+
                 for (k = 0; k < n_space_divz; ++k)
                 {
                     for (j = 0; j < n_space_divy; ++j)
                     {
-                        // #pragma omp parallel for simd num_threads(nthreads)
-                        fi->E[c][k][j][0] = fft_real_c[kk + jj + 0] + fi->Ee[c][k][j][0];
-                        for (i = 1; i < n_space_divx; ++i)
+#pragma omp parallel for simd num_threads(nthreads)
+                        //                      fi->E[c][k][j][0] = fft_real_c[kk + jj + 0] + fi->Ee[c][k][j][0];
+                        for (i = 0; i < n_space_divx; ++i)
                         {
-                            fi->E[c][k][j][i] = fi->Ee[c][k][j][i];
-                            fi->E[c][k][j][i] += fft_real_c[kk + jj + i] + fft_real_c[kk + jj + N0 - i] + fft_real_c[kk + N0N1 - jj + i] + fft_real_c[kk + N0N1 - jj + N0 - i] + fi->Ee[c][k][j][i];
-                            fi->E[c][k][j][i] += fft_real_c[N0N1N2 - kk + jj + i] + fft_real_c[N0N1N2 - kk + jj + N0 - i] + fft_real_c[N0N1N2 - kk + N0N1N2 - jj + i] + fft_real_c[N0N1N2 - kk + N0N1 - jj + N0 - i];
+#ifdef octant
+                            {
+                                int kji = kk + jj + i;
+                                int odx000 = 0;
+                                int odx001 = i < N0 ? N0 - i : 0;        // iskip
+                                int odx010 = j < N1 ? N0 * (N1 - j) : 0; // jskip
+                                int odx011 = odx001 + odx010;
+                                int odx100 = k < N2 ? N1 * N0 * (N2 - k) : 0;
+                                int odx101 = odx100 + odx001;
+                                int odx110 = odx100 + odx010;
+                                int odx111 = odx100 + odx011;
+                                fi->E[c][k][j][i] = fi->Ee[c][k][j][i];
+                                fi->E[c][k][j][i] += s000[c] * fft_real_c[odx000 + kji] + s001[c] * fft_real_c[odx001 + kji];
+                                fi->E[c][k][j][i] += s010[c] * fft_real_c[odx010 + kji] + s011[c] * fft_real_c[odx011 + kji];
+                                fi->E[c][k][j][i] += s100[c] * fft_real_c[odx100 + kji] + s101[c] * fft_real_c[odx101 + kji];
+                                fi->E[c][k][j][i] += s110[c] * fft_real_c[odx110 + kji] + s111[c] * fft_real_c[odx111 + kji];
+                            }
+#else
+                            fi->E[c][k][j][i] = fft_real_c[kk + jj + i] + fi->Ee[c][k][j][i];
+#endif
                         }
                         jj += N0;
                     }
