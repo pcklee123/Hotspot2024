@@ -169,7 +169,7 @@ void generateParticles(float a0, float r0, int *qs, int *mp, float pos0x[2][n_pa
     // generateSphere(a0, r0, qs, mp, pos0x, pos0y, pos0z, pos1x, pos1y, pos1z, q, m, nt);
     // generate2Electrons(a0, r0, qs, mp, pos0x, pos0y, pos0z, pos1x, pos1y, pos1z, q, m, nt);
 }
-void generateEmptyField(float Ee[3][n_space_divz][n_space_divy][n_space_divx], float Be[3][n_space_divz][n_space_divy][n_space_divx])
+void generateEmptyField(fields *fi, par *par)
 {
     // technically, we don't need to do this because 0 is just blank
     for (unsigned int i = 0; i < n_space_divx; i++)
@@ -183,79 +183,79 @@ void generateEmptyField(float Ee[3][n_space_divz][n_space_divy][n_space_divx], f
                 // float z = ((float)k - (float)(n_space_divz) / 2.0) / ((float)(n_space_divz));
                 // float r = sqrt(x * x + y * y + z * z); unused
 
-                Ee[0][k][j][i] = 0;   // 1000+i*100;
-                Ee[1][k][j][i] = 0;   // 2000+j*100;
-                Ee[2][k][j][i] = Ez0; // 3000+k*100;
+                fi->Ee[0][k][j][i] = 0;   // 1000+i*100;
+                fi->Ee[1][k][j][i] = 0;   // 2000+j*100;
+                fi->Ee[2][k][j][i] = Ez0; // 3000+k*100;
 
-                Be[0][k][j][i] = 0;   // z/sqrt(x*x+y*y);
-                Be[1][k][j][i] = 0;   // z/sqrt(x*x+y*y);
-                Be[2][k][j][i] = Bz0; // 1*z*z+1;
+                fi->Be[0][k][j][i] = 0;   // z/sqrt(x*x+y*y);
+                fi->Be[1][k][j][i] = 0;   // z/sqrt(x*x+y*y);
+                fi->Be[2][k][j][i] = Bz0; // 1*z*z+1;
             }
         }
     }
 }
-void generateStripedEField(float Ee[3][n_space_divz][n_space_divy][n_space_divx], float Be[3][n_space_divz][n_space_divy][n_space_divx])
+void generateStripedEField(fields *fi, par *par)
 {
     for (unsigned int k = 0; k < n_space_divz; k++)
         for (unsigned int j = 0; j < n_space_divy; j++)
             for (unsigned int i = 0; i < n_space_divx; i++)
             {
-                Ee[0][k][j][i] = i < 16 ? 1.f : 1e4;
-                Ee[1][k][j][i] = 0.f;
-                Ee[2][k][j][i] = 0.f;
-                Be[0][k][j][i] = Be[1][k][j][i] = Be[2][k][j][i] = 0.f;
+                fi->Ee[0][k][j][i] = i < 16 ? 1.f : 1e4;
+                fi->Ee[1][k][j][i] = 0.f;
+                fi->Ee[2][k][j][i] = 0.f;
+                fi->Be[0][k][j][i] = fi->Be[1][k][j][i] = fi->Be[2][k][j][i] = 0.f;
             }
 }
-void generateConstantBField(float Ee[3][n_space_divz][n_space_divy][n_space_divx], float Be[3][n_space_divz][n_space_divy][n_space_divx])
+void generateConstantBField(fields *fi, par *par)
 {
     for (unsigned int k = 0; k < n_space_divz; k++)
         for (unsigned int j = 0; j < n_space_divy; j++)
             for (unsigned int i = 0; i < n_space_divx; i++)
             {
-                Be[0][k][j][i] = 0.f;
-                Be[1][k][j][i] = 0.0015f;
-                Be[2][k][j][i] = 0.f;
+                fi->Be[0][k][j][i] = 0.f;
+                fi->Be[1][k][j][i] = 0.0015f;
+                fi->Be[2][k][j][i] = 0.f;
             }
 }
 
-void generateZpinchField(float Ee[3][n_space_divz][n_space_divy][n_space_divx], float Be[3][n_space_divz][n_space_divy][n_space_divx])
+void generateZpinchField(fields *fi, par *par)
 {
     // radius of z-pinch
-    double r0 = r0_f[2] * a0;
+    double r0 = r0_f[2] * a0 * par->a0_f;
     for (int i = 0; i < n_space_divx; i++)
     {
 #ifdef octant
-        double x = (i)*a0;
+        double x = (i)*a0 * par->a0_f;
 #else
-        double x = (i - n_space_divx / 2) * a0;
+        double x = (i - n_space_divx / 2) * a0 * par->a0_f;
 #endif
         for (int j = 0; j < n_space_divy; j++)
         {
 #ifdef octant
-            double y = (j)*a0;
+            double y = (j)*a0 * par->a0_f0;
 #else
-            double y = (j - n_space_divy / 2) * a0;
+            double y = (j - n_space_divy / 2) * a0 * par->a0_f;
 #endif
-          
+
             double r = sqrt(pow(x, 2) + pow(y, 2));
             for (unsigned int k = 0; k < n_space_divz; k++)
             {
-                Ee[0][k][j][i] = 0;   // 1000+i*100;
-                Ee[1][k][j][i] = 0;   // 2000+j*100;
-                Ee[2][k][j][i] = Ez0; // 3000+k*100;
+                fi->Ee[0][k][j][i] = 0;   // 1000+i*100;
+                fi->Ee[1][k][j][i] = 0;   // 2000+j*100;
+                fi->Ee[2][k][j][i] = Ez0; // 3000+k*100;
 
                 if (r > r0)
                 {
-                    Be[0][k][j][i] = -Btheta0 * y / (r * r) * r0;
-                    Be[1][k][j][i] = Btheta0 * x / (r * r) * r0;
+                    fi->Be[0][k][j][i] = -Btheta0 * y / (r * r) * r0;
+                    fi->Be[1][k][j][i] = Btheta0 * x / (r * r) * r0;
                 }
                 else
                 {
-                    Be[0][k][j][i] = -Btheta0 * y / r0;
-                    Be[1][k][j][i] = Btheta0 * x / r0;
+                    fi->Be[0][k][j][i] = -Btheta0 * y / r0;
+                    fi->Be[1][k][j][i] = Btheta0 * x / r0;
                 }
 
-                Be[2][k][j][i] = Bz0; // 1*z*z+1;
+                fi->Be[2][k][j][i] = Bz0; // 1*z*z+1;
             }
         }
     }
@@ -263,7 +263,7 @@ void generateZpinchField(float Ee[3][n_space_divz][n_space_divy][n_space_divx], 
 void generateField(fields *fi, par *par)
 {
     // generateEmptyField(fi->Ee, fi->Be);
-    generateZpinchField(fi->Ee, fi->Be);
+    generateZpinchField( fi, par);
     // generateStripedEField(Ee, Be);
     // generateConstantBField(Ee, Be);
 }
