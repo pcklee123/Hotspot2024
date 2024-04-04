@@ -13,9 +13,9 @@ constexpr int f2 = f1 * 1.2;
 constexpr float incf = 1.2f;        // increment
 constexpr float decf = 1.0f / incf; // decrement factor
 
-constexpr int n_space = 128; // should be 2 to power of n for faster FFT
+constexpr int n_space = 256; // should be 2 to power of n for faster FFT
 
-constexpr size_t n_partd = 4194304; // n_space * n_space * n_space * 1 * 16; // must be 2 to power of n
+constexpr size_t n_partd = 16*1024*1024; // n_space * n_space * n_space * 1 * 16; // must be 2 to power of n
 constexpr size_t n_parte = n_partd;
 constexpr size_t nback = n_partd / 16; // background stationary particles distributed over all cells - improves stability
 
@@ -47,7 +47,7 @@ constexpr int n_output_part = (n_partd > 9369) ? 9369 : n_partd; // maximum numb
 // const int nprtd=floor(n_partd/n_output_part);
 
 constexpr int ndatapoints = 100; // total number of time steps to calculate
-constexpr int nc1 = 1;           // f1 * 1;      // number of times to calculate E and B between printouts
+constexpr int nc1 = 3;           // f1 * 1;      // number of times to calculate E and B between printouts
 constexpr int md_me = 60;        // ratio of electron speed/deuteron speed at the same KE. Used to calculate electron motion more often than deuteron motion
 
 #define Hist_n 512
