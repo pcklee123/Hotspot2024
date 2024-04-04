@@ -262,13 +262,12 @@ int calcEBV(fields *fi, par *par)
                 //               cout << "c " << c << ", thread " << omp_get_thread_num() << ", jj " << jj << endl;
                 jj = 0;
                 kk = 0;
-
+#pragma omp parallel for simd num_threads(nthreads)
                 for (k = 0; k < n_space_divz; ++k)
                 {
                     for (j = 0; j < n_space_divy; ++j)
                     {
-#pragma omp parallel for simd num_threads(nthreads)
-                        //                      fi->E[c][k][j][0] = fft_real_c[kk + jj + 0] + fi->Ee[c][k][j][0];
+
                         for (i = 0; i < n_space_divx; ++i)
                         {
 #ifdef octant
