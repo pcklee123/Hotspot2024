@@ -237,24 +237,24 @@ int calcEBV(fields *fi, par *par)
 #endif
             fftwf_execute(planbacE); // inverse transform to get convolution
                                      // #pragma omp parallel for
-                                     /*
-       float s000[3] = {+1, +1, +1}; // c=0 is x,c=1 is y,c=2 is z
-       float s001[3] = {+1, +1, -1};
-       float s010[3] = {+1, -1, +1};
-       float s011[3] = {+1, -1, -1};
-       float s100[3] = {-1, +1, +1};
-       float s101[3] = {-1, +1, -1};
-       float s110[3] = {-1, -1, +1};
-       float s111[3] = {-1, -1, -1};
-       */
+
             float s000[3] = {+1, +1, +1}; // c=0 is x,c=1 is y,c=2 is z
-            float s001[3] = {-1, +1, +1};
+            float s001[3] = {+1, +1, -1};
             float s010[3] = {+1, -1, +1};
-            float s011[3] = {-1, -1, +1};
-            float s100[3] = {+1, +1, -1};
+            float s011[3] = {+1, -1, -1};
+            float s100[3] = {-1, +1, +1};
             float s101[3] = {-1, +1, -1};
-            float s110[3] = {+1, -1, -1};
-            float s111[3] = {-1, -1, -1};
+            float s110[3] = {-1, -1, +1};
+            float s111[3] = {-1, -1, -1}; 
+            /*
+                  float s000[3] = {+1, +1, +1}; // c=0 is x,c=1 is y,c=2 is z
+                  float s001[3] = {-1, +1, +1};
+                  float s010[3] = {+1, -1, +1};
+                  float s011[3] = {-1, -1, +1};
+                  float s100[3] = {+1, +1, -1};
+                  float s101[3] = {-1, +1, -1};
+                  float s110[3] = {+1, -1, -1};
+                  float s111[3] = {-1, -1, -1};*/
             for (int c = 0; c < 3; c++)
             { // 3 axis
                 const float *fft_real_c = fft_real[c];
