@@ -447,16 +447,18 @@ int calcEBV(fields *fi, par *par)
     float Tcyclotron = 2.0 * pi * mp[0] / (e_charge_mass * (par->Bmax + 1e-3f));
     float acc_e = fabsf(par->Emax * e_charge_mass);
     float vel_e = sqrt(kb * Temp_e / e_mass);
-    float TE = (sqrt(1 + 2 * a0 * par->a0_f * acc_e / vel_e) - 1) * vel_e / acc_e *1e-1;//x times smaller
+    float TE = (sqrt(1 + 2 * a0 * par->a0_f * acc_e / vel_e) - 1) * vel_e / acc_e * 1e-1; // x times smaller
     float TE1 = a0 * par->a0_f / par->Emax * (par->Bmax + .00001);
-   // cout << "Tcyclotron=" << Tcyclotron << ",Bmax= " << par->Bmax << ", TE=" << TE << ", TE1=" << TE1 << ",Emax= " << par->Emax << endl;
+    float TE2 = a0 * par->a0_f / 3e8;
+    TE1 = TE1 < TE2 ? TE1 : TE2;
+    // cout << "Tcyclotron=" << Tcyclotron << ",Bmax= " << par->Bmax << ", TE=" << TE << ", TE1=" << TE1 << ",Emax= " << par->Emax << endl;
     TE = TE > TE1 ? TE : TE1;
 
-    if (TE < (par->dt[0] *4  * f1 * ncalc0[0])) // if ideal time step is lower than actual timestep
+    if (TE < (par->dt[0] * 4 * f1 * ncalc0[0])) // if ideal time step is lower than actual timestep
         E_exceeds = 1;
-    else if (TE > (par->dt[0] *4 * f2 * ncalc0[0]))
+    else if (TE > (par->dt[0] * 4 * f2 * ncalc0[0]))
         E_exceeds = 2;
-    if (Tcyclotron < (par->dt[0] *4 * f1 * ncalc0[0]))
+    if (Tcyclotron < (par->dt[0] * 4 * f1 * ncalc0[0]))
         B_exceeds = 4;
     else if (Tcyclotron > (par->dt[0] * 4 * f2 * ncalc0[0]))
         B_exceeds = 8;
