@@ -235,33 +235,41 @@ int calcEBV(fields *fi, par *par)
                     ptr_std[i] *= precalc_r2_std[i];
             }
 #endif
-            fftwf_execute(planbacE); // inverse transform to get convolution
-                                     // #pragma omp parallel for
-
+            fftwf_execute(planbacE);      // inverse transform to get convolution
+                                          // #pragma omp parallel for
+                                          /*  float s000[3] = {+1, +1, +1}; // c=0 is x,c=1 is y,c=2 is z
+                                            float s001[3] = {+1, +1, -1};
+                                            float s010[3] = {+1, -1, +1};
+                                            float s011[3] = {+1, -1, -1};
+                                            float s100[3] = {-1, +1, +1};
+                                            float s101[3] = {-1, +1, -1};
+                                            float s110[3] = {-1, -1, +1};
+                                            float s111[3] = {-1, -1, -1};
+                                            /*
+                                                        float s000[3] = {+1, +1, +1}; // c=0 is x,c=1 is y,c=2 is z
+                                                        float s001[3] = {+1, +1, -1};
+                                                        float s010[3] = {+1, -1, +1};
+                                                        float s011[3] = {+1, -1, -1};
+                                                        float s100[3] = {-1, +1, +1};
+                                                        float s101[3] = {-1, +1, -1};
+                                                        float s110[3] = {-1, -1, +1};
+                                                        float s111[3] = {-1, -1, -1};
+                                                        */
             float s000[3] = {+1, +1, +1}; // c=0 is x,c=1 is y,c=2 is z
-            float s001[3] = {+1, +1, -1};
+            float s001[3] = {-1, +1, +1};
             float s010[3] = {+1, -1, +1};
-            float s011[3] = {+1, -1, -1};
-            float s100[3] = {-1, +1, +1};
+            float s011[3] = {-1, -1, +1};
+            float s100[3] = {+1, +1, -1};
             float s101[3] = {-1, +1, -1};
-            float s110[3] = {-1, -1, +1};
-            float s111[3] = {-1, -1, -1}; 
-            /*
-                  float s000[3] = {+1, +1, +1}; // c=0 is x,c=1 is y,c=2 is z
-                  float s001[3] = {-1, +1, +1};
-                  float s010[3] = {+1, -1, +1};
-                  float s011[3] = {-1, -1, +1};
-                  float s100[3] = {+1, +1, -1};
-                  float s101[3] = {-1, +1, -1};
-                  float s110[3] = {+1, -1, -1};
-                  float s111[3] = {-1, -1, -1};*/
+            float s110[3] = {+1, -1, -1};
+            float s111[3] = {-1, -1, -1};
+            //*/
+
             for (int c = 0; c < 3; c++)
+
             { // 3 axis
                 const float *fft_real_c = fft_real[c];
-                size_t i, j, k, jj, kk;
                 //               cout << "c " << c << ", thread " << omp_get_thread_num() << ", jj " << jj << endl;
-                jj = 0;
-                kk = 0;
 #pragma omp parallel for simd num_threads(nthreads)
                 for (k = 0; k < n_space_divz; ++k)
                 {
@@ -272,29 +280,45 @@ int calcEBV(fields *fi, par *par)
                         {
 #ifdef octant
                             {
-                                int kji = kk + jj + i;
+                                int idx000 = k * N0N1 + j * N0 + i;
+                                int idx001 = k * N0N1 + j * N0;
+                                int idx010 = k * N0N1 + i;
+                                int idx011 = k * N0N1;
+                                int idx100 = j * N0 + i;
+                                int idx101 = j * N0;
+                                int idx110 = i;
+                                int idx111 = 0;
+
                                 int odx000 = 0;
-                                int odx001 = i < N0 ? N0 - i : 0;        // iskip
-                                int odx010 = j < N1 ? N0 * (N1 - j) : 0; // jskip
+                                int odx001 = i == 0 ? 0 : N0 - i;        // iskip
+                                int odx010 = j == 0 ? 0 : N0 * (N1 - j); // jskip
                                 int odx011 = odx001 + odx010;
-                                int odx100 = k < N2 ? N1 * N0 * (N2 - k) : 0;
+                                int odx100 = k == 0 ? 0 : N0 * N1 * (N2 - k);
                                 int odx101 = odx100 + odx001;
                                 int odx110 = odx100 + odx010;
                                 int odx111 = odx100 + odx011;
                                 fi->E[c][k][j][i] = fi->Ee[c][k][j][i];
-                                fi->E[c][k][j][i] += s000[c] * fft_real_c[odx000 + kji] + s001[c] * fft_real_c[odx001 + kji];
-                                fi->E[c][k][j][i] += s010[c] * fft_real_c[odx010 + kji] + s011[c] * fft_real_c[odx011 + kji];
-                                fi->E[c][k][j][i] += s100[c] * fft_real_c[odx100 + kji] + s101[c] * fft_real_c[odx101 + kji];
-                                fi->E[c][k][j][i] += s110[c] * fft_real_c[odx110 + kji] + s111[c] * fft_real_c[odx111 + kji];
+                                // /*
+                                fi->E[c][k][j][i] += s000[c] * fft_real_c[odx000 + idx000]; // looks right
+                                fi->E[c][k][j][i] += s001[c] * fft_real_c[odx001 + idx001];
+                                fi->E[c][k][j][i] += s010[c] * fft_real_c[odx010 + idx010];
+                                fi->E[c][k][j][i] += s011[c] * fft_real_c[odx011 + idx011];
+                                fi->E[c][k][j][i] += s100[c] * fft_real_c[odx100 + idx100];
+                                fi->E[c][k][j][i] += s101[c] * fft_real_c[odx101 + idx101];
+                                fi->E[c][k][j][i] += s110[c] * fft_real_c[odx110 + idx110];
+                                fi->E[c][k][j][i] += s111[c] * fft_real_c[odx111 + idx111];
+                                /*
+                                fi->E[c][k][j][i] -= s000[c] * fft_real_c[odx000 + kji] + s001[c] * fft_real_c[odx001 + kji];
+                                fi->E[c][k][j][i] -= s010[c] * fft_real_c[odx010 + kji] + s011[c] * fft_real_c[odx011 + kji];
+                                fi->E[c][k][j][i] -= s100[c] * fft_real_c[odx100 + kji] + s101[c] * fft_real_c[odx101 + kji];
+                                fi->E[c][k][j][i] -= s110[c] * fft_real_c[odx110 + kji] + s111[c] * fft_real_c[odx111 + kji];
+                                */
                             }
 #else
-                            fi->E[c][k][j][i] = fft_real_c[kk + jj + i] + fi->Ee[c][k][j][i];
+                            fi->E[c][k][j][i] = fft_real_c[k * N0N1 + j * N0 + i] + fi->Ee[c][k][j][i];
 #endif
                         }
-                        jj += N0;
                     }
-                    jj = 0;
-                    kk += N0N1;
                 }
             }
 #ifdef Uon_
