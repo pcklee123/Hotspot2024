@@ -280,7 +280,7 @@ int calcEBV(fields *fi, par *par)
                         {
 #ifdef octant
                             {
-                                int idx000 = k * N0N1 + j * N0 + i;
+                                int idx000 = k * N0N1 + j * N0 + i; // idx_kji
                                 int idx001 = k * N0N1 + j * N0;
                                 int idx010 = k * N0N1 + i;
                                 int idx011 = k * N0N1;
@@ -289,30 +289,23 @@ int calcEBV(fields *fi, par *par)
                                 int idx110 = i;
                                 int idx111 = 0;
 
-                                int odx000 = 0;
+                                int odx000 = 0;                          // odx_kji
                                 int odx001 = i == 0 ? 0 : N0 - i;        // iskip
                                 int odx010 = j == 0 ? 0 : N0 * (N1 - j); // jskip
                                 int odx011 = odx001 + odx010;
-                                int odx100 = k == 0 ? 0 : N0 * N1 * (N2 - k);
+                                int odx100 = k == 0 ? 0 : N0 * N1 * (N2 - k); // kskip
                                 int odx101 = odx100 + odx001;
                                 int odx110 = odx100 + odx010;
                                 int odx111 = odx100 + odx011;
                                 fi->E[c][k][j][i] = fi->Ee[c][k][j][i];
-                                // /*
-                                fi->E[c][k][j][i] += s000[c] * fft_real_c[odx000 + idx000]; // looks right
-                                fi->E[c][k][j][i] += s001[c] * fft_real_c[odx001 + idx001];
+                                fi->E[c][k][j][i] += s000[c] * fft_real_c[odx000 + idx000]; // main octant
+                                fi->E[c][k][j][i] += s001[c] * fft_real_c[odx001 + idx001]; // add minor effects from other octants
                                 fi->E[c][k][j][i] += s010[c] * fft_real_c[odx010 + idx010];
                                 fi->E[c][k][j][i] += s011[c] * fft_real_c[odx011 + idx011];
                                 fi->E[c][k][j][i] += s100[c] * fft_real_c[odx100 + idx100];
                                 fi->E[c][k][j][i] += s101[c] * fft_real_c[odx101 + idx101];
                                 fi->E[c][k][j][i] += s110[c] * fft_real_c[odx110 + idx110];
                                 fi->E[c][k][j][i] += s111[c] * fft_real_c[odx111 + idx111];
-                                /*
-                                fi->E[c][k][j][i] -= s000[c] * fft_real_c[odx000 + kji] + s001[c] * fft_real_c[odx001 + kji];
-                                fi->E[c][k][j][i] -= s010[c] * fft_real_c[odx010 + kji] + s011[c] * fft_real_c[odx011 + kji];
-                                fi->E[c][k][j][i] -= s100[c] * fft_real_c[odx100 + kji] + s101[c] * fft_real_c[odx101 + kji];
-                                fi->E[c][k][j][i] -= s110[c] * fft_real_c[odx110 + kji] + s111[c] * fft_real_c[odx111 + kji];
-                                */
                             }
 #else
                             fi->E[c][k][j][i] = fft_real_c[k * N0N1 + j * N0 + i] + fi->Ee[c][k][j][i];
@@ -371,17 +364,50 @@ int calcEBV(fields *fi, par *par)
         for (int c = 0; c < 3; c++)
         { // 3 axis
             const float *fft_real_c = fft_real[c];
-            size_t i, j, k, jj;
-            jj = 0;
+            // size_t i, j, k, jj;
+            // jj = 0;
             for (k = 0; k < n_space_divz; ++k)
             {
                 for (j = 0; j < n_space_divy; ++j)
                 {
                     for (i = 0; i < n_space_divx; ++i)
-                        fi->B[c][k][j][i] = fft_real_c[jj + i] + fi->Be[c][k][j][i];
-                    jj += N0;
+                    // fi->B[c][k][j][i] = fft_real_c[jj + i] + fi->Be[c][k][j][i];
+#ifdef octant
+                    {
+                        int idx000 = k * N0N1 + j * N0 + i; // idx_kji
+                        int idx001 = k * N0N1 + j * N0;
+                        int idx010 = k * N0N1 + i;
+                        int idx011 = k * N0N1;
+                        int idx100 = j * N0 + i;
+                        int idx101 = j * N0;
+                        int idx110 = i;
+                        int idx111 = 0;
+
+                        int odx000 = 0;                          // odx_kji
+                        int odx001 = i == 0 ? 0 : N0 - i;        // iskip
+                        int odx010 = j == 0 ? 0 : N0 * (N1 - j); // jskip
+                        int odx011 = odx001 + odx010;
+                        int odx100 = k == 0 ? 0 : N0 * N1 * (N2 - k); // kskip
+                        int odx101 = odx100 + odx001;
+                        int odx110 = odx100 + odx010;
+                        int odx111 = odx100 + odx011;
+                        fi->B[c][k][j][i] = fi->Be[c][k][j][i];
+                        fi->B[c][k][j][i] += s000[c] * fft_real_c[odx000 + idx000]; // main octant
+                        fi->B[c][k][j][i] += s001[c] * fft_real_c[odx001 + idx001]; // add minor effects from other octants
+                        fi->B[c][k][j][i] += s010[c] * fft_real_c[odx010 + idx010];
+                        fi->B[c][k][j][i] += s011[c] * fft_real_c[odx011 + idx011];
+                        fi->B[c][k][j][i] += s100[c] * fft_real_c[odx100 + idx100];
+                        fi->B[c][k][j][i] += s101[c] * fft_real_c[odx101 + idx101];
+                        fi->B[c][k][j][i] += s110[c] * fft_real_c[odx110 + idx110];
+                        fi->B[c][k][j][i] += s111[c] * fft_real_c[odx111 + idx111];
+                    }
+#else
+                        fi->B[c][k][j][i] = fft_real_c[k * N0N1 + j * N0 + i] + fi->Be[c][k][j][i];
+#endif
+
+                    //       jj += N0;
                 }
-                jj += N0N1_2;
+                // jj += N0N1_2;
             }
         }
     }
