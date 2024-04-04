@@ -232,7 +232,7 @@ void generateZpinchField(fields *fi, par *par)
         for (int j = 0; j < n_space_divy; j++)
         {
 #ifdef octant
-            double y = (j)*a0 * par->a0_f0;
+            double y = (j)*a0 * par->a0_f;
 #else
             double y = (j - n_space_divy / 2) * a0 * par->a0_f;
 #endif
