@@ -102,7 +102,7 @@ constexpr int mp[2] = {1, 1835 * 2};
 
 struct par // useful parameters
 {
-    float dt[2]; // time step electron,deuteron
+    float dt[2]={1e-12,1e-12}; // time step electron,deuteron
     float Emax = Emax0;
     float Bmax = Bmax0;
     float nt[2];    // total number of particles

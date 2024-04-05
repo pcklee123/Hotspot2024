@@ -79,6 +79,19 @@ void get_densityfields(fields *fi, particles *pt, par *par)
       queue.enqueueWriteBuffer(buff_z1_e, CL_TRUE, 0, n4, pt->pos1z[0]);
 
       queue.enqueueWriteBuffer(buff_q_e, CL_TRUE, 0, n4, pt->q[0]);
+
+      // queue.enqueueReadBuffer(buff_np_e, CL_TRUE, 0, n_cellsf, fi->np[0]);
+      // queue.enqueueReadBuffer(buff_currentj_e, CL_TRUE, 0, n_cellsf * 3, fi->currentj[0]);
+      //  ions next
+
+      queue.enqueueWriteBuffer(buff_x0_i, CL_TRUE, 0, n4, pt->pos0x[1]);
+      queue.enqueueWriteBuffer(buff_y0_i, CL_TRUE, 0, n4, pt->pos0y[1]);
+      queue.enqueueWriteBuffer(buff_z0_i, CL_TRUE, 0, n4, pt->pos0z[1]);
+      queue.enqueueWriteBuffer(buff_x1_i, CL_TRUE, 0, n4, pt->pos1x[1]);
+      queue.enqueueWriteBuffer(buff_y1_i, CL_TRUE, 0, n4, pt->pos1y[1]);
+      queue.enqueueWriteBuffer(buff_z1_i, CL_TRUE, 0, n4, pt->pos1z[1]);
+
+      queue.enqueueWriteBuffer(buff_q_i, CL_TRUE, 0, n4, pt->q[1]);
    }
 
    queue.enqueueFillBuffer(buff_npi, 0, 0, n_cellsi);
@@ -104,33 +117,17 @@ void get_densityfields(fields *fi, particles *pt, par *par)
    queue.enqueueNDRangeKernel(kernel_density, cl::NullRange, cl::NDRange(n0), cl::NullRange);
    // cout << "run kernel for electron done" << endl;
    queue.finish();
+
    kernel_df.setArg(0, buff_np_e);                 // np ion
    kernel_df.setArg(1, buff_npi);                  // np ion temp integer
    kernel_df.setArg(2, buff_currentj_e);           // current
    kernel_df.setArg(3, buff_cji);                  // current
    kernel_df.setArg(4, sizeof(float), &par->a0_f); // scale factor
+
    queue.enqueueNDRangeKernel(kernel_df, cl::NullRange, cl::NDRange(n_cells), cl::NullRange);
    queue.finish();
    // cout << "read electron density" << endl;
-   if (fastIO)
-   { // is mapping required?
-     // mapped_buff_x0_e = (float *)queue.enqueueMapBuffer(buff_x0_e, CL_TRUE, CL_MAP_READ, 0, sizeof(float) * n); queue.enqueueUnmapMemObject(buff_x0_e, mapped_buff_x0_e);
-   }
-   else
-   {
-      queue.enqueueReadBuffer(buff_np_e, CL_TRUE, 0, n_cellsf, fi->np[0]);
-      queue.enqueueReadBuffer(buff_currentj_e, CL_TRUE, 0, n_cellsf * 3, fi->currentj[0]);
-      // ions next
 
-      queue.enqueueWriteBuffer(buff_x0_i, CL_TRUE, 0, n4, pt->pos0x[1]);
-      queue.enqueueWriteBuffer(buff_y0_i, CL_TRUE, 0, n4, pt->pos0y[1]);
-      queue.enqueueWriteBuffer(buff_z0_i, CL_TRUE, 0, n4, pt->pos0z[1]);
-      queue.enqueueWriteBuffer(buff_x1_i, CL_TRUE, 0, n4, pt->pos1x[1]);
-      queue.enqueueWriteBuffer(buff_y1_i, CL_TRUE, 0, n4, pt->pos1y[1]);
-      queue.enqueueWriteBuffer(buff_z1_i, CL_TRUE, 0, n4, pt->pos1z[1]);
-
-      queue.enqueueWriteBuffer(buff_q_i, CL_TRUE, 0, n4, pt->q[1]);
-   }
    queue.enqueueFillBuffer(buff_npi, 0, 0, n_cellsi);
    queue.enqueueFillBuffer(buff_cji, 0, 0, n_cellsi * 3);
    //  set arguments to be fed into the kernel program
@@ -166,7 +163,10 @@ void get_densityfields(fields *fi, particles *pt, par *par)
       queue.enqueueReadBuffer(buff_q_e, CL_TRUE, 0, n4, pt->q[0]);
       queue.enqueueReadBuffer(buff_q_i, CL_TRUE, 0, n4, pt->q[1]);
 
+      queue.enqueueReadBuffer(buff_np_e, CL_TRUE, 0, n_cellsf, fi->np[0]);
       queue.enqueueReadBuffer(buff_np_i, CL_TRUE, 0, n_cellsf, fi->np[1]);
+
+      queue.enqueueReadBuffer(buff_currentj_e, CL_TRUE, 0, n_cellsf * 3, fi->currentj[0]);
       queue.enqueueReadBuffer(buff_currentj_i, CL_TRUE, 0, n_cellsf * 3, fi->currentj[1]);
 #pragma omp parallel for simd num_threads(nthreads)
       for (unsigned int i = 0; i < n_cells; i++)

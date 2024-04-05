@@ -180,7 +180,7 @@ void tnp(fields *fi, particles *pt, par *par)
       kernel_density.setArg(7, buff_cji);                  // current
       kernel_density.setArg(8, buff_q_e);                  // q
       kernel_density.setArg(9, sizeof(float), &par->a0_f); // scale factor
-      queue.finish();
+      //queue.finish();
 
       //      cout << "\nelectron tnp " << timer.elapsed() << "s, \n";
       // wait for the end of the tnp electron to finish before starting density electron
@@ -188,6 +188,7 @@ void tnp(fields *fi, particles *pt, par *par)
       //  timer.mark();
       queue.enqueueNDRangeKernel(kernel_density, cl::NullRange, cl::NDRange(n0), cl::NullRange);
       queue.finish();
+      
       kernel_df.setArg(0, buff_np_e);                 // np
       kernel_df.setArg(1, buff_npi);                  // npt
       kernel_df.setArg(2, buff_currentj_e);           // current
