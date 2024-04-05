@@ -221,18 +221,19 @@ void generateConstantBField(fields *fi, par *par)
 void generateZpinchField(fields *fi, par *par)
 {
     // radius of z-pinch
+    cout << "a0*a0_f" << a0 * par->a0_f << endl;
     double r0 = r0_f[2] * a0 * par->a0_f;
     for (int i = 0; i < n_space_divx; i++)
     {
 #ifdef octant
-        double x = (i)*a0 * par->a0_f;
+        double x = i * a0 * par->a0_f;
 #else
         double x = (i - n_space_divx / 2) * a0 * par->a0_f;
 #endif
         for (int j = 0; j < n_space_divy; j++)
         {
 #ifdef octant
-            double y = (j)*a0 * par->a0_f;
+            double y = j * a0 * par->a0_f;
 #else
             double y = (j - n_space_divy / 2) * a0 * par->a0_f;
 #endif
@@ -263,7 +264,7 @@ void generateZpinchField(fields *fi, par *par)
 void generateField(fields *fi, par *par)
 {
     // generateEmptyField(fi->Ee, fi->Be);
-    generateZpinchField( fi, par);
+    generateZpinchField(fi, par);
     // generateStripedEField(Ee, Be);
     // generateConstantBField(Ee, Be);
 }

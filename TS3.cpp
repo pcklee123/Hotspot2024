@@ -82,7 +82,7 @@ int main()
     // get limits and spacing of Field cells
     generateField(fi, par);
 
-    cout << timer.replace() << "s\n";//cout << "Set initial random positions: ";
+    cout << timer.replace() << "s\n"; // cout << "Set initial random positions: ";
 
     fftwf_init_threads();
 
@@ -90,13 +90,46 @@ int main()
     cout << "get_densityfields: ";
     timer.mark();
     get_densityfields(fi, pt, par);
-    cout  << timer.elapsed() << "s\n ";
+    cout << timer.elapsed() << "s\n ";
     cout << "calcEBV: ";
     timer.mark();
     int cdt = calcEBV(fi, par);
     cout << timer.elapsed() << "s\n ";
     // int cdt=0;
     changedt(pt, cdt, par); /* change time step if E or B too big*/
+
+    float max_ne = maxvalf((reinterpret_cast<float *>(fi->np[0])), n_cells);
+    float Density_e = max_ne * r_part_spart / powf(a0, 3);
+    cout << "max electron density = " << max_ne << ", " << max_ne * r_part_spart / powf(a0, 3) << endl;
+    float max_ni = maxvalf((reinterpret_cast<float *>(fi->np[1])), n_cells);
+    cout << "max ion density = " << max_ni << ", " << max_ni * r_part_spart / powf(a0, 3) << endl;
+    // float area = 4 * pi * r0[0] * r0[0];
+    // float volume = 4 / 3 * pi * r0[0] * r0[0] * r0[0];
+    // calculated plasma parameters
+    float Density_e1 = nback * r_part_spart / (powf(n_space * a0, 3));
+
+    info_file << "initial density = " << Density_e << "/m^3,  background density = " << Density_e1 << "/m^3 \n";
+    float plasma_freq = sqrt(Density_e * e_charge * e_charge_mass / (mp[0] * epsilon0)) / (2 * pi);
+    float plasma_period = 1 / plasma_freq;
+    float Debye_Length = sqrt(epsilon0 * kb * Temp_e / (Density_e * e_charge * e_charge));
+    info_file << "debyeLength=" << Debye_Length << ", a0 = " << a0 << endl;
+    if (Debye_Length < a0)
+    {
+        cerr << "a0 = " << a0 << " too large for this density Debyle Length = " << Debye_Length << endl;
+        // exit(1);
+    }
+    float vel_e = sqrt(kb * Temp_e / (mp[0] * e_mass) + vz0 * vz0 + v0_r * v0_r);
+    // float Tv = a0 / vel_e; // time for electron to move across 1 cell if E=0
+    float Tcyclotron = 2.0 * pi * mp[0] / (e_charge_mass * Bmax0);
+    float TDebye = Debye_Length / vel_e;
+    float acc_e = e_charge_mass * par->Emax;
+    float TE = sqrt(vel_e * vel_e / (acc_e * acc_e) + 2 * a0 / acc_e) - vel_e / acc_e; // time for electron to move across 1 cell
+    // set time step to allow electrons to gyrate if there is B field or to allow electrons to move slowly throughout the plasma distance
+    info_file << "Tdebye=" << TDebye << ", Tcycloton/4=" << Tcyclotron / 4 << ", plasma period/3=" << plasma_period / 4 << ",TE/2=" << TE / 2 << endl;
+    par->dt[0] = min(min(min(TDebye, Tcyclotron / 4), plasma_period / 4), TE / 2) / ncalc0[0]; // electron should not move more than 1 cell after ncalc*dt and should not make more than 1/4 gyration and must calculate E before the next 1/4 plasma period
+    par->dt[1] = par->dt[0] * md_me;
+    //  float mu0_4pidt[2]= {mu0_4pi/par->dt[0],mu0_4pi/par->dt[1]};
+    info_file << "v0 electron = " << vel_e << endl;
 
 #ifdef Uon_
     // cout << "calculate the total potential energy U\n";
@@ -119,12 +152,12 @@ int main()
 
     for (i_time = 1; i_time < ndatapoints; i_time++)
     {
-        timer.mark(); // For timestep
-         timer.mark();     // Work out motion
+        timer.mark();     // For timestep
+        timer.mark();     // Work out motion
         tnp(fi, pt, par); //  calculate the next position par->ncalcp[p] times
         for (int p = 0; p < 2; ++p)
             total_ncalc[p] += par->nc * par->ncalcp[p];
-                cout << "motion: " << timer.elapsed() << "s, ";
+        cout << "motion: " << timer.elapsed() << "s, ";
         t += par->dt[0] * par->ncalcp[0] * par->nc;
 
         cout << i_time << "." << par->nc << " t = " << t << "(compute_time = " << timer.elapsed() << "s) : ";
