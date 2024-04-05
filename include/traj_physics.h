@@ -20,9 +20,9 @@ constexpr size_t n_parte = n_partd;
 constexpr size_t nback = n_partd / 16; // background stationary particles distributed over all cells - improves stability
 
 constexpr float R_s = n_space / 1;                                         // LPF smoothing radius
-constexpr float r0_f[3] = {n_space / 4 - 1, n_space / 4, n_space / 2 + 1}; //  radius of sphere or cylinder (electron, ion, plasma)
+constexpr float r0_f[3] = {n_space / 4 - 1, n_space / 4, n_space}; //  radius of sphere or cylinder (electron, ion, plasma)
 
-constexpr float Bz0 = 0.0001;     // in T, static constant fields
+constexpr float Bz0 = 1.0001;     // in T, static constant fields
 constexpr float Btheta0 = 1.0001; // in T, static constant fields
 constexpr float Ez0 = 0.0f;       // in V/m
 constexpr float vz0 = 0.0f;
