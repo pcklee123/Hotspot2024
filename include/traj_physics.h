@@ -46,7 +46,7 @@ constexpr unsigned int ncoeff = 8;
 constexpr int n_output_part = (n_partd > 9369) ? 9369 : n_partd; // maximum number of particles to output to file
 // const int nprtd=floor(n_partd/n_output_part);
 
-constexpr int ndatapoints = 2; // total number of time steps to calculate
+constexpr int ndatapoints = 100; // total number of time steps to calculate
 constexpr int nc1 = 1;           // f1 * 1;      // number of times to calculate E and B between printouts
 constexpr int md_me = 60;        // ratio of electron speed/deuteron speed at the same KE. Used to calculate electron motion more often than deuteron motion
 

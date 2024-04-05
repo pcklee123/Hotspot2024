@@ -67,6 +67,15 @@ int main()
     // startup stuff set output path opencl and print initial info
     cout << "Set initial random positions: ";
     timer.mark();
+    // estimate dt. needed to set up initial particles with velocity
+    float vel_e = sqrt(kb * Temp_e / (mp[0] * e_mass) + vz0 * vz0 + v0_r * v0_r);
+    float Tcyclotron = 2.0 * pi * mp[0] / (e_charge_mass * Bmax0);
+    float acc_e = e_charge_mass * Emax0;
+    float TE = (sqrt(1 + 2 * a0 * par->a0_f * acc_e / pow(vel_e, 2)) - 1) * vel_e / acc_e;// time for electron to move across 1 cell
+    TE = TE == 0 ? a0 * par->a0_f * vel_e : TE; // if acc is negligible
+    // set time step to allow electrons to gyrate if there is B field or to allow electrons to move slowly throughout the plasma distance
+    par->dt[0] = min(Tcyclotron / 4, TE / 2) / ncalc0[0]; // electron should not move more than 1 cell after ncalc*dt and should not make more than 1/4 gyration and must calculate E before the next 1/4 plasma period
+    par->dt[1] = par->dt[0] * md_me;
 #define generateRandom
 #ifdef generateRandom
 #ifdef sphere
@@ -89,6 +98,7 @@ int main()
     int i_time = 0;
     cout << "get_densityfields: ";
     timer.mark();
+
     get_densityfields(fi, pt, par);
     cout << timer.elapsed() << "s\n ";
     cout << "calcEBV: ";
@@ -96,15 +106,13 @@ int main()
     int cdt = calcEBV(fi, par);
     cout << timer.elapsed() << "s\n ";
     // int cdt=0;
-    changedt(pt, cdt, par); /* change time step if E or B too big*/
+    // changedt(pt, cdt, par); /* change time step if E or B too big*/
 
     float max_ne = maxvalf((reinterpret_cast<float *>(fi->np[0])), n_cells);
     float Density_e = max_ne * r_part_spart / powf(a0, 3);
     cout << "max electron density = " << max_ne << ", " << max_ne * r_part_spart / powf(a0, 3) << endl;
     float max_ni = maxvalf((reinterpret_cast<float *>(fi->np[1])), n_cells);
     cout << "max ion density = " << max_ni << ", " << max_ni * r_part_spart / powf(a0, 3) << endl;
-    // float area = 4 * pi * r0[0] * r0[0];
-    // float volume = 4 / 3 * pi * r0[0] * r0[0] * r0[0];
     cout << "Emax = " << par->Emax << endl;
     cout << "Bmax = " << par->Bmax << endl;
     // calculated plasma parameters
@@ -120,24 +128,29 @@ int main()
         cerr << "a0 = " << a0 << " too large for this density Debyle Length = " << Debye_Length << endl;
         // exit(1);
     }
-    float vel_e = sqrt(kb * Temp_e / (mp[0] * e_mass) + vz0 * vz0 + v0_r * v0_r);
-    // float Tv = a0 / vel_e; // time for electron to move across 1 cell if E=0
-    float Tcyclotron = 2.0 * pi * mp[0] / (e_charge_mass * Bmax0);
     float TDebye = Debye_Length / vel_e;
-    float acc_e = e_charge_mass * par->Emax;
-    float TE = sqrt(vel_e * vel_e / (acc_e * acc_e) + 2 * a0 / acc_e) - vel_e / acc_e; // time for electron to move across 1 cell
+    float dt0 = par->dt[0];
+    cout << "dt0 = " << par->dt[0] << endl;
+    acc_e = e_charge_mass * par->Emax;
+    TE = sqrt(vel_e * vel_e / (acc_e * acc_e) + 2 * a0 / acc_e) - vel_e / acc_e; // time for electron to move across 1 cell
     // set time step to allow electrons to gyrate if there is B field or to allow electrons to move slowly throughout the plasma distance
     info_file << "Tdebye=" << TDebye << ", Tcycloton/4=" << Tcyclotron / 4 << ", plasma period/3=" << plasma_period / 4 << ",TE/2=" << TE / 2 << endl;
-    par->dt[0] = min(min(min(TDebye, Tcyclotron / 4), plasma_period / 4), TE / 2) / ncalc0[0]; // electron should not move more than 1 cell after ncalc*dt and should not make more than 1/4 gyration and must calculate E before the next 1/4 plasma period
-    par->dt[1] = par->dt[0] * md_me;
-    //  float mu0_4pidt[2]= {mu0_4pi/par->dt[0],mu0_4pi/par->dt[1]};
+    float inc = min(min(min(TDebye, Tcyclotron / 4), plasma_period / 4), TE / 2) / ncalc0[0] / par->dt[0]; // redo dt
+    par->dt[0] *= inc;
+    par->dt[1] *= inc;
+    cout << "dt0 = " << par->dt[0] << endl;
     info_file << "v0 electron = " << vel_e << endl;
+// redo initial particle positions to get the correct velocities
+#pragma omp parallel for simd
+    for (int n = 0; n < par->n_part[0] * 3 * 2; n++)
+        pt->pos0[n] = pt->pos1[n] - (pt->pos1[n] - pt->pos0[n]) * inc;
+        //   cout << "dt changed" << endl;
 
 #ifdef Uon_
     // cout << "calculate the total potential energy U\n";
     //                  timer.mark();
     calcU(fi, pt, par);
-    // cout << "U: " << timer.elapsed() << "s, ";
+// cout << "U: " << timer.elapsed() << "s, ";
 #endif
     // cout << "savefiles" << endl;
     info(par); // printout initial info.csv file re do this with updated info

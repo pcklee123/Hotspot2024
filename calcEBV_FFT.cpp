@@ -244,7 +244,7 @@ int calcEBV(fields *fi, par *par)
             }
 #endif
             fftwf_execute(planbacE); // inverse transform to get convolution
-                                    
+
             for (int c = 0; c < 3; c++)
             { // 3 axis
                 const float *fft_real_c = fft_real[c];
@@ -425,7 +425,8 @@ int calcEBV(fields *fi, par *par)
     float Tcyclotron = 2.0 * pi * mp[0] / (e_charge_mass * (par->Bmax + 1e-3f));
     float acc_e = fabsf(par->Emax * e_charge_mass);
     float vel_e = sqrt(kb * Temp_e / e_mass);
-    float TE = (sqrt(1 + 2 * a0 * par->a0_f * acc_e / vel_e) - 1) * vel_e / acc_e * 1e-1; // x times smaller
+    float TE = (sqrt(1 + 2 * a0 * par->a0_f * acc_e / pow(vel_e, 2)) - 1) * vel_e / acc_e; // x times smaller
+    TE = TE == 0 ? a0 * par->a0_f * vel_e : TE;                                            // if acc is negligible
     float TE1 = a0 * par->a0_f / par->Emax * (par->Bmax + .00001);
     float TE2 = a0 * par->a0_f / 3e8;
     TE1 = TE1 < TE2 ? TE1 : TE2;
