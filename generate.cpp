@@ -222,29 +222,28 @@ void generateZpinchField(fields *fi, par *par)
 {
     // radius of z-pinch
     cout << "a0*a0_f" << a0 * par->a0_f << endl;
-    double r0 = r0_f[2] * a0 * par->a0_f;
+    float r0 = r0_f[2] * a0 * par->a0_f;
     for (int i = 0; i < n_space_divx; i++)
     {
 #ifdef octant
-        double x = i * a0 * par->a0_f;
+        float x = i * a0 * par->a0_f;
 #else
-        double x = (i - n_space_divx / 2) * a0 * par->a0_f;
+        float x = (i - n_space_divx / 2) * a0 * par->a0_f;
 #endif
         for (int j = 0; j < n_space_divy; j++)
         {
 #ifdef octant
-            double y = j * a0 * par->a0_f;
+            float y = j * a0 * par->a0_f;
 #else
-            double y = (j - n_space_divy / 2) * a0 * par->a0_f;
+            float y = (j - n_space_divy / 2) * a0 * par->a0_f;
 #endif
 
-            double r = sqrt(pow(x, 2) + pow(y, 2));
+            float r = sqrtf(pow(x, 2) + pow(y, 2));
             for (unsigned int k = 0; k < n_space_divz; k++)
             {
                 fi->Ee[0][k][j][i] = 0;   // 1000+i*100;
                 fi->Ee[1][k][j][i] = 0;   // 2000+j*100;
                 fi->Ee[2][k][j][i] = Ez0; // 3000+k*100;
-
                 if (r > r0)
                 {
                     fi->Be[0][k][j][i] = -Btheta0 * y / (r * r) * r0;
@@ -255,7 +254,6 @@ void generateZpinchField(fields *fi, par *par)
                     fi->Be[0][k][j][i] = -Btheta0 * y / r0;
                     fi->Be[1][k][j][i] = Btheta0 * x / r0;
                 }
-
                 fi->Be[2][k][j][i] = Bz0; // 1*z*z+1;
             }
         }

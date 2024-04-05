@@ -105,6 +105,8 @@ int main()
     cout << "max ion density = " << max_ni << ", " << max_ni * r_part_spart / powf(a0, 3) << endl;
     // float area = 4 * pi * r0[0] * r0[0];
     // float volume = 4 / 3 * pi * r0[0] * r0[0] * r0[0];
+    cout << "Emax = " << par->Emax << endl;
+    cout << "Bmax = " << par->Bmax << endl;
     // calculated plasma parameters
     float Density_e1 = nback * r_part_spart / (powf(n_space * a0, 3));
 
