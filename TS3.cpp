@@ -71,10 +71,11 @@ int main()
     float vel_e = sqrt(kb * Temp_e / (mp[0] * e_mass) + vz0 * vz0 + v0_r * v0_r);
     float Tcyclotron = 2.0 * pi * mp[0] / (e_charge_mass * Bmax0);
     float acc_e = e_charge_mass * Emax0;
-    float TE = (sqrt(1 + 2 * a0 * par->a0_f * acc_e / pow(vel_e, 2)) - 1) * vel_e / acc_e;// time for electron to move across 1 cell
-    TE = TE == 0 ? a0 * par->a0_f * vel_e : TE; // if acc is negligible
+    float TE = (sqrt(1 + 2 * a0 * par->a0_f * acc_e / pow(vel_e, 2)) - 1) * vel_e / acc_e; // time for electron to move across 1 cell
+    // float TEs = a0 * par->a0_f * vel_e;
+    TE = TE <= 0 ? a0 * par->a0_f * vel_e : TE; // if acc is negligible
     // set time step to allow electrons to gyrate if there is B field or to allow electrons to move slowly throughout the plasma distance
-    par->dt[0] = min(Tcyclotron / 4, TE / 2) / ncalc0[0]; // electron should not move more than 1 cell after ncalc*dt and should not make more than 1/4 gyration and must calculate E before the next 1/4 plasma period
+    par->dt[0] = min(Tcyclotron / 4, TE * n_space) / ncalc0[0]; // electron should not move more than 1 cell after ncalc*dt and should not make more than 1/4 gyration and must calculate E before the next 1/4 plasma period
     par->dt[1] = par->dt[0] * md_me;
 #define generateRandom
 #ifdef generateRandom
@@ -132,10 +133,13 @@ int main()
     float dt0 = par->dt[0];
     cout << "dt0 = " << par->dt[0] << endl;
     acc_e = e_charge_mass * par->Emax;
-    TE = sqrt(vel_e * vel_e / (acc_e * acc_e) + 2 * a0 / acc_e) - vel_e / acc_e; // time for electron to move across 1 cell
+    // TE = sqrt(vel_e * vel_e / (acc_e * acc_e) + 2 * a0 / acc_e) - vel_e / acc_e;           // time for electron to move across 1 cell
+    TE = (sqrt(1 + 2 * a0 * par->a0_f * acc_e / pow(vel_e, 2)) - 1) * vel_e / acc_e; // time for electron to move across 1 cell
+    // float TEs = a0 * par->a0_f * vel_e;
+    TE = TE <= 0 ? a0 * par->a0_f * vel_e : TE; // if acc is negligible
     // set time step to allow electrons to gyrate if there is B field or to allow electrons to move slowly throughout the plasma distance
     info_file << "Tdebye=" << TDebye << ", Tcycloton/4=" << Tcyclotron / 4 << ", plasma period/3=" << plasma_period / 4 << ",TE/2=" << TE / 2 << endl;
-    float inc = min(min(min(TDebye, Tcyclotron / 4), plasma_period / 4), TE / 2) / ncalc0[0] / par->dt[0]; // redo dt
+    float inc = min(min(min(TDebye, Tcyclotron / 4), plasma_period / 4), TE * n_space) / ncalc0[0] / par->dt[0]; // redo dt
     par->dt[0] *= inc;
     par->dt[1] *= inc;
     cout << "dt0 = " << par->dt[0] << endl;

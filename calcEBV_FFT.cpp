@@ -432,7 +432,7 @@ int calcEBV(fields *fi, par *par)
     TE1 = TE1 < TE2 ? TE1 : TE2;
     // cout << "Tcyclotron=" << Tcyclotron << ",Bmax= " << par->Bmax << ", TE=" << TE << ", TE1=" << TE1 << ",Emax= " << par->Emax << endl;
     TE = TE > TE1 ? TE : TE1;
-
+    TE *= 2;
     if (TE < (par->dt[0] * 4 * f1 * ncalc0[0])) // if ideal time step is lower than actual timestep
         E_exceeds = 1;
     else if (TE > (par->dt[0] * 4 * f2 * ncalc0[0]))

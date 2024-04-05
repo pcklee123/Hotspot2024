@@ -8,7 +8,7 @@
 constexpr double weibullb = 4; // b factor for weibull. larger means closer to a shell. ~1 means filled more at the center.
 #define Temp_e 1e7             // in Kelvin 1e7 ~1keV
 #define Temp_d 1e7             // in Kelvin
-constexpr int f1 = 256;         // make bigger to make smaller time steps // 8 is min for sphere slight increas in KE
+constexpr int f1 = 1;         // make bigger to make smaller time steps // 8 is min for sphere slight increas in KE
 constexpr int f2 = f1 * 1.2;
 constexpr float incf = 1.2f;        // increment
 constexpr float decf = 1.0f / incf; // decrement factor
@@ -28,7 +28,7 @@ constexpr float Ez0 = 0.0f;       // in V/m
 constexpr float vz0 = 0.0f;
 constexpr float a0 = 0.25e-6; // typical dimensions of a cell in m This needs to be smaller than debye length otherwise energy is not conserved if a particle moves across a cell
 constexpr float a0_ff = 1.0 + 8.0 / (float)n_space;
-constexpr float target_part = 1e8; // 3.5e22 particles per m^3 per torr of ideal gas. 7e22 electrons for 1 torr of deuterium
+constexpr float target_part = 1e7; // 3.5e22 particles per m^3 per torr of ideal gas. 7e22 electrons for 1 torr of deuterium
 constexpr float v0_r = 0;          // initial directed radial velocity outwards is positive
 
 // The maximum expected E and B fields. If fields go beyond this, the the time step, cell size etc will be wrong. Should adjust and recalculate.
