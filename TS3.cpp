@@ -127,15 +127,13 @@ int main()
         // exit(1);
     }
     float TDebye = Debye_Length / vel_e;
-    float dt0 = par->dt[0];
-    cout << "dt0 = " << par->dt[0] << endl;
     acc_e = e_charge_mass * par->Emax;
     TE = (sqrt(1 + 2 * a0 * par->a0_f * acc_e / pow(vel_e, 2)) - 1) * vel_e / acc_e; // time for electron to move across 1 cell
     TE = TE <= 0 ? a0 * par->a0_f * vel_e : TE;                                      // if acc is negligible i.e. in square root ~=1, use approximation is more accurate
     // set time step to allow electrons to gyrate if there is B field or to allow electrons to move slowly throughout the plasma distance
     float TExB = a0 * par->a0_f / par->Emax * (par->Bmax + .00001);
     info_file << "Tdebye=" << TDebye << ", Tcycloton/4=" << Tcyclotron / 4 << ", plasma period/4=" << plasma_period / 4 << ",TE=" << TE << ",TExB=" << TExB << endl;
-    float inc = min(min(min(TDebye, Tcyclotron / 4), plasma_period / 4), TE/2 ) / f1 / par->dt[0]; // redo dt
+    float inc = min(min(min(TDebye, Tcyclotron / 4), plasma_period / 4), TE/16 ) / f1 / par->dt[0]; // redo dt
     par->dt[0] *= inc;
     par->dt[1] *= inc;
     cout << "dt0 = " << par->dt[0] << endl;
