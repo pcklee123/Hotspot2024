@@ -101,21 +101,19 @@ int main()
     timer.mark();
 
     get_densityfields(fi, pt, par);
-    cout << timer.elapsed() << "s\n ";
+    cout << timer.elapsed() << "s\n "; // density this is incorporated into tnp which also moves particles, but need to work out here to get good estimate of dt
     cout << "calcEBV: ";
     timer.mark();
-    int cdt = calcEBV(fi, par);
+    int cdt = calcEBV(fi, par); // electric and magnetic fields this is incorporated into tnp which also moves particles. Need here just to estimate dt
     cout << timer.elapsed() << "s\n ";
     // int cdt=0;
     // changedt(pt, cdt, par); /* change time step if E or B too big*/
 
     float max_ne = maxvalf((reinterpret_cast<float *>(fi->np[0])), n_cells);
     float Density_e = max_ne * r_part_spart / powf(a0, 3);
-    cout << "max electron density = " << max_ne << ", " << max_ne * r_part_spart / powf(a0, 3) << endl;
     float max_ni = maxvalf((reinterpret_cast<float *>(fi->np[1])), n_cells);
-    cout << "max ion density = " << max_ni << ", " << max_ni * r_part_spart / powf(a0, 3) << endl;
-    cout << "Emax = " << par->Emax << endl;
-    cout << "Bmax = " << par->Bmax << endl;
+    cout << "max density electron = " << max_ne << ", " << max_ne * r_part_spart / powf(a0, 3) << "m-3, ion = " << max_ni << ", " << max_ni * r_part_spart / powf(a0, 3) << endl;
+    cout << "Emax = " << par->Emax << ", " << "Bmax = " << par->Bmax << endl;
     // calculated plasma parameters
     float Density_e1 = nback * r_part_spart / (powf(n_space * a0, 3));
 
@@ -133,12 +131,11 @@ int main()
     float dt0 = par->dt[0];
     cout << "dt0 = " << par->dt[0] << endl;
     acc_e = e_charge_mass * par->Emax;
-    // TE = sqrt(vel_e * vel_e / (acc_e * acc_e) + 2 * a0 / acc_e) - vel_e / acc_e;           // time for electron to move across 1 cell
     TE = (sqrt(1 + 2 * a0 * par->a0_f * acc_e / pow(vel_e, 2)) - 1) * vel_e / acc_e; // time for electron to move across 1 cell
-    // float TEs = a0 * par->a0_f * vel_e;
-    TE = TE <= 0 ? a0 * par->a0_f * vel_e : TE; // if acc is negligible
+    TE = TE <= 0 ? a0 * par->a0_f * vel_e : TE;                                      // if acc is negligible i.e. in square root ~=1, use approximation is more accurate
     // set time step to allow electrons to gyrate if there is B field or to allow electrons to move slowly throughout the plasma distance
-    info_file << "Tdebye=" << TDebye << ", Tcycloton/4=" << Tcyclotron / 4 << ", plasma period/3=" << plasma_period / 4 << ",TE/2=" << TE / 2 << endl;
+    float TExB = a0 * par->a0_f / par->Emax * (par->Bmax + .00001);
+    info_file << "Tdebye=" << TDebye << ", Tcycloton/4=" << Tcyclotron / 4 << ", plasma period/3=" << plasma_period / 4 << ",TE=" << TE << ",TExB=" << TExB << endl;
     float inc = min(min(min(TDebye, Tcyclotron / 4), plasma_period / 4), TE * n_space) / ncalc0[0] / par->dt[0]; // redo dt
     par->dt[0] *= inc;
     par->dt[1] *= inc;
