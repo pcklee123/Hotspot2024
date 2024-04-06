@@ -15,11 +15,11 @@ constexpr float decf = 1.0f / incf; // decrement factor
 
 constexpr int n_space = 128; // should be 2 to power of n for faster FFT
 
-constexpr size_t n_partd = 16*1024*1024; // n_space * n_space * n_space * 1 * 16; // must be 2 to power of n
+constexpr size_t n_partd = 16 * 1024 * 1024; // n_space * n_space * n_space * 1 * 16; // must be 2 to power of n
 constexpr size_t n_parte = n_partd;
 constexpr size_t nback = n_partd / 4; // background stationary particles distributed over all cells - improves stability
 
-constexpr float R_s = n_space / 1;                                         // LPF smoothing radius
+constexpr float R_s = n_space / 1;                                 // LPF smoothing radius
 constexpr float r0_f[3] = {n_space / 4 - 1, n_space / 4, n_space}; //  radius of sphere or cylinder (electron, ion, plasma)
 
 constexpr float Bz0 = 1.0001;     // in T, static constant fields
@@ -102,7 +102,7 @@ constexpr int mp[2] = {1, 1835 * 2};
 
 struct par // useful parameters
 {
-    float dt[2]={1e-12,1e-12}; // time step electron,deuteron
+    float dt[2] = {1e-12, 1e-12}; // time step electron,deuteron
     float Emax = Emax0;
     float Bmax = Bmax0;
     float nt[2];    // total number of particles
@@ -158,17 +158,13 @@ struct particles // particles
     int (*m)[n_partd];
 };
 
-struct fields                                              // particles
-{                                                          //[{x,y,z}][k][j][i]
-    float (*E)[n_space_divz][n_space_divy][n_space_divx];  // selfgenerated E field[3][k][j][i]
-    float (*Ee)[n_space_divz][n_space_divy][n_space_divx]; // External E field[3][k][j][i]
-
-    // float (*Ea)[n_space_divy][n_space_divx][3][ncoeff];    // coefficients for Trilinear interpolation Electric field Ea[k][j][i][3][8] or Ea[3][k][j][i][8]
-    float (*Ea)[n_space_divz][n_space_divy][n_space_divx][ncoeff]; // coefficients for Trilinear interpolation Electric field Ea[k][j][i][3][8] or Ea[3][k][j][i][8]
-
+struct fields                                                      // particles
+{                                                                  //[{x,y,z}][k][j][i]
+    float (*E)[n_space_divz][n_space_divy][n_space_divx];          // selfgenerated E field[3][k][j][i]
+    float (*Ee)[n_space_divz][n_space_divy][n_space_divx];         // External E field[3][k][j][i]
+    float (*Ea)[n_space_divz][n_space_divy][n_space_divx][ncoeff]; // coefficients for Trilinear interpolation Electric field  Ea[3][k][j][i][8]
     float (*B)[n_space_divz][n_space_divy][n_space_divx];
     float (*Be)[n_space_divz][n_space_divy][n_space_divx];
-    // float (*Ba)[n_space_divy][n_space_divx][3][ncoeff]; // coefficients for Trilinear interpolation Magnetic field
     float (*Ba)[n_space_divz][n_space_divy][n_space_divx][ncoeff]; // coefficients for Trilinear interpolation Magnetic field
     float (*V)[n_space_divz][n_space_divy][n_space_divx];
     float (*np)[n_space_divz][n_space_divy][n_space_divx];
@@ -179,9 +175,9 @@ struct fields                                              // particles
     int (*cji)[n_space_divz][n_space_divy][n_space_divx]; //[3][z][y][x]
     int (*cj_centeri)[3][n_space_divz][n_space_divy][n_space_divx];
     float (*jc)[n_space_divz][n_space_divy][n_space_divx];
-    //  pre-calculate 1/ r3 to make it faster to calculate electric and magnetic fields
-    float *precalc_r3;
-#ifdef Uon_ // similar arrays for U, but kept separately in one ifdef
-    float *precalc_r2;
+
+    float *precalc_r3; //  pre-calculate 1/ r3 to make it faster to calculate electric and magnetic fields
+#ifdef Uon_
+    float *precalc_r2; // similar arrays for U, but kept separately in one ifdef
 #endif
 };

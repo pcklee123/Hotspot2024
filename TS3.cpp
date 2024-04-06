@@ -74,7 +74,7 @@ int main()
     // float TEs = a0 * par->a0_f * vel_e;
     TE = TE <= 0 ? a0 * par->a0_f * vel_e : TE; // if acc is negligible
     // set time step to allow electrons to gyrate if there is B field or to allow electrons to move slowly throughout the plasma distance
-    par->dt[0] = min(Tcyclotron / 4, TE * n_space) / f1; // electron should not move more than 1 cell after ncalc*dt and should not make more than 1/4 gyration and must calculate E before the next 1/4 plasma period
+    par->dt[0] = min(Tcyclotron / 4, TE/2 ) / f1; // electron should not move more than 1 cell after ncalc*dt and should not make more than 1/4 gyration and must calculate E before the next 1/4 plasma period
     par->dt[1] = par->dt[0] * md_me;
 #define generateRandom
 #ifdef generateRandom
@@ -135,7 +135,7 @@ int main()
     // set time step to allow electrons to gyrate if there is B field or to allow electrons to move slowly throughout the plasma distance
     float TExB = a0 * par->a0_f / par->Emax * (par->Bmax + .00001);
     info_file << "Tdebye=" << TDebye << ", Tcycloton/4=" << Tcyclotron / 4 << ", plasma period/4=" << plasma_period / 4 << ",TE=" << TE << ",TExB=" << TExB << endl;
-    float inc = min(min(min(TDebye, Tcyclotron / 4), plasma_period / 4), TE ) / f1 / par->dt[0]; // redo dt
+    float inc = min(min(min(TDebye, Tcyclotron / 4), plasma_period / 4), TE/2 ) / f1 / par->dt[0]; // redo dt
     par->dt[0] *= inc;
     par->dt[1] *= inc;
     cout << "dt0 = " << par->dt[0] << endl;
