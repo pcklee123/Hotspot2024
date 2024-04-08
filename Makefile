@@ -1,5 +1,6 @@
 _DEPS = traj.h traj_physics.h
-_OBJ = utils.o TS3.o tnp.o generate.o generaterandp.o  save.o cl_code.o changedtdx.o calcEBV_vkFFT.o calcU.o  get_densityfields.o
+_OBJvk = utils.o TS3.o tnp.o generate.o generaterandp.o  save.o cl_code.o changedtdx.o calcEBV_vkFFT.o calcU.o  get_densityfields.o
+_OBJ = utils.o TS3.o tnp.o generate.o generaterandp.o  save.o cl_code.o changedtdx.o calcEBV_FFT.o calcU.o  get_densityfields.o
 #sel_part_print.o smoothfield.o calc_trilin_constants.o
 IDIR = include
 dir_guard=@mkdir -p $(@D)
@@ -30,6 +31,7 @@ LDIR=lib
 DEPS = $(patsubst %,$(IDIR)/%,$(_DEPS))
 
 OBJ = $(patsubst %,$(ODIR)/%,$(_OBJ))
+OBJvk = $(patsubst %,$(ODIR)/%,$(_OBJvk))
 DOBJ = $(patsubst %,$(DODIR)/%,$(_OBJ))
 
 $(ODIR)/%.o: %.cpp $(DEPS)
@@ -41,6 +43,9 @@ $(DODIR)/%.o: %.cpp $(DEPS)
 	$(CC) -g -c -o $@ $< $(CFLAGSd)
 
 TS3: $(OBJ)
+	$(CC) -o $@ $^ $(CFLAGS) $(LIBS)
+
+TS3vk: $(OBJvk)
 	$(CC) -o $@ $^ $(CFLAGS) $(LIBS)
 
 debug: $(DOBJ)
