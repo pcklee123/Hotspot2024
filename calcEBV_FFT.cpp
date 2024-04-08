@@ -138,13 +138,18 @@ int calcEBV(fields *fi, par *par)
         configuration.inputBufferSize = &inputBufferSize;
 
         resFFT = initializeVkFFT(&appfor_k, configuration);
+
         Nbatch = 1;
         configuration.numberBatches = Nbatch;
         inputBufferSize = (size_t)sizeof(float) * configuration.inputBufferStride[2] * Nbatch;
         bufferSize = (size_t)sizeof(float) * 2 * configuration.bufferStride[2] * Nbatch;
-        inputbuffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, inputBufferSize, 0, &res);
-        configuration.inputBuffer = &inputbuffer;
+        fft_real_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, inputBufferSize, 0, &res);
+        configuration.inputBuffer = &fft_real_buffer;
         configuration.inputBufferSize = &inputBufferSize;
+
+        fft_complex_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize, 0, &res);
+        configuration.buffer = &fft_complex_buffer;
+        configuration.bufferSize = &bufferSize;
         resFFT = initializeVkFFT(&appforE, configuration);
 
 #ifdef Uon_
