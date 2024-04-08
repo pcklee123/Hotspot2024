@@ -1,7 +1,7 @@
 #ifndef TRAJ_H_INCLUDED
 #define TRAJ_H_INCLUDED
 
-#define CL_HPP_TARGET_OPENCL_VERSION 300
+
 #include <immintrin.h>
 #include <iostream>
 #include <fstream>
@@ -14,6 +14,10 @@
 #include <omp.h>
 #include <string>
 #include <filesystem>
+#define CL_HPP_TARGET_OPENCL_VERSION 300
+#ifndef CL_USE_DEPRECATED_OPENCL_1_2_APIS
+#define CL_USE_DEPRECATED_OPENCL_1_2_APIS
+#endif
 #include <CL/opencl.hpp>
 // #include <vtk/vtksys/Configure.hxx>
 #include <vtk/vtkSmartPointer.h>
