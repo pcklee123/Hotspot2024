@@ -1,5 +1,5 @@
 _DEPS = traj.h traj_physics.h
-_OBJvk = utils.o TS3.o tnp.o generate.o generaterandp.o  save.o cl_code.o changedtdx.o calcEBV_vkFFT.o calcU.o  get_densityfields.o
+_OBJvk = utils.o TS3.o tnp.o generate.o generaterandp.o  save.o cl_code.o changedtdx.o calcEBV_vkFFT.o calcU.o  get_densityfields.o utils_VkFFT.o
 _OBJ = utils.o TS3.o tnp.o generate.o generaterandp.o  save.o cl_code.o changedtdx.o calcEBV_FFT.o calcU.o  get_densityfields.o
 #sel_part_print.o smoothfield.o calc_trilin_constants.o
 IDIR = include
