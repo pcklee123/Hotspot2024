@@ -3,8 +3,6 @@
 #include <complex>
 #include <fftw3.h>
 
-#include "vkFFT.h"
-#include "utils_VkFFT.h"
 // Shorthand for cleaner code
 /*const size_t N0 = n_space_divx2, N1 = n_space_divy2, N2 = n_space_divz2,
              N0N1 = N0 * N1, N0N1_2 = N0N1 / 2,
@@ -40,24 +38,19 @@ auto *fft_real = reinterpret_cast<float (&)[4][n_cells8]>(*fftwf_alloc_real(n_ce
 auto *fft_complex = reinterpret_cast<fftwf_complex (&)[4][n_cells4]>(*fftwf_alloc_complex(4 * n_cells4));
 //  pre-calculate 1/ r3 to make it faster to calculate electric and magnetic fields
 auto *precalc_r3 = reinterpret_cast<fftwf_complex (&)[2][3][N2_c][N1][N0]>(*fftwf_alloc_complex(2 * 3 * n_cells4));
-
 #ifdef Uon_ // similar arrays for U, but kept separately in one ifdef
 auto *precalc_r2 = reinterpret_cast<fftwf_complex (&)[N2_c][N1][N0]>(*fftwf_alloc_complex(n_cells4));
 #endif
 
 int calcEBV(fields *fi, par *par)
+// float precalc_r3[3][n_space_divz2][n_space_divy2][n_space_divx2],  float Aconst, float Vconst,
 {
     static int first = 1;
     static fftwf_plan planforE, planforB, planbacE, planbacB;
-    static VkFFTApplication appforE = {};
-    static VkFFTApplication appforB = {};
-    static VkFFTApplication appbacE = {};
-    static VkFFTApplication appbacB = {};
+
     static float posL2[3];
     static unsigned int *n_space_div2;
     fftwf_plan planfor_k, planfor_k2;
-    static VkFFTApplication appfor_k = {};
-    static VkFFTApplication appfor_k2 = {};
     float s000[3] = {+1, +1, +1}; // c=0 is x,c=1 is y,c=2 is z
     float s001[3] = {-1, +1, +1};
     float s010[3] = {+1, -1, +1};
@@ -66,26 +59,12 @@ int calcEBV(fields *fi, par *par)
     float s101[3] = {-1, +1, -1};
     float s110[3] = {+1, -1, -1};
     float s111[3] = {-1, -1, -1};
-    static cl_mem r3_buffer = 0;
-    static cl_mem r2_buffer = 0;
-    static cl_mem fft_real_buffer = 0;
-    static cl_mem fft_complex_buffer = 0;
     if (first)
     { // allocate and initialize to 0
+
         int dims[3] = {N0, N1, N2};
         auto precalc_r3_base = new float[2][3][N2][N1][N0];
         fi->precalc_r3 = (reinterpret_cast<float *>(precalc_r3));
-        VkGPU vkGPU = {};
-        // vkGPU->device_id=0;
-        vkGPU.device_id = 0;
-        VkFFTResult resFFT = VKFFT_SUCCESS;
-        cl_int res = CL_SUCCESS;
-        cl_uint numPlatforms;
-        // devices_list();
-        vkGPU.device = default_device_g();
-        vkGPU.context = context_g();
-        vkGPU.commandQueue = clCreateCommandQueue(vkGPU.context, vkGPU.device, 0, &res);
-
 #ifdef Uon_ // similar arrays for U, but kept separately in one ifdef
         auto precalc_r2_base = new float[N2][N1][N0];
         fi->precalc_r2 = (reinterpret_cast<float *>(precalc_r2));
@@ -95,63 +74,6 @@ int calcEBV(fields *fi, par *par)
         fftwf_plan_with_nthreads(omp_get_max_threads() * 1);
         planfor_k = fftwf_plan_many_dft_r2c(3, dims, 6, reinterpret_cast<float *>(precalc_r3_base[0][0]), NULL, 1, n_cells8, reinterpret_cast<fftwf_complex *>(precalc_r3[0][0]), NULL, 1, n_cells4, FFTW_ESTIMATE);
         planforE = fftwf_plan_dft_r2c_3d(N0, N1, N2, fft_real[0], fft_complex[3], FFTW_MEASURE);
-
-        int Nbatch = 6;
-        VkFFTConfiguration configuration = {};
-        VkFFTApplication appfor_k = {};
-
-        configuration.FFTdim = 3; // FFT dimension, 1D, 2D or 3D (default 1).4 D configuration.size[0] = Nbatch;
-
-        configuration.size[0] = n_space_divx2; // Multidimensional FFT dimensions sizes (default 1). For best performance (and stability), order dimensions in descendant size order as: x>y>z.
-        configuration.size[1] = n_space_divy2;
-        configuration.size[2] = n_space_divz2;
-
-        // supposed to be faster if batch is done over dimension 0 instead.
-        // configuration.omitDimension[0] = 1; // disable FFT over the batching dimension
-        configuration.numberBatches = Nbatch;
-        configuration.performR2C = 1;
-
-        configuration.isInputFormatted = 1; // out-of-place - we need to specify that input buffer is separate from the main buffer
-
-        configuration.inputBufferStride[0] = configuration.size[0];
-        configuration.inputBufferStride[1] = configuration.inputBufferStride[0] * configuration.size[1];
-        configuration.inputBufferStride[2] = configuration.inputBufferStride[1] * configuration.size[2];
-
-        configuration.bufferStride[0] = (uint64_t)(configuration.size[0] / 2) + 1;
-        configuration.bufferStride[1] = configuration.bufferStride[0] * configuration.size[1];
-        configuration.bufferStride[2] = configuration.bufferStride[1] * configuration.size[2];
-
-        size_t inputBufferSize = (size_t)sizeof(float) * configuration.inputBufferStride[2] * Nbatch;
-        size_t bufferSize = (size_t)sizeof(float) * 2 * configuration.bufferStride[2] * Nbatch;
-
-        configuration.device = &vkGPU.device;
-        configuration.context = &vkGPU.context;
-
-        cl_mem inputbuffer = 0;
-
-        r3_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize, 0, &res);
-        configuration.buffer = &r3_buffer;
-        configuration.bufferSize = &bufferSize;
-
-        inputbuffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, inputBufferSize, 0, &res);
-        configuration.inputBuffer = &inputbuffer;
-        configuration.inputBufferSize = &inputBufferSize;
-
-        resFFT = initializeVkFFT(&appfor_k, configuration);
-
-        Nbatch = 1;
-        configuration.numberBatches = Nbatch;
-        inputBufferSize = (size_t)sizeof(float) * configuration.inputBufferStride[2] * Nbatch;
-        bufferSize = (size_t)sizeof(float) * 2 * configuration.bufferStride[2] * Nbatch;
-        fft_real_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, inputBufferSize, 0, &res);
-        configuration.inputBuffer = &fft_real_buffer;
-        configuration.inputBufferSize = &inputBufferSize;
-
-        fft_complex_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize, 0, &res);
-        configuration.buffer = &fft_complex_buffer;
-        configuration.bufferSize = &bufferSize;
-        resFFT = initializeVkFFT(&appforE, configuration);
-
 #ifdef Uon_
         planfor_k2 = fftwf_plan_dft_r2c_3d(N0, N1, N2, reinterpret_cast<float *>(precalc_r2_base), reinterpret_cast<fftwf_complex *>(precalc_r2), FFTW_ESTIMATE);
         // Perform ifft on the entire array; the first 3/4 is used for E while the last 1/4 is used for V
@@ -503,17 +425,17 @@ int calcEBV(fields *fi, par *par)
     float Tcyclotron = 2.0 * pi * mp[0] / (e_charge_mass * (par->Bmax + 1e-3f));
     float acc_e = fabsf(par->Emax * e_charge_mass);
     float vel_e = sqrt(kb * Temp_e / e_mass);
-    float TE = (sqrt(1 + 2 * a0 * par->a0_f * acc_e / pow(vel_e, 2)) - 1) * vel_e / acc_e;
-    TE = TE == 0 ? a0 * par->a0_f * vel_e : TE; // if acc is negligible
+    float TE = (sqrt(1 + 2 * a0 * par->a0_f * acc_e / pow(vel_e, 2)) - 1) * vel_e / acc_e; 
+    TE = TE == 0 ? a0 * par->a0_f * vel_e : TE;                                            // if acc is negligible
     float TE1 = a0 * par->a0_f / par->Emax * (par->Bmax + .00001);
     float TE2 = a0 * par->a0_f / 3e8;
     TE1 = TE1 < TE2 ? TE1 : TE2;
     // cout << "Tcyclotron=" << Tcyclotron << ",Bmax= " << par->Bmax << ", TE=" << TE << ", TE1=" << TE1 << ",Emax= " << par->Emax << endl;
     TE = TE > TE1 ? TE : TE1;
-    TE *= 1;                                // x times larger try to save time but makes it unstable.
-    if (TE < (par->dt[0] * f1 * ncalc0[0])) // if ideal time step is lower than actual timestep
+    TE *= 1;// x times larger try to save time but makes it unstable.
+    if (TE < (par->dt[0]  * f1 * ncalc0[0])) // if ideal time step is lower than actual timestep
         E_exceeds = 1;
-    else if (TE > (par->dt[0] * f2 * ncalc0[0]))
+    else if (TE > (par->dt[0]  * f2 * ncalc0[0]))
         E_exceeds = 2;
     if (Tcyclotron < (par->dt[0] * 4 * f1 * ncalc0[0]))
         B_exceeds = 4;
