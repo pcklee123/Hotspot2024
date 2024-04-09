@@ -126,4 +126,5 @@ void cl_start(par *par)
     context_g = context;
     default_device_g = default_device;
     program_g = program;
+    device_id_g = device_id;
 }

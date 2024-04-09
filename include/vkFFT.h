@@ -33,10 +33,10 @@
 #define __STDC_FORMAT_MACROS
 #endif
 #include <inttypes.h>
-#if(VKFFT_BACKEND==0)
+#if (VKFFT_BACKEND == 0)
 #include "vulkan/vulkan.h"
 #include "glslang_c_interface.h"
-#elif(VKFFT_BACKEND==1)
+#elif (VKFFT_BACKEND == 1)
 #include <nvrtc.h>
 #include <cuda.h>
 #include <cuda_runtime.h>
@@ -45,12 +45,13 @@
 #ifndef CUDA_TOOLKIT_ROOT_DIR
 #define CUDA_TOOLKIT_ROOT_DIR ""
 #endif
-#elif(VKFFT_BACKEND==2)
+#elif (VKFFT_BACKEND == 2)
 #include <hip/hiprtc.h>
 #include <hip/hip_runtime.h>
 #include <hip/hip_runtime_api.h>
 #include <hip/hip_complex.h>
-#elif(VKFFT_BACKEND==3)
+#elif (VKFFT_BACKEND == 3)
+#define CL_HPP_TARGET_OPENCL_VERSION 300
 #ifndef CL_USE_DEPRECATED_OPENCL_1_2_APIS
 #define CL_USE_DEPRECATED_OPENCL_1_2_APIS
 #endif
@@ -62,9 +63,14 @@
 #endif
 
 #ifdef __cplusplus
-#define VKFFT_ZERO_INIT {}
+#define VKFFT_ZERO_INIT \
+	{                   \
+	}
 #else
-#define VKFFT_ZERO_INIT {0}
+#define VKFFT_ZERO_INIT \
+	{                   \
+		0               \
+	}
 #endif
 
 #ifndef VKFFT_MAX_FFT_DIMENSIONS
@@ -75,7 +81,7 @@
 
 #define VKFFT_USE_QUADMATH_FP128 // for now the only implementation, but defining these functions as mpfr should also be possible
 #include <quadmath.h>
-//#define pfQ __float128
+// #define pfQ __float128
 #define pfLD __float128
 #define pfUINT uint64_t
 #define pfINT int64_t
@@ -106,7 +112,8 @@
 #include "vkFFT/vkFFT_AppManagement/vkFFT_InitializeApp.h"
 #include "vkFFT/vkFFT_AppManagement/vkFFT_DeleteApp.h"
 
-static inline int VkFFTGetVersion() {
-	return 10304; //X.XX.XX format
+static inline int VkFFTGetVersion()
+{
+	return 10304; // X.XX.XX format
 }
 #endif
