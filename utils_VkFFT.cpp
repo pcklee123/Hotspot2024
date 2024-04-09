@@ -29,6 +29,12 @@
 #include <hip/hip_runtime_api.h>
 #include <hip/hip_complex.h>
 #elif(VKFFT_BACKEND==3)
+#ifndef CL_TARGET_OPENCL_VERSION
+#define CL_TARGET_OPENCL_VERSION 300
+#endif
+#ifndef CL_HPP_TARGET_OPENCL_VERSION
+#define CL_HPP_TARGET_OPENCL_VERSION 300
+#endif
 #ifndef CL_USE_DEPRECATED_OPENCL_1_2_APIS
 #define CL_USE_DEPRECATED_OPENCL_1_2_APIS
 #endif

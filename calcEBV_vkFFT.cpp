@@ -1,7 +1,6 @@
 #include "include/traj.h"
 #include <math.h>
 #include <complex>
-// #include <fftw3.h>
 
 #include "vkFFT.h"
 #include "utils_VkFFT.h"
@@ -70,8 +69,8 @@ int calcEBV(fields *fi, par *par)
     static cl_mem fft_real_buffer = 0;
     static cl_mem fft_complex_buffer = 0;
     static VkGPU vkGPU = {};
-    // vkGPU->device_id=0;
-    vkGPU.device_id = device_id_g;
+     vkGPU.device_id=0; //0 = use iGPU for FFT
+    //vkGPU.device_id = device_id_g; //use same GPU as motion code
     VkFFTResult resFFT = VKFFT_SUCCESS;
     cl_int res = CL_SUCCESS;
 

@@ -1,5 +1,6 @@
 #ifndef VKFFT_UTILS_H
 #define VKFFT_UTILS_H
+
 #include "vkFFT.h"
 #include <vector>
 typedef struct {
