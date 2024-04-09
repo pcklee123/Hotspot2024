@@ -48,14 +48,15 @@ auto *precalc_r2 = reinterpret_cast<fftwf_complex (&)[N2_c][N1][N0]>(*fftwf_allo
 int calcEBV(fields *fi, par *par)
 {
     static int first = 1;
-    static fftwf_plan planforE, planforB, planbacE, planbacB;
+    //    static fftwf_plan planforE, planforB, planbacE, planbacB;
+    static fftwf_plan planforB, planbacB;
     static VkFFTApplication appforE = {};
     static VkFFTApplication appforB = {};
     static VkFFTApplication appbacE = {};
     static VkFFTApplication appbacB = {};
     static float posL2[3];
     static unsigned int *n_space_div2;
-    fftwf_plan planfor_k, planfor_k2;
+    //   fftwf_plan planfor_k, planfor_k2;
     static VkFFTApplication appfor_k = {};
     static VkFFTApplication appfor_k2 = {};
     float s000[3] = {+1, +1, +1}; // c=0 is x,c=1 is y,c=2 is z
@@ -77,10 +78,13 @@ int calcEBV(fields *fi, par *par)
     cl_int res = CL_SUCCESS;
     // cl_uint numPlatforms;
     // devices_list();
-    size_t buffersize_R = (size_t)sizeof(float) * n_cells8 ; //buffer size per batch Real
-    size_t bufferSize_C = (size_t)sizeof(float) * 2 * n_cells4 ; //buffer size per batch Complexnnnnnnnnnnnnnnnnnnnnn
+    size_t bufferSize_R = (size_t)sizeof(float) * n_cells8;     // buffer size per batch Real
+    size_t bufferSize_C = (size_t)sizeof(float) * 2 * n_cells4; // buffer size per batch Complex
     static VkFFTLaunchParams launchParams = {};
 
+    fft_real_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_R * 4, 0, &res);
+    fft_complex_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_C * 4, 0, &res);
+    int Nbatch;
     if (first)
     { // allocate and initialize to 0
         int dims[3] = {N0, N1, N2};
@@ -97,12 +101,12 @@ int calcEBV(fields *fi, par *par)
         // Create fftw plans not thread safe
         //        cout << "omp_get_max_threads " << omp_get_max_threads() << endl;
         fftwf_plan_with_nthreads(omp_get_max_threads() * 1);
-        //  planfor_k = fftwf_plan_many_dft_r2c(3, dims, 6, reinterpret_cast<float *>(precalc_r3_base[0][0]), NULL, 1, n_cells8, reinterpret_cast<fftwf_complex *>(precalc_r3[0][0]), NULL, 1, n_cells4, FFTW_ESTIMATE);
-        planforE = fftwf_plan_dft_r2c_3d(N0, N1, N2, fft_real[0], fft_complex[3], FFTW_MEASURE);
 
-        int Nbatch = 6;
         VkFFTConfiguration configuration = {};
         VkFFTApplication appfor_k = {};
+
+        configuration.device = &vkGPU.device;
+        configuration.context = &vkGPU.context;
 
         configuration.FFTdim = 3; // FFT dimension, 1D, 2D or 3D (default 1).4 D configuration.size[0] = Nbatch;
 
@@ -112,11 +116,12 @@ int calcEBV(fields *fi, par *par)
 
         // supposed to be faster if batch is done over dimension 0 instead.
         // configuration.omitDimension[0] = 1; // disable FFT over the batching dimension
-        configuration.numberBatches = Nbatch;
+
         configuration.performR2C = 1;
 
         configuration.isInputFormatted = 1; // out-of-place - we need to specify that input buffer is separate from the main buffer
 
+        // Strides for R2C for forward plans
         configuration.inputBufferStride[0] = configuration.size[0];
         configuration.inputBufferStride[1] = configuration.inputBufferStride[0] * configuration.size[1];
         configuration.inputBufferStride[2] = configuration.inputBufferStride[1] * configuration.size[2];
@@ -124,66 +129,43 @@ int calcEBV(fields *fi, par *par)
         configuration.bufferStride[0] = (uint64_t)(configuration.size[0] / 2) + 1;
         configuration.bufferStride[1] = configuration.bufferStride[0] * configuration.size[1];
         configuration.bufferStride[2] = configuration.bufferStride[1] * configuration.size[2];
+        //  planfor_k = fftwf_plan_many_dft_r2c(3, dims, 6, reinterpret_cast<float *>(precalc_r3_base[0][0]), NULL, 1, n_cells8, reinterpret_cast<fftwf_complex *>(precalc_r3[0][0]), NULL, 1, n_cells4, FFTW_ESTIMATE);
 
+        Nbatch = 6;
+        configuration.numberBatches = Nbatch;
         size_t inputBufferSize = (size_t)sizeof(float) * configuration.inputBufferStride[2] * Nbatch;
         size_t bufferSize = (size_t)sizeof(float) * 2 * configuration.bufferStride[2] * Nbatch;
-
-        configuration.device = &vkGPU.device;
-        configuration.context = &vkGPU.context;
-
-        cl_mem inputbuffer = 0;
 
         r3_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize, 0, &res);
         configuration.buffer = &r3_buffer;
         configuration.bufferSize = &bufferSize;
 
-        inputbuffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, inputBufferSize, 0, &res);
+        cl_mem inputbuffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, inputBufferSize, 0, &res);
         configuration.inputBuffer = &inputbuffer;
         configuration.inputBufferSize = &inputBufferSize;
 
         resFFT = initializeVkFFT(&appfor_k, configuration);
 
+        //   planforE = fftwf_plan_dft_r2c_3d(N0, N1, N2, fft_real[0], fft_complex[3], FFTW_MEASURE); fft_complex[3] be careful when copyig out data
+
         Nbatch = 1;
         configuration.numberBatches = Nbatch;
-        inputBufferSize = (size_t)sizeof(float) * configuration.inputBufferStride[2] * Nbatch;
-        bufferSize = (size_t)sizeof(float) * 2 * configuration.bufferStride[2] * Nbatch;
-        fft_real_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, inputBufferSize, 0, &res);
+        inputBufferSize = bufferSize_R * Nbatch;
+        bufferSize = bufferSize_C * Nbatch;
+
         configuration.inputBuffer = &fft_real_buffer;
         configuration.inputBufferSize = &inputBufferSize;
 
-        fft_complex_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize, 0, &res);
         configuration.buffer = &fft_complex_buffer;
         configuration.bufferSize = &bufferSize;
         resFFT = initializeVkFFT(&appforE, configuration);
 
-#ifdef Uon_
-        planfor_k2 = fftwf_plan_dft_r2c_3d(N0, N1, N2, reinterpret_cast<float *>(precalc_r2_base), reinterpret_cast<fftwf_complex *>(precalc_r2), FFTW_ESTIMATE);
-        // Perform ifft on the entire array; the first 3/4 is used for E while the last 1/4 is used for V
-        planbacE = fftwf_plan_many_dft_c2r(3, dims, 4, fft_complex[0], NULL, 1, n_cells4, fft_real[0], NULL, 1, n_cells8, FFTW_MEASURE);
-#else
-        // Perform ifft on the first 3/4 of the array for 3 components of E field
-        planbacE = fftwf_plan_many_dft_c2r(3, dims, 3, fft_complex[0], NULL, 1, n_cells4, fft_real[0], NULL, 1, n_cells8, FFTW_MEASURE);
+        planforB = fftwf_plan_many_dft_r2c(3, dims, 3, fft_real[0], NULL, 1, n_cells8, fft_complex[0], NULL, 1, n_cells4, FFTW_MEASURE);
 
         Nbatch = 3;
         configuration.numberBatches = Nbatch;
-        inputBufferSize = (size_t)sizeof(float) * configuration.inputBufferStride[2] * Nbatch;
-        bufferSize = (size_t)sizeof(float) * 2 * configuration.bufferStride[2] * Nbatch;
-        // fft_real_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, inputBufferSize, 0, &res);
-        configuration.inputBuffer = &fft_real_buffer;
-        configuration.inputBufferSize = &inputBufferSize;
-
-        // fft_complex_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize, 0, &res);
-        configuration.buffer = &fft_complex_buffer;
-        configuration.bufferSize = &bufferSize;
-        resFFT = initializeVkFFT(&appbacE, configuration);
-
-#endif
-     //   planforB = fftwf_plan_many_dft_r2c(3, dims, 3, fft_real[0], NULL, 1, n_cells8, fft_complex[0], NULL, 1, n_cells4, FFTW_MEASURE);
-    //    planbacB = fftwf_plan_many_dft_c2r(3, dims, 3, fft_complex[0], NULL, 1, n_cells4, fft_real[0], NULL, 1, n_cells8, FFTW_MEASURE);
-        Nbatch = 3;
-        configuration.numberBatches = Nbatch;
-        inputBufferSize = (size_t)sizeof(float) * configuration.inputBufferStride[2] * Nbatch;
-        bufferSize = (size_t)sizeof(float) * 2 * configuration.bufferStride[2] * Nbatch;
+        inputBufferSize = bufferSize_R * Nbatch;
+        bufferSize = bufferSize_C * Nbatch;
         // fft_real_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, inputBufferSize, 0, &res);
         configuration.inputBuffer = &fft_real_buffer;
         configuration.inputBufferSize = &inputBufferSize;
@@ -192,18 +174,60 @@ int calcEBV(fields *fi, par *par)
         configuration.buffer = &fft_complex_buffer;
         configuration.bufferSize = &bufferSize;
         resFFT = initializeVkFFT(&appforB, configuration);
+#ifdef Uon_
+        // planfor_k2 = fftwf_plan_dft_r2c_3d(N0, N1, N2, reinterpret_cast<float *>(precalc_r2_base), reinterpret_cast<fftwf_complex *>(precalc_r2), FFTW_ESTIMATE);
 
-        Nbatch = 3;
+        // Perform ifft on the entire array; the first 3/4 is used for E while the last 1/4 is used for V
+        // planbacE = fftwf_plan_many_dft_c2r(3, dims, 4, fft_complex[0], NULL, 1, n_cells4, fft_real[0], NULL, 1, n_cells8, FFTW_MEASURE);
+        Nbatch = 4;
         configuration.numberBatches = Nbatch;
-        inputBufferSize = (size_t)sizeof(float) * configuration.inputBufferStride[2] * Nbatch;
-        bufferSize = (size_t)sizeof(float) * 2 * configuration.bufferStride[2] * Nbatch;
+        inputBufferSize = bufferSize_C * Nbatch;
+        bufferSize = bufferSize_R * Nbatch;
         // fft_real_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, inputBufferSize, 0, &res);
-        configuration.inputBuffer = &fft_real_buffer;
+        configuration.inputBuffer = &fft_complex_buffer;
         configuration.inputBufferSize = &inputBufferSize;
 
         // fft_complex_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize, 0, &res);
-        configuration.buffer = &fft_complex_buffer;
+        configuration.buffer = &fft_real_buffer;
         configuration.bufferSize = &bufferSize;
+        resFFT = initializeVkFFT(&appbacE, configuration);
+#else
+        // Perform ifft on the first 3/4 of the array for 3 components of E field
+        //    planbacE = fftwf_plan_many_dft_c2r(3, dims, 3, fft_complex[0], NULL, 1, n_cells4, fft_real[0], NULL, 1, n_cells8, FFTW_MEASURE);
+
+        Nbatch = 3;
+        configuration.numberBatches = Nbatch;
+        inputBufferSize = bufferSize_C * Nbatch;
+        bufferSize = bufferSize_R * Nbatch;
+        // fft_real_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, inputBufferSize, 0, &res);
+        configuration.inputBuffer = &fft_complex_buffer;
+        configuration.inputBufferSize = &inputBufferSize;
+
+        // fft_complex_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize, 0, &res);
+        configuration.buffer = &fft_real_buffer;
+        configuration.bufferSize = &bufferSize;
+        // C2R strides
+        configuration.inputBufferStride[0] = (uint64_t)(configuration.size[0] / 2) + 1;
+        configuration.inputBufferStride[1] = configuration.inputBufferStride[0] * configuration.size[1];
+        configuration.inputBufferStride[2] = configuration.inputBufferStride[1] * configuration.size[2];
+
+        configuration.bufferStride[0] = configuration.size[0];
+        configuration.bufferStride[1] = configuration.bufferStride[0] * configuration.size[1];
+        configuration.bufferStride[2] = configuration.bufferStride[1] * configuration.size[2];
+        resFFT = initializeVkFFT(&appbacE, configuration);
+
+#endif
+
+        planbacB = fftwf_plan_many_dft_c2r(3, dims, 3, fft_complex[0], NULL, 1, n_cells4, fft_real[0], NULL, 1, n_cells8, FFTW_MEASURE);
+        Nbatch = 3;
+        configuration.numberBatches = Nbatch;
+        inputBufferSize = bufferSize_C * Nbatch;
+        bufferSize = bufferSize_R * Nbatch;
+        configuration.inputBuffer = &fft_complex_buffer;
+        configuration.inputBufferSize = &inputBufferSize;
+        configuration.buffer = &fft_real_buffer;
+        configuration.bufferSize = &bufferSize;
+
         resFFT = initializeVkFFT(&appbacB, configuration);
 #pragma omp barrier
         cout << "allocate done\n";
@@ -258,11 +282,11 @@ int calcEBV(fields *fi, par *par)
         //       fftwf_execute(planfor_k); // fft of kernel arr3=fft(arr)
         //      fftwf_destroy_plan(planfor_k);
 
-        resFFT = transferDataFromCPU(&vkGPU, precalc_r3_base, &inputbuffer, inputBufferSize);
+        resFFT = transferDataFromCPU(&vkGPU, precalc_r3_base, &inputbuffer, bufferSize_R * 6);
         resFFT = VkFFTAppend(&appfor_k, -1, &launchParams);
 
         res = clFinish(vkGPU.commandQueue);
-        resFFT = transferDataToCPU(&vkGPU, &precalc_r3[0][0][0][0][0], &r3_buffer, bufferSize);
+        resFFT = transferDataToCPU(&vkGPU, &precalc_r3[0][0][0][0][0], &r3_buffer, bufferSize_C * 6);
 
         clReleaseMemObject(inputbuffer);
 #ifdef Uon_
@@ -350,7 +374,13 @@ int calcEBV(fields *fi, par *par)
                 jj += N0N1_2;
             }
 
-            fftwf_execute(planforE); // arrn1 = fft(arrn) multiply fft charge with fft of kernel(i.e field associated with 1 charge)
+            //            fftwf_execute(planforE); // arrn1 = fft(arrn) multiply fft charge with fft of kernel(i.e field associated with 1 charge)
+            int Nbatch = 1; // only density
+            resFFT = transferDataFromCPU(&vkGPU, &fft_real[0][0], &fft_real_buffer, bufferSize_R * Nbatch);
+            resFFT = VkFFTAppend(&appforE, -1, &launchParams); // forward transform
+
+            res = clFinish(vkGPU.commandQueue);
+            resFFT = transferDataToCPU(&vkGPU, &fft_complex[3][0], &fft_complex_buffer, bufferSize_C * Nbatch);
             for (int c = 0; c < 3; c++)
             {
                 // vector_muls(fft_complex[c], fft_complex[3], reinterpret_cast<fftwf_complex *>(precalc_r3[0][c]), n_cells4);
@@ -370,14 +400,15 @@ int calcEBV(fields *fi, par *par)
                 for (int i = 0; i < n_cells4; ++i)
                     ptr_std[i] *= precalc_r2_std[i];
             }
-#endif
-        //    fftwf_execute(planbacE); // inverse transform to get convolution
-            resFFT = transferDataFromCPU(&vkGPU, fft_complex, &fft_complex_buffer, bufferSize_C*3);
-            resFFT = VkFFTAppend(&appbacE, 1, &launchParams);
+#else
+            //    fftwf_execute(planbacE); // inverse transform to get convolution
+            Nbatch = 3; // no Uon_ so 3 dimensions only
+            resFFT = transferDataFromCPU(&vkGPU, fft_complex, &fft_complex_buffer, bufferSize_C * Nbatch);
+            resFFT = VkFFTAppend(&appbacE, 1, &launchParams); // inverse FFT
 
             res = clFinish(vkGPU.commandQueue);
-            resFFT = transferDataToCPU(&vkGPU, fft_real, &fft_real_buffer, buffersize_R*3);
-
+            resFFT = transferDataToCPU(&vkGPU, fft_real, &fft_real_buffer, bufferSize_R * Nbatch);
+#endif
             for (int c = 0; c < 3; c++)
             { // 3 axis
                 const float *fft_real_c = fft_real[c];

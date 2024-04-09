@@ -5,6 +5,7 @@
 cl::Context context_g;
 cl::Device default_device_g;
 cl::Program program_g;
+int device_id_g;
 
 stringstream cl_build_options;
 void add_build_option(string name, string param)
