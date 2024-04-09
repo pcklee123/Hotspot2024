@@ -32,30 +32,29 @@ This is because we are making use of the fact that our original data is fully re
     fft_complex *= precalc_r2
     fft_complex -> IFFT(planbacV) -> fft_real
     V (input) = fft_real
+
+    Arrays for fft, output is multiplied by 2 because the convolution pattern should be double the size
+    (a particle can be both 64 cells up, or 64 cells down, so we need 128 cells to calculate this information)
+    TODO should use native VkFFT to (i) zero pad, (ii) not re order, (iii) convolve
 */
-
-// Arrays for fft, output is multiplied by 2 because the convolution pattern should be double the size
-// (a particle can be both 64 cells up, or 64 cells down, so we need 128 cells to calculate this information)
-auto *fft_real = reinterpret_cast<float (&)[4][n_cells8]>(*fftwf_alloc_real(n_cells8 * 4));
-auto *fft_complex = reinterpret_cast<fftwf_complex (&)[4][n_cells4]>(*fftwf_alloc_complex(4 * n_cells4));
-//  pre-calculate 1/ r3 to make it faster to calculate electric and magnetic fields
-auto *precalc_r3 = reinterpret_cast<fftwf_complex (&)[2][3][N2_c][N1][N0]>(*fftwf_alloc_complex(2 * 3 * n_cells4));
-
-#ifdef Uon_ // similar arrays for U, but kept separately in one ifdef
-auto *precalc_r2 = reinterpret_cast<fftwf_complex (&)[N2_c][N1][N0]>(*fftwf_alloc_complex(n_cells4));
-#endif
 
 int calcEBV(fields *fi, par *par)
 {
     static int first = 1;
+    static auto *fft_real = static_cast<float(*)[n_cells8]>(_aligned_malloc(sizeof(float) * n_cells8 * 4, 4096));
+    static auto *fft_complex = static_cast<complex<float>(*)[n_cells4]>(_aligned_malloc(sizeof(float) * n_cells4 * 4 * 2, 4096));
+    //  pre-calculate 1/ r3 to make it faster to calculate electric and magnetic fields
+    static auto *precalc_r3 = static_cast<complex<float>(*)[3][n_cells4]>(_aligned_malloc(sizeof(float) * 2 * 3 * n_cells4 * 2, 4096));
+#ifdef Uon_ // similar arrays for U, but kept separately in one ifdef
+    static auto *precalc_r2 = static_cast<complex<float>(*)[n_cells4]>(_aligned_malloc(sizeof(float) * n_cells4 * 2, 4096));
+#endif
+
+    static float posL2[3];
+    //   static unsigned int *n_space_div2;
 
     static VkFFTApplication app1 = {};
     static VkFFTApplication app3 = {};
     static VkFFTApplication app4 = {};
-
-    static float posL2[3];
-    static unsigned int *n_space_div2;
-
     static VkFFTApplication appfor_k = {};
     static VkFFTApplication appfor_k2 = {};
     float s000[3] = {+1, +1, +1}; // c=0 is x,c=1 is y,c=2 is z
@@ -72,12 +71,12 @@ int calcEBV(fields *fi, par *par)
     static cl_mem fft_complex_buffer = 0;
     static VkGPU vkGPU = {};
     // vkGPU->device_id=0;
-    vkGPU.device_id = 0;
+    vkGPU.device_id = device_id_g;
     VkFFTResult resFFT = VKFFT_SUCCESS;
     cl_int res = CL_SUCCESS;
 
-    static uint64_t bufferSize_R = (uint64_t)sizeof(float) * n_cells8;     // buffer size per batch Real
-    static uint64_t bufferSize_C = (uint64_t)sizeof(float) * 2 * n_cells4; // buffer size per batch Complex
+    static uint64_t bufferSize_R = (uint64_t)sizeof(float) * n_cells8;          // buffer size per batch Real
+    static uint64_t bufferSize_C = (uint64_t)sizeof(complex<float>) * n_cells4; // buffer size per batch Complex
     static uint64_t bufferSize_R3 = bufferSize_R * 3;
     static uint64_t bufferSize_C3 = bufferSize_C * 3;
     static uint64_t bufferSize_R4 = bufferSize_R * 4;
@@ -86,19 +85,24 @@ int calcEBV(fields *fi, par *par)
     static uint64_t bufferSize_C6 = bufferSize_C * 6;
     static VkFFTLaunchParams launchParams = {};
 
-    fft_real_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_R * 4, 0, &res);
-    fft_complex_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_C * 4, 0, &res);
     int Nbatch;
     if (first)
     { // allocate and initialize to 0
         int dims[3] = {N0, N1, N2};
         auto precalc_r3_base = new float[2][3][N2][N1][N0];
         fi->precalc_r3 = (reinterpret_cast<float *>(precalc_r3));
+
         //     fftwf_plan planfor_k, planfor_k2;
         vkGPU.device = default_device_g();
         vkGPU.context = context_g();
         vkGPU.commandQueue = clCreateCommandQueue(vkGPU.context, vkGPU.device, 0, &res);
         launchParams.commandQueue = &vkGPU.commandQueue;
+
+        fft_real_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_R4, 0, &res);
+        fft_complex_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_C4, 0, &res);
+        cl_mem r3_base_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_R6, 0, &res);
+        r3_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_C6, 0, &res);
+        r2_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_C, 0, &res);
 #ifdef Uon_ // similar arrays for U, but kept separately in one ifdef
         auto precalc_r2_base = new float[N2][N1][N0];
         fi->precalc_r2 = (reinterpret_cast<float *>(precalc_r2));
@@ -113,13 +117,13 @@ int calcEBV(fields *fi, par *par)
 
         configuration.FFTdim = 3; // FFT dimension, 1D, 2D or 3D (default 1).4 D configuration.size[0] = Nbatch;
 
-        configuration.size[0] = n_space_divx2; // Multidimensional FFT dimensions sizes (default 1). For best performance (and stability), order dimensions in descendant size order as: x>y>z.
-        configuration.size[1] = n_space_divy2;
-        configuration.size[2] = n_space_divz2;
+        configuration.size[0] = N0; // Multidimensional FFT dimensions sizes (default 1). For best performance (and stability), order dimensions in descendant size order as: x>y>z.
+        configuration.size[1] = N1;
+        configuration.size[2] = N2;
 
         configuration.performR2C = 1;
-        configuration.disableReorderFourStep = 0;
-        configuration.isInputFormatted = 1; // out-of-place - we need to specify that input buffer is separate from the main buffer
+        configuration.disableReorderFourStep = 0; // disable reordering =1
+        configuration.isInputFormatted = 1;       // out-of-place - we need to specify that input buffer is separate from the main buffer
         configuration.inverseReturnToInputBuffer = 1;
 
         // Strides for R2C for forward plans
@@ -127,21 +131,21 @@ int calcEBV(fields *fi, par *par)
         configuration.inputBufferStride[1] = configuration.inputBufferStride[0] * configuration.size[1];
         configuration.inputBufferStride[2] = configuration.inputBufferStride[1] * configuration.size[2];
 
-        configuration.bufferStride[0] = configuration.size[0]; // (uint64_t)(configuration.size[0] / 2) + 1;
+        // configuration.bufferStride[0] = configuration.size[0]; // (uint64_t)(configuration.size[0] / 2) + 1;
+        // configuration.bufferStride[1] = configuration.bufferStride[0] * configuration.size[1];
+        // configuration.bufferStride[2] = configuration.bufferStride[1] * ((configuration.size[2] / 2) + 1);
+
+        configuration.bufferStride[0] = (uint64_t)(configuration.size[0] / 2) + 1;
         configuration.bufferStride[1] = configuration.bufferStride[0] * configuration.size[1];
-        configuration.bufferStride[2] = configuration.bufferStride[1] * ((configuration.size[2] / 2) + 1);
-        cout << configuration.bufferStride[0] << ", " << configuration.bufferStride[1] << ", " << configuration.bufferStride[2] << endl;
-        /*configuration.bufferStride[0] = (uint64_t)(configuration.size[0] / 2) + 1;
-        configuration.bufferStride[1] = configuration.bufferStride[0] * configuration.size[1];
-        configuration.bufferStride[2] = configuration.bufferStride[1] * configuration.size[2];*/
+        configuration.bufferStride[2] = configuration.bufferStride[1] * configuration.size[2];
+
+        // cout << configuration.bufferStride[0] << ", " << configuration.bufferStride[1] << ", " << configuration.bufferStride[2] << endl;
 
         configuration.numberBatches = 6;
 
-        cl_mem inputbuffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_R6, 0, &res);
-        configuration.inputBuffer = &inputbuffer;
+        configuration.inputBuffer = &r3_base_buffer;
         configuration.inputBufferSize = &bufferSize_R6;
 
-        r3_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_C6, 0, &res);
         configuration.buffer = &r3_buffer;
         configuration.bufferSize = &bufferSize_C6;
 
@@ -183,7 +187,7 @@ int calcEBV(fields *fi, par *par)
         posL2[0] = -par->dd[0] * ((float)n_space_divx - 0.5);
         posL2[1] = -par->dd[1] * ((float)n_space_divy - 0.5);
         posL2[2] = -par->dd[2] * ((float)n_space_divz - 0.5);
-        n_space_div2 = new unsigned int[3]{n_space_divx2, n_space_divy2, n_space_divz2};
+        //   n_space_div2 = new unsigned int[3]{n_space_divx2, n_space_divy2, n_space_divz2};
 // precalculate 1/r^3 (field) and 1/r^2 (energy)
 #pragma omp parallel for simd num_threads(nthreads)
         for (k = -n_space_divz; k < n_space_divz; k++)
@@ -226,12 +230,12 @@ int calcEBV(fields *fi, par *par)
         for (size_t i = 0; i < n_cells8 * 3; i++)
             reinterpret_cast<float *>(precalc_r3_base[1])[i] *= Aconst; //   vector_muls(reinterpret_cast<float *>(precalc_r3_base[1]), Aconst, n_cells8 * 3);
 
-        resFFT = transferDataFromCPU(&vkGPU, precalc_r3_base, &inputbuffer, bufferSize_R6);
+        resFFT = transferDataFromCPU(&vkGPU, precalc_r3_base, &r3_base_buffer, bufferSize_R6);
         resFFT = VkFFTAppend(&appfor_k, -1, &launchParams);
         res = clFinish(vkGPU.commandQueue);
         resFFT = transferDataToCPU(&vkGPU, precalc_r3, &r3_buffer, bufferSize_C6);
         //   cout << "execute" << endl;
-        clReleaseMemObject(inputbuffer);
+        clReleaseMemObject(r3_base_buffer);
 #ifdef Uon_
 #pragma omp parallel for simd num_threads(nthreads)
         for (size_t i = 0; i < n_cells8; i++)
@@ -302,18 +306,25 @@ int calcEBV(fields *fi, par *par)
             // density field
             size_t i, j, k, jj;
             jj = 0;
-
+            /*
+                        for (k = 0; k < n_space_divz; ++k)
+                        {
+                            for (j = 0; j < n_space_divy; ++j)
+                            {
+                                // #pragma omp parallel for simd num_threads(nthreads)
+                                for (i = 0; i < n_space_divx; ++i)
+                                {
+                                    fft_real[0][jj + i] = fi->npt[k][j][i];
+                                }
+                                jj += N0;
+                            }
+                            jj += N0N1_2;
+                        }
+            */
             for (k = 0; k < n_space_divz; ++k)
             {
                 for (j = 0; j < n_space_divy; ++j)
-                {
-                    // #pragma omp parallel for simd num_threads(nthreads)
-                    for (i = 0; i < n_space_divx; ++i)
-                    {
-                        fft_real[0][jj + i] = fi->npt[k][j][i];
-                    }
-                    jj += N0;
-                }
+                    memcpy(&fft_real[0][jj += N0], fi->npt[k][j], sizeof(float) * n_space_divx);
                 jj += N0N1_2;
             }
 

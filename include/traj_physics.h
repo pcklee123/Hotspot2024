@@ -58,7 +58,7 @@ constexpr int md_me = 60;        // ratio of electron speed/deuteron speed at th
 #define Eon_ // whether to calculate the electric (E) field
 // #define Uon_ // whether to calculate the electric (V) potential and potential energy (U). Needs Eon to be enabled.
 #define UE_field
-#define Bon_ // whether to calculate the magnetic (B) field
+//#define Bon_ // whether to calculate the magnetic (B) field
 #define UB_field
 #define EFon_ // whether to apply electric force
 #define BFon_ // whether to apply magnetic force
