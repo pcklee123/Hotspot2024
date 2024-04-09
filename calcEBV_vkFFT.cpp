@@ -1,7 +1,7 @@
 #include "include/traj.h"
 #include <math.h>
 #include <complex>
-//#include <fftw3.h>
+// #include <fftw3.h>
 
 #include "vkFFT.h"
 #include "utils_VkFFT.h"
@@ -40,8 +40,8 @@ auto *fft_real = reinterpret_cast<float (&)[4][n_cells8]>(*fftwf_alloc_real(n_ce
 auto *fft_complex = reinterpret_cast<fftwf_complex (&)[4][n_cells4]>(*fftwf_alloc_complex(4 * n_cells4));
 //  pre-calculate 1/ r3 to make it faster to calculate electric and magnetic fields
 auto *precalc_r3 = reinterpret_cast<fftwf_complex (&)[2][3][N2_c][N1][N0]>(*fftwf_alloc_complex(2 * 3 * n_cells4));
-//float (*fft_real)[4][n_cells8];    
-//float (*fft_complex)[4][n_cells4];     
+// float (*fft_real)[4][n_cells8];
+// float (*fft_complex)[4][n_cells4];
 #ifdef Uon_ // similar arrays for U, but kept separately in one ifdef
 auto *precalc_r2 = reinterpret_cast<fftwf_complex (&)[N2_c][N1][N0]>(*fftwf_alloc_complex(n_cells4));
 #endif
@@ -49,7 +49,7 @@ auto *precalc_r2 = reinterpret_cast<fftwf_complex (&)[N2_c][N1][N0]>(*fftwf_allo
 int calcEBV(fields *fi, par *par)
 {
     static int first = 1;
- //   static fftwf_plan planforE, planforB, planbacE, planbacB;
+    //   static fftwf_plan planforE, planforB, planbacE, planbacB;
     // static fftwf_plan planforB, planbacB;
     static VkFFTApplication app1 = {};
     static VkFFTApplication app3 = {};
@@ -95,7 +95,7 @@ int calcEBV(fields *fi, par *par)
         int dims[3] = {N0, N1, N2};
         auto precalc_r3_base = new float[2][3][N2][N1][N0];
         fi->precalc_r3 = (reinterpret_cast<float *>(precalc_r3));
-   //     fftwf_plan planfor_k, planfor_k2;
+        //     fftwf_plan planfor_k, planfor_k2;
         vkGPU.device = default_device_g();
         vkGPU.context = context_g();
         vkGPU.commandQueue = clCreateCommandQueue(vkGPU.context, vkGPU.device, 0, &res);
@@ -106,7 +106,7 @@ int calcEBV(fields *fi, par *par)
 #endif
         // Create fftw plans not thread safe
         //        cout << "omp_get_max_threads " << omp_get_max_threads() << endl;
-   //     fftwf_plan_with_nthreads(omp_get_max_threads() * 1);
+        //     fftwf_plan_with_nthreads(omp_get_max_threads() * 1);
 
         VkFFTConfiguration configuration = {};
         VkFFTApplication appfor_k = {};
@@ -135,7 +135,7 @@ int calcEBV(fields *fi, par *par)
         configuration.bufferStride[0] = (uint64_t)(configuration.size[0] / 2) + 1;
         configuration.bufferStride[1] = configuration.bufferStride[0] * configuration.size[1];
         configuration.bufferStride[2] = configuration.bufferStride[1] * configuration.size[2];
-     //   planfor_k = fftwf_plan_many_dft_r2c(3, dims, 6, reinterpret_cast<float *>(precalc_r3_base[0][0]), NULL, 1, n_cells8, reinterpret_cast<fftwf_complex *>(precalc_r3[0][0]), NULL, 1, n_cells4, FFTW_ESTIMATE);
+        //   planfor_k = fftwf_plan_many_dft_r2c(3, dims, 6, reinterpret_cast<float *>(precalc_r3_base[0][0]), NULL, 1, n_cells8, reinterpret_cast<fftwf_complex *>(precalc_r3[0][0]), NULL, 1, n_cells4, FFTW_ESTIMATE);
 
         Nbatch = 6;
         configuration.numberBatches = Nbatch;
@@ -152,7 +152,7 @@ int calcEBV(fields *fi, par *par)
 
         resFFT = initializeVkFFT(&appfor_k, configuration);
 
-    //    planforE = fftwf_plan_dft_r2c_3d(N0, N1, N2, fft_real[0], fft_complex[3], FFTW_MEASURE);
+        //    planforE = fftwf_plan_dft_r2c_3d(N0, N1, N2, fft_real[0], fft_complex[3], FFTW_MEASURE);
         //        fft_complex[3] be careful when copyig out data
 
         configuration.numberBatches = 1;
@@ -164,7 +164,7 @@ int calcEBV(fields *fi, par *par)
         configuration.bufferSize = &bufferSize_C;
         resFFT = initializeVkFFT(&app1, configuration);
 
-    //    planforB = fftwf_plan_many_dft_r2c(3, dims, 3, fft_real[0], NULL, 1, n_cells8, fft_complex[0], NULL, 1, n_cells4, FFTW_MEASURE);
+        //    planforB = fftwf_plan_many_dft_r2c(3, dims, 3, fft_real[0], NULL, 1, n_cells8, fft_complex[0], NULL, 1, n_cells4, FFTW_MEASURE);
 
         configuration.numberBatches = 3;
 
@@ -182,11 +182,11 @@ int calcEBV(fields *fi, par *par)
 
 #else
         // Perform ifft on the first 3/4 of the array for 3 components of E field
-  //      planbacE = fftwf_plan_many_dft_c2r(3, dims, 3, fft_complex[0], NULL, 1, n_cells4, fft_real[0], NULL, 1, n_cells8, FFTW_MEASURE);
+        //      planbacE = fftwf_plan_many_dft_c2r(3, dims, 3, fft_complex[0], NULL, 1, n_cells4, fft_real[0], NULL, 1, n_cells8, FFTW_MEASURE);
 
 #endif
 
-     //   planbacB = fftwf_plan_many_dft_c2r(3, dims, 3, fft_complex[0], NULL, 1, n_cells4, fft_real[0], NULL, 1, n_cells8, FFTW_MEASURE);
+        //   planbacB = fftwf_plan_many_dft_c2r(3, dims, 3, fft_complex[0], NULL, 1, n_cells4, fft_real[0], NULL, 1, n_cells8, FFTW_MEASURE);
 
 #pragma omp barrier
         //       cout << "allocate done\n";
@@ -239,7 +239,7 @@ int calcEBV(fields *fi, par *par)
             reinterpret_cast<float *>(precalc_r3_base[1])[i] *= Aconst; //   vector_muls(reinterpret_cast<float *>(precalc_r3_base[1]), Aconst, n_cells8 * 3);
 
         //      fftwf_execute(planfor_k); // fft of kernel arr3=fft(arr)
-  //      fftwf_destroy_plan(planfor_k);
+        //      fftwf_destroy_plan(planfor_k);
 
         resFFT = transferDataFromCPU(&vkGPU, precalc_r3_base, &inputbuffer, bufferSize_R * 6);
         resFFT = VkFFTAppend(&appfor_k, -1, &launchParams);
@@ -454,7 +454,7 @@ int calcEBV(fields *fi, par *par)
                 jj += N0N1_2;
             }
         }
-    //    fftwf_execute(planforB); // arrj1 = fft(arrj)
+        //    fftwf_execute(planforB); // arrj1 = fft(arrj)
         resFFT = transferDataFromCPU(&vkGPU, &fft_real[0][0], &fft_real_buffer, bufferSize_R3);
         resFFT = VkFFTAppend(&app3, -1, &launchParams); // -1 = forward transform
         // cout << "execute plan for E resFFT = " << resFFT << endl;
@@ -472,7 +472,7 @@ int calcEBV(fields *fi, par *par)
             ptr[j] = temp2;
             ptr[k] = temp3;
         }
-       // fftwf_execute(planbacB);
+        // fftwf_execute(planbacB);
         resFFT = transferDataFromCPU(&vkGPU, reinterpret_cast<complex<float> *>(fft_complex[0]), &fft_complex_buffer, bufferSize_C3);
         // cout << resFFT << endl;
         resFFT = VkFFTAppend(&app3, 1, &launchParams); // 1 = inverse FFT
