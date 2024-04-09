@@ -69,13 +69,14 @@ int calcEBV(fields *fi, par *par)
     static cl_mem fft_real_buffer = 0;
     static cl_mem fft_complex_buffer = 0;
     static VkGPU vkGPU = {};
-     vkGPU.device_id=0; //0 = use iGPU for FFT
-    //vkGPU.device_id = device_id_g; //use same GPU as motion code
+    vkGPU.device_id = 0; // 0 = use iGPU for FFT
+    // vkGPU.device_id = device_id_g; //use same GPU as motion code
     VkFFTResult resFFT = VKFFT_SUCCESS;
     cl_int res = CL_SUCCESS;
 
-    static uint64_t bufferSize_R = (uint64_t)sizeof(float) * n_cells8;          // buffer size per batch Real
-    static uint64_t bufferSize_C = (uint64_t)sizeof(complex<float>) * n_cells4; // buffer size per batch Complex
+    static uint64_t bufferSize_R = (uint64_t)sizeof(float) * n_cells8;              // buffer size per batch Real
+    static uint64_t bufferSize_C = (uint64_t)sizeof(complex<float>) * n_cells4;     // buffer size per batch Complex
+    static uint64_t bufferSize_P = (uint64_t)sizeof(complex<float>) * n_cells4 * 2; // buffer size per batch Complex
     static uint64_t bufferSize_R3 = bufferSize_R * 3;
     static uint64_t bufferSize_C3 = bufferSize_C * 3;
     static uint64_t bufferSize_R4 = bufferSize_R * 4;
@@ -124,7 +125,7 @@ int calcEBV(fields *fi, par *par)
         configuration.disableReorderFourStep = 0; // disable reordering =1
         configuration.isInputFormatted = 1;       // out-of-place - we need to specify that input buffer is separate from the main buffer
         configuration.inverseReturnToInputBuffer = 1;
-
+        configuration.isOutputFormatted = 1;
         // Strides for R2C for forward plans
         configuration.inputBufferStride[0] = configuration.size[0];
         configuration.inputBufferStride[1] = configuration.inputBufferStride[0] * configuration.size[1];
@@ -139,19 +140,16 @@ int calcEBV(fields *fi, par *par)
         configuration.bufferStride[2] = configuration.bufferStride[1] * configuration.size[2];
 
         // cout << configuration.bufferStride[0] << ", " << configuration.bufferStride[1] << ", " << configuration.bufferStride[2] << endl;
-
+        configuration.makeForwardPlanOnly = 1;
         configuration.numberBatches = 6;
-
         configuration.inputBuffer = &r3_base_buffer;
         configuration.inputBufferSize = &bufferSize_R6;
-
         configuration.buffer = &r3_buffer;
         configuration.bufferSize = &bufferSize_C6;
-
         resFFT = initializeVkFFT(&appfor_k, configuration);
 
         //        fft_complex[3] be careful when copyig out data
-
+        configuration.makeForwardPlanOnly = 0;
         configuration.numberBatches = 1;
         configuration.inputBuffer = &fft_real_buffer;
         configuration.inputBufferSize = &bufferSize_R;
@@ -166,18 +164,22 @@ int calcEBV(fields *fi, par *par)
         configuration.bufferSize = &bufferSize_C3;
         resFFT = initializeVkFFT(&app3, configuration);
 #ifdef Uon_
-        planfor_k2 = fftwf_plan_dft_r2c_3d(N0, N1, N2, reinterpret_cast<float *>(precalc_r2_base), reinterpret_cast<fftwf_complex *>(precalc_r2), FFTW_ESTIMATE);
+        configuration.makeForwardPlanOnly = 1;
+        configuration.numberBatches = 1;
+        configuration.inputBuffer = &r2_base_buffer;
+        configuration.inputBufferSize = &bufferSize_R1;
+        configuration.buffer = &r2_buffer;
+        configuration.bufferSize = &bufferSize_C1;
+        resFFT = initializeVkFFT(&appfor_k2, configuration);
 
         Perform ifft on the entire array; the first 3/4 is used for E while the last 1/4 is used for V
-         planbacE = fftwf_plan_many_dft_c2r(3, dims, 4, fft_complex[0], NULL, 1, n_cells4, fft_real[0], NULL, 1, n_cells8, FFTW_MEASURE);
-
-#else
-        // Perform ifft on the first 3/4 of the array for 3 components of E field
-        //      planbacE = fftwf_plan_many_dft_c2r(3, dims, 3, fft_complex[0], NULL, 1, n_cells4, fft_real[0], NULL, 1, n_cells8, FFTW_MEASURE);
-
+        configuration.numberBatches = 4;
+        configuration.inputBuffer = &fft_real_buffer;
+        configuration.inputBufferSize = &bufferSize_R4;
+        configuration.buffer = &fft_complex_buffer;
+        configuration.bufferSize = &bufferSize_C4;
+        resFFT = initializeVkFFT(&app4, configuration);
 #endif
-
-        //   planbacB = fftwf_plan_many_dft_c2r(3, dims, 3, fft_complex[0], NULL, 1, n_cells4, fft_real[0], NULL, 1, n_cells8, FFTW_MEASURE);
 
 #pragma omp barrier
         //       cout << "allocate done\n";
@@ -224,76 +226,76 @@ int calcEBV(fields *fi, par *par)
 //    const size_t n_cells4 = n_space_divx2 * n_space_divy2 * (n_space_divz2 / 2 + 1); // NOTE: This is not actually n_cells * 4, there is an additional buffer that fftw requires.
 #pragma omp parallel for simd num_threads(nthreads)
         for (size_t i = 0; i < n_cells8 * 3; i++)
-            reinterpret_cast<float *>(precalc_r3_base[0])[i] *= Vconst; //  vector_muls(reinterpret_cast<float *>(precalc_r3_base[0]), Vconst, n_cells8 * 3);
+            reinterpret_cast<float *>(precalc_r3_base[0])[i] *= Vconst;
 #pragma omp parallel for simd num_threads(nthreads)
         for (size_t i = 0; i < n_cells8 * 3; i++)
-            reinterpret_cast<float *>(precalc_r3_base[1])[i] *= Aconst; //   vector_muls(reinterpret_cast<float *>(precalc_r3_base[1]), Aconst, n_cells8 * 3);
-
-        resFFT = transferDataFromCPU(&vkGPU, precalc_r3_base, &r3_base_buffer, bufferSize_R6);
-        resFFT = VkFFTAppend(&appfor_k, -1, &launchParams);
-        res = clFinish(vkGPU.commandQueue);
-        resFFT = transferDataToCPU(&vkGPU, precalc_r3, &r3_buffer, bufferSize_C6);
-        //   cout << "execute" << endl;
-        clReleaseMemObject(r3_base_buffer);
+            reinterpret_cast<float *>(precalc_r3_base[1])[i] *= Aconst;
 #ifdef Uon_
 #pragma omp parallel for simd num_threads(nthreads)
         for (size_t i = 0; i < n_cells8; i++)
-            (reinterpret_cast<float *>(fi->precalc_r2))[i] *= Vconst; // vector_muls(reinterpret_cast<float *>(precalc_r2_base), Vconst, n_cells8);
-        fftwf_execute(planfor_k2);
-        fftwf_destroy_plan(planfor_k2);
+            (reinterpret_cast<float *>(fi->precalc_r2))[i] *= Vconst;
 #endif
-
         /*
-                cout << "filter" << endl; // filter
-                for (k = 0; k < n_space_divz; k++)
-                {
-                    loc_k = k + (k < 0 ? n_space_divz2 : 0); // The "logical" array position
-                                                             //     cout << loc_k << " ";
-                    // We wrap around values smaller than 0 to the other side of the array, since 0, 0, 0 is defined as the center of the convolution pattern an hence rz should be 0
-                    rz = k; // The change in z coordinate for the k-th cell.
-                    rz2 = rz * rz;
-                    for (j = -n_space_divy; j < n_space_divy; j++)
-                    {
-                        loc_j = j + (j < 0 ? n_space_divy2 : 0);
-                        ry = j;
-                        ry2 = ry * ry + rz2;
-                        for (i = -n_space_divx; i < n_space_divx; i++)
-                        {
-                            loc_i = i + (i < 0 ? n_space_divx2 : 0);
-                            rx = i;
-                            rx2 = rx * rx + ry2;
-                            float r = pi * sqrt(rx2) / R_s;
-                            float w = r > pi / 2 ? 0.f : cos(r);
-                            w *= w;
-                            precalc_r3[0][0][loc_k][loc_j][loc_i][0] *= w;
-                            precalc_r3[0][1][loc_k][loc_j][loc_i][0] *= w;
-                            precalc_r3[0][2][loc_k][loc_j][loc_i][0] *= w;
-                            /*precalc_r3[0][0][loc_k][loc_j][loc_i][1] *= w;
-                                                precalc_r3[0][1][loc_k][loc_j][loc_i][1] *= w;
-                                                precalc_r3[0][2][loc_k][loc_j][loc_i][1] *= w;
-                                                            precalc_r3[1][0][loc_k][loc_j][loc_i][1] *= w;
-                                                precalc_r3[1][1][loc_k][loc_j][loc_i][1] *= w;
-                                                precalc_r3[1][2][loc_k][loc_j][loc_i][1] *= w;
-                                                //*
-                            precalc_r3[1][0][loc_k][loc_j][loc_i][0] *= w;
-                            precalc_r3[1][1][loc_k][loc_j][loc_i][0] *= w;
-                            precalc_r3[1][2][loc_k][loc_j][loc_i][0] *= w;
+                       cout << "filter" << endl; // filter
+                       for (k = 0; k < n_space_divz; k++)
+                       {
+                           loc_k = k + (k < 0 ? n_space_divz2 : 0); // The "logical" array position
+                                                                    //     cout << loc_k << " ";
+                           // We wrap around values smaller than 0 to the other side of the array, since 0, 0, 0 is defined as the center of the convolution pattern an hence rz should be 0
+                           rz = k; // The change in z coordinate for the k-th cell.
+                           rz2 = rz * rz;
+                           for (j = -n_space_divy; j < n_space_divy; j++)
+                           {
+                               loc_j = j + (j < 0 ? n_space_divy2 : 0);
+                               ry = j;
+                               ry2 = ry * ry + rz2;
+                               for (i = -n_space_divx; i < n_space_divx; i++)
+                               {
+                                   loc_i = i + (i < 0 ? n_space_divx2 : 0);
+                                   rx = i;
+                                   rx2 = rx * rx + ry2;
+                                   float r = pi * sqrt(rx2) / R_s;
+                                   float w = r > pi / 2 ? 0.f : cos(r);
+                                   w *= w;
+                                   precalc_r3[0][0][loc_k][loc_j][loc_i][0] *= w;
+                                   precalc_r3[0][1][loc_k][loc_j][loc_i][0] *= w;
+                                   precalc_r3[0][2][loc_k][loc_j][loc_i][0] *= w;
+                                   /*precalc_r3[0][0][loc_k][loc_j][loc_i][1] *= w;
+                                                       precalc_r3[0][1][loc_k][loc_j][loc_i][1] *= w;
+                                                       precalc_r3[0][2][loc_k][loc_j][loc_i][1] *= w;
+                                                                   precalc_r3[1][0][loc_k][loc_j][loc_i][1] *= w;
+                                                       precalc_r3[1][1][loc_k][loc_j][loc_i][1] *= w;
+                                                       precalc_r3[1][2][loc_k][loc_j][loc_i][1] *= w;
+                                                       //*
+                                   precalc_r3[1][0][loc_k][loc_j][loc_i][0] *= w;
+                                   precalc_r3[1][1][loc_k][loc_j][loc_i][0] *= w;
+                                   precalc_r3[1][2][loc_k][loc_j][loc_i][0] *= w;
 
-        #ifdef Uon_
-                            // precalc_r2[loc_k][loc_j][loc_i][0] = r > pi ? 0.f : w;
-                            // precalc_r2[loc_k][loc_j][loc_i][1] = r > pi ? 0.f : w;
-                            precalc_r2[loc_k][loc_j][loc_i][0] *= w;
-                            //     precalc_r2[loc_k][loc_j][loc_i][1] *=  w;
-        #endif
-                        }
-                    }
-                }*/
+               #ifdef Uon_
+                                   // precalc_r2[loc_k][loc_j][loc_i][0] = r > pi ? 0.f : w;
+                                   // precalc_r2[loc_k][loc_j][loc_i][1] = r > pi ? 0.f : w;
+                                   precalc_r2[loc_k][loc_j][loc_i][0] *= w;
+                                   //     precalc_r2[loc_k][loc_j][loc_i][1] *=  w;
+               #endif
+                               }
+                           }
+                       }*/
+
+        resFFT = transferDataFromCPU(&vkGPU, precalc_r3_base, &r3_base_buffer, bufferSize_R6);
+        resFFT = VkFFTAppend(&appfor_k, -1, &launchParams); //   cout << "forward transform precalc_r3" << endl;
+        res = clFinish(vkGPU.commandQueue);
+        resFFT = transferDataToCPU(&vkGPU, precalc_r3, &r3_buffer, bufferSize_C6);
+        clReleaseMemObject(r3_base_buffer);
         delete[] precalc_r3_base;
 #ifdef Uon_
+        resFFT = transferDataFromCPU(&vkGPU, precalc_r2_base, &r2_base_buffer, bufferSize_R);
+        resFFT = VkFFTAppend(&appfor_k2, -1, &launchParams);
+        res = clFinish(vkGPU.commandQueue);
+        resFFT = transferDataToCPU(&vkGPU, precalc_r2, &r2_buffer, bufferSize_C);
+        clReleaseMemObject(r2_base_buffer);
         delete[] precalc_r2_base;
 #endif
-        first = 0;
-        //      cout << "precalc done\n";
+        first = 0; //      cout << "precalc done\n";
     }
 
 #ifdef Eon_
@@ -305,21 +307,6 @@ int calcEBV(fields *fi, par *par)
             // density field
             size_t i, j, k, jj;
             jj = 0;
-            /*
-                        for (k = 0; k < n_space_divz; ++k)
-                        {
-                            for (j = 0; j < n_space_divy; ++j)
-                            {
-                                // #pragma omp parallel for simd num_threads(nthreads)
-                                for (i = 0; i < n_space_divx; ++i)
-                                {
-                                    fft_real[0][jj + i] = fi->npt[k][j][i];
-                                }
-                                jj += N0;
-                            }
-                            jj += N0N1_2;
-                        }
-            */
             for (k = 0; k < n_space_divz; ++k)
             {
                 for (j = 0; j < n_space_divy; ++j)
@@ -444,7 +431,8 @@ int calcEBV(fields *fi, par *par)
         resFFT = transferDataToCPU(&vkGPU, reinterpret_cast<complex<float> *>(fft_complex[0]), &fft_complex_buffer, bufferSize_C3);
         const auto ptr = reinterpret_cast<complex<float> *>(fft_complex), r3_1d = reinterpret_cast<complex<float> *>(precalc_r3[1]);
         complex<float> temp1, temp2, temp3;
-        for (int i = 0, j = n_cells4, k = n_cells4 * 2; i < n_cells4; ++i, ++j, ++k)
+
+        for (size_t i = 0, j = n_cells4, k = n_cells4 * 2; i < n_cells4; ++i, ++j, ++k)
         {
             temp1 = ptr[j] * r3_1d[k] - ptr[k] * r3_1d[j];
             temp2 = ptr[k] * r3_1d[i] - ptr[i] * r3_1d[k];
@@ -453,13 +441,10 @@ int calcEBV(fields *fi, par *par)
             ptr[j] = temp2;
             ptr[k] = temp3;
         }
-        resFFT = transferDataFromCPU(&vkGPU, reinterpret_cast<complex<float> *>(fft_complex[0]), &fft_complex_buffer, bufferSize_C3);
-        // cout << resFFT << endl;
-        resFFT = VkFFTAppend(&app3, 1, &launchParams); // 1 = inverse FFT
-        // cout << "execute plan bac E resFFT = " << res << endl;
-        // cout << resFFT << endl;
-        res = clFinish(vkGPU.commandQueue);
-        // cout << "execute plan bac E ,clFinish res = " << res << endl;
+
+        resFFT = transferDataFromCPU(&vkGPU, reinterpret_cast<complex<float> *>(fft_complex[0]), &fft_complex_buffer, bufferSize_C3); // cout << resFFT << endl;
+        resFFT = VkFFTAppend(&app3, 1, &launchParams);                                                                                // 1 = inverse FFT// cout << "execute plan bac E resFFT = " << resFFT << endl;
+        res = clFinish(vkGPU.commandQueue);                                                                                           // cout << "execute plan bac E ,clFinish res = " << res << endl;
         resFFT = transferDataToCPU(&vkGPU, &fft_real[0][0], &fft_real_buffer, bufferSize_R3);
         for (int c = 0; c < 3; c++)
         { // 3 axis

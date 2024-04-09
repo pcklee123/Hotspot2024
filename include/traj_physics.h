@@ -13,7 +13,7 @@ constexpr int f2 = f1 * 1.2;
 constexpr float incf = 1.2f;        // increment
 constexpr float decf = 1.0f / incf; // decrement factor
 
-constexpr int n_space = 256; // should be 2 to power of n for faster FFT
+constexpr int n_space = 32; // should be 2 to power of n for faster FFT
 
 constexpr size_t n_partd = 1 * 1024 * 1024; // n_space * n_space * n_space * 1 * 16; // must be 2 to power of n
 constexpr size_t n_parte = n_partd;
@@ -46,7 +46,7 @@ constexpr unsigned int ncoeff = 8;
 constexpr int n_output_part = (n_partd > 9369) ? 9369 : n_partd; // maximum number of particles to output to file
 // const int nprtd=floor(n_partd/n_output_part);
 
-constexpr int ndatapoints = 100; // total number of time steps to calculate
+constexpr int ndatapoints = 2; // total number of time steps to calculate
 constexpr int nc1 = 1;           // f1 * 1;      // number of times to calculate E and B between printouts
 constexpr int md_me = 60;        // ratio of electron speed/deuteron speed at the same KE. Used to calculate electron motion more often than deuteron motion
 
@@ -58,7 +58,7 @@ constexpr int md_me = 60;        // ratio of electron speed/deuteron speed at th
 #define Eon_ // whether to calculate the internally generated electric (E) field externally applied fields are always on
 // #define Uon_ // whether to calculate the electric (V) potential and potential energy (U). Needs Eon to be enabled.
 #define UE_field //
-//#define Bon_ // whether to calculate the internally generated magnetic (B) field
+#define Bon_ // whether to calculate the internally generated magnetic (B) field
 #define UB_field
 #define EFon_ // whether to apply electric force
 #define BFon_ // whether to apply magnetic force
