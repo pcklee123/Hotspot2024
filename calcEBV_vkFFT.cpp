@@ -198,6 +198,7 @@ int calcEBV(fields *fi, par *par)
         // plan for E and B field  inverse C2R FFT (3-vector)
         configuration.isOutputFormatted = 1;
         configuration.inverseReturnToInputBuffer = 0;
+        configuration.makeForwardPlanOnly = 0;
         configuration.makeInversePlanOnly = 1;
         configuration.inputBufferStride[0] = (uint64_t)(configuration.size[0] / 2) + 1;
         configuration.inputBufferStride[1] = configuration.inputBufferStride[0] * configuration.size[1];
@@ -207,9 +208,9 @@ int calcEBV(fields *fi, par *par)
         configuration.outputBufferStride[1] = configuration.outputBufferStride[0] * configuration.size[1];
         configuration.outputBufferStride[2] = configuration.outputBufferStride[1] * configuration.size[2];
 
-        //configuration.bufferStride[0] = configuration.size[0];
-        //configuration.bufferStride[1] = configuration.bufferStride[0] * configuration.size[1];
-        //configuration.bufferStride[2] = configuration.bufferStride[1] * configuration.size[2];
+        // configuration.bufferStride[0] = configuration.size[0];
+        // configuration.bufferStride[1] = configuration.bufferStride[0] * configuration.size[1];
+        // configuration.bufferStride[2] = configuration.bufferStride[1] * configuration.size[2];
 
         configuration.numberBatches = 3;
         // configuration.buffer = &fft_real_buffer;   // outputBuffer
