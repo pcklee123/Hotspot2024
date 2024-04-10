@@ -1,7 +1,7 @@
 #include "include/traj.h"
 #include <math.h>
 #include <complex>
-#include <fftw3.h>
+
 #include "include/vkFFT.h"
 #include "utils_VkFFT.h"
 // Shorthand for cleaner code
@@ -39,7 +39,6 @@ This is because we are making use of the fact that our original data is fully re
 
 int calcEBV(fields *fi, par *par)
 {
-    static fftwf_plan planforE, planforB, planbacE, planbacB;
     static int first = 1;
     static auto *fft_real = static_cast<float(*)[n_cells8]>(_aligned_malloc(sizeof(float) * n_cells8 * 4, 4096));
     static auto *fft_complex = static_cast<complex<float>(*)[n_cells4]>(_aligned_malloc(sizeof(float) * n_cells4 * 4 * 2, 4096));
@@ -54,7 +53,6 @@ int calcEBV(fields *fi, par *par)
 
     static VkFFTApplication app1 = {};
     static VkFFTApplication app3 = {};
-    static VkFFTApplication appbac3 = {};
     static VkFFTApplication app4 = {};
     static VkFFTApplication appfor_k = {};
     static VkFFTApplication appfor_k2 = {};
@@ -87,7 +85,7 @@ int calcEBV(fields *fi, par *par)
     static uint64_t bufferSize_P4 = bufferSize_P * 4;
     static uint64_t bufferSize_C4 = bufferSize_C * 4;
     static uint64_t bufferSize_R6 = bufferSize_R * 6;
-    // static uint64_t bufferSize_P6 = bufferSize_P * 6;
+    static uint64_t bufferSize_P6 = bufferSize_P * 6;
     static uint64_t bufferSize_C6 = bufferSize_C * 6;
     static VkFFTLaunchParams launchParams = {};
 
@@ -114,24 +112,8 @@ int calcEBV(fields *fi, par *par)
         auto precalc_r2_base = new float[N2][N1][N0];
         fi->precalc_r2 = (reinterpret_cast<float *>(precalc_r2));
 #endif
-        /*
-                // Create fftw plans
-                fftwf_init_threads();
-                //        cout << "omp_get_max_threads " << omp_get_max_threads() << endl;
-                fftwf_plan_with_nthreads(omp_get_max_threads() * 1);
-                //       planfor_k = fftwf_plan_many_dft_r2c(3, dims, 6, reinterpret_cast<float *>(precalc_r3_base[0][0]), NULL, 1, n_cells8, reinterpret_cast<fftwf_complex *>(precalc_r3[0][0]), NULL, 1, n_cells4, FFTW_ESTIMATE);
-                planforE = fftwf_plan_dft_r2c_3d(N0, N1, N2, fft_real[0], reinterpret_cast<fftwf_complex(&)[n_cells4]>(fft_complex[3]), FFTW_MEASURE);
-        #ifdef Uon_
-                planfor_k2 = fftwf_plan_dft_r2c_3d(N0, N1, N2, reinterpret_cast<float *>(precalc_r2_base), reinterpret_cast<fftwf_complex *>(precalc_r2), FFTW_ESTIMATE);
-                // Perform ifft on the entire array; the first 3/4 is used for E while the last 1/4 is used for V
-                planbacE = fftwf_plan_many_dft_c2r(3, dims, 4, fft_complex[0], NULL, 1, n_cells4, fft_real[0], NULL, 1, n_cells8, FFTW_MEASURE);
-        #else
-                // Perform ifft on the first 3/4 of the array for 3 components of E field
-                planbacE = fftwf_plan_many_dft_c2r(3, dims, 3, reinterpret_cast<fftwf_complex(&)[n_cells4]>(fft_complex[0]), NULL, 1, n_cells4, fft_real[0], NULL, 1, n_cells8, FFTW_MEASURE);
-        #endif
-                planforB = fftwf_plan_many_dft_r2c(3, dims, 3, fft_real[0], NULL, 1, n_cells8, reinterpret_cast<fftwf_complex(&)[n_cells4]>(fft_complex[0]), NULL, 1, n_cells4, FFTW_MEASURE);
-                planbacB = fftwf_plan_many_dft_c2r(3, dims, 3, reinterpret_cast<fftwf_complex(&)[n_cells4]>(fft_complex[0]), NULL, 1, n_cells4, fft_real[0], NULL, 1, n_cells8, FFTW_MEASURE);
-        */
+        // Create fftw plans
+
         VkFFTConfiguration configuration = {};
         VkFFTApplication appfor_k = {};
 
@@ -145,7 +127,7 @@ int calcEBV(fields *fi, par *par)
         configuration.size[2] = N2;
 
         configuration.performR2C = 1;
-        configuration.disableReorderFourStep = 0; // disable reordering =1
+        configuration.disableReorderFourStep = 1; // disable reordering =1
 
         configuration.isInputFormatted = 1; // out-of-place - we need to specify that input buffer is separate from the main buffer
 
@@ -158,16 +140,30 @@ int calcEBV(fields *fi, par *par)
         configuration.bufferStride[1] = configuration.bufferStride[0] * configuration.size[1];
         configuration.bufferStride[2] = configuration.bufferStride[1] * configuration.size[2];
 
-        // plan for precalc
+        // Strides for C2R for inverse plans
+        /*
+        configuration.bufferStride[0] = configuration.size[0];
+        configuration.bufferStride[1] = configuration.bufferStride[0] * configuration.size[1];
+        configuration.bufferStride[2] = configuration.bufferStride[1] * configuration.size[2];
+
+        configuration.inputBufferStride[0] = (uint64_t)(configuration.size[0] / 2) + 1;
+        configuration.inputBufferStride[1] = configuration.inputBufferStride[0] * configuration.size[1];
+        configuration.inputBufferStride[2] = configuration.inputBufferStride[1] * configuration.size[2];
+*/
+
+        // cout << configuration.bufferStride[0] << ", " << configuration.bufferStride[1] << ", " << configuration.bufferStride[2] << endl;
         configuration.makeForwardPlanOnly = 1;
         configuration.numberBatches = 6;
         configuration.inputBuffer = &r3_base_buffer;
         configuration.inputBufferSize = &bufferSize_R6;
         configuration.buffer = &r3_buffer;
         configuration.bufferSize = &bufferSize_C6;
+        // configuration.outputBuffer = &r3_buffer;
+        // configuration.outputbufferSize = &bufferSize_C6;
         resFFT = initializeVkFFT(&appfor_k, configuration);
 
-        // plan for density (forward R2C FFT scalar)
+        //        fft_complex[3] be careful when copying out data
+
         configuration.numberBatches = 1;
         configuration.inputBuffer = &fft_real_buffer;
         configuration.inputBufferSize = &bufferSize_R;
@@ -175,11 +171,9 @@ int calcEBV(fields *fi, par *par)
         configuration.bufferSize = &bufferSize_C;
         resFFT = initializeVkFFT(&app1, configuration);
 
-        // plan for current density (forward R2C FFT 3-vector)
         configuration.isOutputFormatted = 1;
-        configuration.inverseReturnToInputBuffer = 0;
-        configuration.makeForwardPlanOnly = 1;
-
+        configuration.inverseReturnToInputBuffer = 1;
+        configuration.makeForwardPlanOnly = 0;
         configuration.outputBufferStride[0] = (uint64_t)(configuration.size[0] / 2) + 1;
         configuration.outputBufferStride[1] = configuration.outputBufferStride[0] * configuration.size[1];
         configuration.outputBufferStride[2] = configuration.outputBufferStride[1] * configuration.size[2];
@@ -189,38 +183,9 @@ int calcEBV(fields *fi, par *par)
         configuration.inputBufferSize = &bufferSize_R3;
         configuration.buffer = &fft_p_buffer;
         configuration.bufferSize = &bufferSize_P3;
-        configuration.outputBuffer = &fft_complex_buffer; // outputBuffer
-        configuration.outputBufferSize = &bufferSize_C3;  // outputBufferSize
-        // configuration.buffer = &fft_complex_buffer; // outputBuffer
-        // configuration.bufferSize = &bufferSize_C3;  // outputBufferSize
+        configuration.outputBuffer = &fft_complex_buffer;
+        configuration.outputBufferSize = &bufferSize_C3;
         resFFT = initializeVkFFT(&app3, configuration);
-
-        // plan for E and B field  inverse C2R FFT (3-vector)
-        configuration.isOutputFormatted = 1;
-        configuration.inverseReturnToInputBuffer = 0;
-        configuration.makeInversePlanOnly = 1;
-        configuration.inputBufferStride[0] = (uint64_t)(configuration.size[0] / 2) + 1;
-        configuration.inputBufferStride[1] = configuration.inputBufferStride[0] * configuration.size[1];
-        configuration.inputBufferStride[2] = configuration.inputBufferStride[1] * configuration.size[2];
-
-        configuration.outputBufferStride[0] = configuration.size[0];
-        configuration.outputBufferStride[1] = configuration.outputBufferStride[0] * configuration.size[1];
-        configuration.outputBufferStride[2] = configuration.outputBufferStride[1] * configuration.size[2];
-
-        //configuration.bufferStride[0] = configuration.size[0];
-        //configuration.bufferStride[1] = configuration.bufferStride[0] * configuration.size[1];
-        //configuration.bufferStride[2] = configuration.bufferStride[1] * configuration.size[2];
-
-        configuration.numberBatches = 3;
-        // configuration.buffer = &fft_real_buffer;   // outputBuffer
-        // configuration.bufferSize = &bufferSize_R3; // outputBufferSize
-        configuration.outputBuffer = &fft_real_buffer;
-        configuration.outputBufferSize = &bufferSize_R3;
-        configuration.buffer = &fft_p_buffer;
-        configuration.bufferSize = &bufferSize_P3;
-        configuration.inputBuffer = &fft_complex_buffer;
-        configuration.inputBufferSize = &bufferSize_C3;
-        resFFT = initializeVkFFT(&appbac3, configuration);
 #ifdef Uon_
         configuration.makeForwardPlanOnly = 1;
         configuration.numberBatches = 1;
@@ -398,15 +363,12 @@ int calcEBV(fields *fi, par *par)
 #else
             // cout << "inverse transform to get convolution" << endl;
             resFFT = transferDataFromCPU(&vkGPU, fft_complex[0], &fft_complex_buffer, bufferSize_C3); // cout << resFFT << endl;
-            resFFT = VkFFTAppend(&appbac3, 1, &launchParams);                                         // 1 = inverse FFT
+            resFFT = VkFFTAppend(&app3, 1, &launchParams);                                            // 1 = inverse FFT
             if (resFFT)
                 cout << "execute plan bac E resFFT = " << resFFT << endl;
             res = clFinish(vkGPU.commandQueue); // cout << "execute plan bac E ,clFinish res = " << res << endl;
             resFFT = transferDataToCPU(&vkGPU, fft_real[0], &fft_real_buffer, bufferSize_R3);
-            //           fftwf_execute(planbacE); // inverse transform to get convolution
-
 #endif
-
             for (int c = 0; c < 3; c++)
             { // 3 axis
                 const float *fft_real_c = fft_real[c];
@@ -509,7 +471,7 @@ int calcEBV(fields *fi, par *par)
         }
 
         resFFT = transferDataFromCPU(&vkGPU, reinterpret_cast<complex<float> *>(fft_complex[0]), &fft_complex_buffer, bufferSize_C3); // cout << resFFT << endl;
-        resFFT = VkFFTAppend(&appbac3, 1, &launchParams);                                                                             // 1 = inverse FFT// cout << "execute plan bac E resFFT = " << resFFT << endl;
+        resFFT = VkFFTAppend(&app3, 1, &launchParams);                                                                                // 1 = inverse FFT// cout << "execute plan bac E resFFT = " << resFFT << endl;
         res = clFinish(vkGPU.commandQueue);                                                                                           // cout << "execute plan bac E ,clFinish res = " << res << endl;
         resFFT = transferDataToCPU(&vkGPU, &fft_real[0][0], &fft_real_buffer, bufferSize_R3);
         for (int c = 0; c < 3; c++)
