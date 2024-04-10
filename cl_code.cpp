@@ -85,16 +85,16 @@ void cl_start(par *par)
         }
         info_file << std::endl;
     }
-    cout << "getplatforms\n";
+    //cout << "getplatforms\n";
     cl::Platform::get(&platforms);
 
     cl::Platform default_platform = platforms[0];
     info_file << "Using platform: " << default_platform.getInfo<CL_PLATFORM_NAME>() << "\n";
-    cout << "getdevice\n";
+    //cout << "getdevice\n";
     default_platform.getDevices(CL_DEVICE_TYPE_ALL, &devices);
     cl::Device default_device;
     device_id--;
-    cout << "device_id = " << device_id << endl;
+    //cout << "device_id = " << device_id << endl;
     device_id = (device_id >= cldevice) ? cldevice : device_id; // use dGPU only if available
     default_device = devices[device_id];
     info_file << "\t\tDevice Name: " << default_device.getInfo<CL_DEVICE_NAME>() << "\ndevice_id =" << device_id << endl;

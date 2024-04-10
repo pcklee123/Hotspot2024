@@ -74,8 +74,9 @@ int main()
     // float TEs = a0 * par->a0_f * vel_e;
     TE = TE <= 0 ? a0 * par->a0_f * vel_e : TE; // if acc is negligible
     // set time step to allow electrons to gyrate if there is B field or to allow electrons to move slowly throughout the plasma distance
-    par->dt[0] = min(Tcyclotron / 4, TE/8 ) / f1; // electron should not move more than 1 cell after ncalc*dt and should not make more than 1/4 gyration and must calculate E before the next 1/4 plasma period
+    par->dt[0] = min(Tcyclotron / 4, TE / 8) / f1; // electron should not move more than 1 cell after ncalc*dt and should not make more than 1/4 gyration and must calculate E before the next 1/4 plasma period
     par->dt[1] = par->dt[0] * md_me;
+   // cout << "dt = " << par->dt[0] << ", " << par->dt[1] << endl;
 #define generateRandom
 #ifdef generateRandom
 #ifdef sphere
@@ -93,15 +94,16 @@ int main()
 
     cout << timer.replace() << "s\n"; // cout << "Set initial random positions: ";
 
-    fftwf_init_threads();
-
     int i_time = 0;
-    cout << "get_densityfields: ";
+   // cout << "get_densityfields: ";
     timer.mark();
 
     get_densityfields(fi, pt, par);
+    //   cout << "dt = " << par->dt[0] << ", " << par->dt[1] << endl;
+    //   float max_jc = maxvalf((reinterpret_cast<float *>(fi->jc)), n_cells * 3);
+    //  cout << "max current density  = " << max_jc << endl;
     cout << timer.elapsed() << "s\n "; // density this is incorporated into tnp which also moves particles, but need to work out here to get good estimate of dt
-    cout << "calcEBV: ";
+   // cout << "calcEBV: ";
     timer.mark();
     int cdt = calcEBV(fi, par); // electric and magnetic fields this is incorporated into tnp which also moves particles. Need here just to estimate dt
     cout << timer.elapsed() << "s\n ";
@@ -111,8 +113,10 @@ int main()
     float max_ne = maxvalf((reinterpret_cast<float *>(fi->np[0])), n_cells);
     float Density_e = max_ne * r_part_spart / powf(a0, 3);
     float max_ni = maxvalf((reinterpret_cast<float *>(fi->np[1])), n_cells);
-    cout << "max density electron = " << max_ne << ", " << max_ne * r_part_spart / powf(a0, 3) << "m-3, ion = " << max_ni << ", " << max_ni * r_part_spart / powf(a0, 3) << endl;
-    cout << "Emax = " << par->Emax << ", " << "Bmax = " << par->Bmax << endl;
+    //    max_jc = maxvalf((reinterpret_cast<float *>(fi->jc)), n_cells * 3);
+    //   cout << "max current density  = " << max_jc << endl;
+    // cout << "max density electron = " << max_ne << ", " << max_ne * r_part_spart / powf(a0, 3) << "m-3, ion = " << max_ni << ", " << max_ni * r_part_spart / powf(a0, 3) << endl;
+    //   cout << "Emax = " << par->Emax << ", " << "Bmax = " << par->Bmax << endl;
     // calculated plasma parameters
     float Density_e1 = nback * r_part_spart / (powf(n_space * a0, 3));
 
@@ -133,10 +137,10 @@ int main()
     // set time step to allow electrons to gyrate if there is B field or to allow electrons to move slowly throughout the plasma distance
     float TExB = a0 * par->a0_f / par->Emax * (par->Bmax + .00001);
     info_file << "Tdebye=" << TDebye << ", Tcycloton/4=" << Tcyclotron / 4 << ", plasma period/4=" << plasma_period / 4 << ",TE=" << TE << ",TExB=" << TExB << endl;
-    float inc = min(min(min(TDebye, Tcyclotron / 4), plasma_period / 4), TE/16 ) / f1 / par->dt[0]; // redo dt
+    float inc = min(min(min(TDebye, Tcyclotron / 4), plasma_period / 4), TE / 16) / f1 / par->dt[0]; // redo dt
     par->dt[0] *= inc;
     par->dt[1] *= inc;
-    cout << "dt0 = " << par->dt[0] << endl;
+    //  cout << "dt0 = " << par->dt[0] << endl;
     info_file << "v0 electron = " << vel_e << endl;
 // redo initial particle positions to get the correct velocities
 #pragma omp parallel for simd
@@ -158,7 +162,7 @@ int main()
     log_headers();                             // log file start with headers
     log_entry(0, 0, cdt, total_ncalc, t, par); // Write everything to log
     nt0prev = par->nt[0];
-    cout << par->nt[0] << " " << nt0prev << endl;
+    //  cout << par->nt[0] << " " << nt0prev << endl;
 #pragma omp barrier
 
     cout << "print data: " << timer.elapsed() << "s (no. of electron time steps calculated: " << 0 << ")\n";
@@ -168,6 +172,8 @@ int main()
         timer.mark();     // For timestep
         timer.mark();     // Work out motion
         tnp(fi, pt, par); //  calculate the next position par->ncalcp[p] times
+                          // float max_jc = maxvalf((reinterpret_cast<float *>(fi->jc)), n_cells * 3);
+                          //  cout << "max current density  = " << max_jc << endl;
         for (int p = 0; p < 2; ++p)
             total_ncalc[p] += par->nc * par->ncalcp[p];
         cout << "motion: " << timer.elapsed() << "s, ";

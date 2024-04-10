@@ -7,6 +7,11 @@
         "iostream": "cpp",
         "ostream": "cpp",
         "new": "cpp",
-        "chrono": "cpp"
+        "chrono": "cpp",
+        "array": "cpp",
+        "string_view": "cpp",
+        "format": "cpp",
+        "initializer_list": "cpp",
+        "span": "cpp"
     }
 }

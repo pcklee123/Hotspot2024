@@ -68,20 +68,24 @@ int calcEBV(fields *fi, par *par)
     static cl_mem r2_buffer = 0;
     static cl_mem fft_real_buffer = 0;
     static cl_mem fft_complex_buffer = 0;
+    static cl_mem fft_p_buffer = 0;
     static VkGPU vkGPU = {};
     vkGPU.device_id = 0; // 0 = use iGPU for FFT
     // vkGPU.device_id = device_id_g; //use same GPU as motion code
     VkFFTResult resFFT = VKFFT_SUCCESS;
     cl_int res = CL_SUCCESS;
 
-    static uint64_t bufferSize_R = (uint64_t)sizeof(float) * n_cells8;              // buffer size per batch Real
-    static uint64_t bufferSize_C = (uint64_t)sizeof(complex<float>) * n_cells4;     // buffer size per batch Complex
-    static uint64_t bufferSize_P = (uint64_t)sizeof(complex<float>) * n_cells4 * 2; // buffer size per batch Complex
+    static uint64_t bufferSize_R = (uint64_t)sizeof(float) * n_cells8;          // buffer size per batch Real
+    static uint64_t bufferSize_C = (uint64_t)sizeof(complex<float>) * n_cells4; // buffer size per batch Complex
+    static uint64_t bufferSize_P = (uint64_t)sizeof(float) * n_cells4 * 2;      // buffer size per batch Complex
     static uint64_t bufferSize_R3 = bufferSize_R * 3;
+    static uint64_t bufferSize_P3 = bufferSize_P * 3;
     static uint64_t bufferSize_C3 = bufferSize_C * 3;
     static uint64_t bufferSize_R4 = bufferSize_R * 4;
+    static uint64_t bufferSize_P4 = bufferSize_P * 4;
     static uint64_t bufferSize_C4 = bufferSize_C * 4;
     static uint64_t bufferSize_R6 = bufferSize_R * 6;
+    static uint64_t bufferSize_P6 = bufferSize_P * 6;
     static uint64_t bufferSize_C6 = bufferSize_C * 6;
     static VkFFTLaunchParams launchParams = {};
 
@@ -100,6 +104,7 @@ int calcEBV(fields *fi, par *par)
 
         fft_real_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_R4, 0, &res);
         fft_complex_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_C4, 0, &res);
+        fft_p_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_P4, 0, &res);
         cl_mem r3_base_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_R6, 0, &res);
         r3_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_C6, 0, &res);
         r2_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_C, 0, &res);
@@ -124,8 +129,7 @@ int calcEBV(fields *fi, par *par)
         configuration.performR2C = 1;
         configuration.disableReorderFourStep = 0; // disable reordering =1
         configuration.isInputFormatted = 1;       // out-of-place - we need to specify that input buffer is separate from the main buffer
-        configuration.inverseReturnToInputBuffer = 1;
-        configuration.isOutputFormatted = 1;
+
         // Strides for R2C for forward plans
         configuration.inputBufferStride[0] = configuration.size[0];
         configuration.inputBufferStride[1] = configuration.inputBufferStride[0] * configuration.size[1];
@@ -146,10 +150,12 @@ int calcEBV(fields *fi, par *par)
         configuration.inputBufferSize = &bufferSize_R6;
         configuration.buffer = &r3_buffer;
         configuration.bufferSize = &bufferSize_C6;
+        // configuration.outputBuffer = &r3_buffer;
+        // configuration.outputbufferSize = &bufferSize_C6;
         resFFT = initializeVkFFT(&appfor_k, configuration);
 
-        //        fft_complex[3] be careful when copyig out data
-        configuration.makeForwardPlanOnly = 0;
+        //        fft_complex[3] be careful when copying out data
+
         configuration.numberBatches = 1;
         configuration.inputBuffer = &fft_real_buffer;
         configuration.inputBufferSize = &bufferSize_R;
@@ -157,11 +163,20 @@ int calcEBV(fields *fi, par *par)
         configuration.bufferSize = &bufferSize_C;
         resFFT = initializeVkFFT(&app1, configuration);
 
+        configuration.isOutputFormatted = 1;
+        configuration.inverseReturnToInputBuffer = 1;
+        configuration.makeForwardPlanOnly = 0;
+        configuration.outputBufferStride[0] = (uint64_t)(configuration.size[0] / 2) + 1;
+        configuration.outputBufferStride[1] = configuration.outputBufferStride[0] * configuration.size[1];
+        configuration.outputBufferStride[2] = configuration.outputBufferStride[1] * configuration.size[2];
+
         configuration.numberBatches = 3;
         configuration.inputBuffer = &fft_real_buffer;
         configuration.inputBufferSize = &bufferSize_R3;
-        configuration.buffer = &fft_complex_buffer;
-        configuration.bufferSize = &bufferSize_C3;
+        configuration.buffer = &fft_p_buffer;
+        configuration.bufferSize = &bufferSize_P3;
+        configuration.outputBuffer = &fft_complex_buffer;
+        configuration.outputBufferSize = &bufferSize_C3;
         resFFT = initializeVkFFT(&app3, configuration);
 #ifdef Uon_
         configuration.makeForwardPlanOnly = 1;
@@ -414,6 +429,7 @@ int calcEBV(fields *fi, par *par)
         fill(&fft_real[0][0], &fft_real[2][n_cells8], 0.f);
         // #pragma omp section
         // #pragma omp parallel for
+        
         for (int c = 0; c < 3; c++)
         { // 3 axis
             size_t i, j, k, jj;
@@ -425,10 +441,12 @@ int calcEBV(fields *fi, par *par)
                 jj += N0N1_2;
             }
         }
+        
         resFFT = transferDataFromCPU(&vkGPU, &fft_real[0][0], &fft_real_buffer, bufferSize_R3);
         resFFT = VkFFTAppend(&app3, -1, &launchParams); // -1 = forward transform // cout << "execute plan for E resFFT = " << resFFT << endl;
         res = clFinish(vkGPU.commandQueue);             //  cout << "execute plan for E" << endl;
         resFFT = transferDataToCPU(&vkGPU, reinterpret_cast<complex<float> *>(fft_complex[0]), &fft_complex_buffer, bufferSize_C3);
+        cout << "bufferSize_C3 = " << bufferSize_C3 << ", bufferSize_R3 = " << bufferSize_R3 << endl;
         const auto ptr = reinterpret_cast<complex<float> *>(fft_complex), r3_1d = reinterpret_cast<complex<float> *>(precalc_r3[1]);
         complex<float> temp1, temp2, temp3;
 
@@ -536,7 +554,7 @@ int calcEBV(fields *fi, par *par)
     float TE1 = a0 * par->a0_f / par->Emax * (par->Bmax + .00001);
     float TE2 = a0 * par->a0_f / 3e8;
     TE1 = TE1 < TE2 ? TE1 : TE2;
-    // cout << "Tcyclotron=" << Tcyclotron << ",Bmax= " << par->Bmax << ", TE=" << TE << ", TE1=" << TE1 << ",Emax= " << par->Emax << endl;
+    cout << "Tcyclotron=" << Tcyclotron << ",Bmax= " << par->Bmax << ", TE=" << TE << ", TE1=" << TE1 << ",Emax= " << par->Emax << endl;
     TE = TE > TE1 ? TE : TE1;
     TE *= 1;                                // x times larger try to save time but makes it unstable.
     if (TE < (par->dt[0] * f1 * ncalc0[0])) // if ideal time step is lower than actual timestep

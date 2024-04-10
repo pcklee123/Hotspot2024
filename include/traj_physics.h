@@ -28,7 +28,7 @@ constexpr float Ez0 = 0.0f;       // in V/m
 constexpr float vz0 = 0.0f;
 constexpr float a0 = 0.25e-6; // typical dimensions of a cell in m This needs to be smaller than debye length otherwise energy is not conserved if a particle moves across a cell
 constexpr float a0_ff = 1.0 + 8.0 / (float)n_space;
-constexpr float target_part = 1e7; // 3.5e22 particles per m^3 per torr of ideal gas. 7e22 electrons for 1 torr of deuterium
+constexpr float target_part = 1e6; // 3.5e22 particles per m^3 per torr of ideal gas. 7e22 electrons for 1 torr of deuterium
 constexpr float v0_r = 0;          // initial directed radial velocity outwards is positive
 
 // The maximum expected E and B fields. If fields go beyond this, the the time step, cell size etc will be wrong. Should adjust and recalculate.
@@ -58,7 +58,7 @@ constexpr int md_me = 60;        // ratio of electron speed/deuteron speed at th
 #define Eon_ // whether to calculate the internally generated electric (E) field externally applied fields are always on
 // #define Uon_ // whether to calculate the electric (V) potential and potential energy (U). Needs Eon to be enabled.
 #define UE_field //
-#define Bon_ // whether to calculate the internally generated magnetic (B) field
+//#define Bon_ // whether to calculate the internally generated magnetic (B) field
 #define UB_field
 #define EFon_ // whether to apply electric force
 #define BFon_ // whether to apply magnetic force

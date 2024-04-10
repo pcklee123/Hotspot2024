@@ -221,7 +221,7 @@ void generateConstantBField(fields *fi, par *par)
 void generateZpinchField(fields *fi, par *par)
 {
     // radius of z-pinch
-    cout << "a0*a0_f" << a0 * par->a0_f << endl;
+    //cout << "a0*a0_f" << a0 * par->a0_f << endl;
     float r0 = r0_f[2] * a0 ;
     for (int k = 0; k < n_space_divx; k++)
     {
