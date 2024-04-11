@@ -50,6 +50,7 @@ int calcEBV(fields *fi, par *par)
 #endif
 
     static float posL2[3];
+    static cl_kernel copyData_kernel;
 
     static VkFFTApplication app1 = {};
     static VkFFTApplication app3 = {};
@@ -70,6 +71,9 @@ int calcEBV(fields *fi, par *par)
     static cl_mem fft_real_buffer = 0;
     static cl_mem fft_complex_buffer = 0;
     static cl_mem fft_p_buffer = 0;
+
+    static cl_mem npt_buffer;
+
     static VkGPU vkGPU = {};
     // vkGPU.device_id = 0; // 0 = use iGPU for FFT
     vkGPU.device_id = device_id_g; // use same GPU as motion code
@@ -103,8 +107,11 @@ int calcEBV(fields *fi, par *par)
 
         vkGPU.device = default_device_g();
         vkGPU.context = context_g();
+        // vkGPU. = program_g();
         vkGPU.commandQueue = clCreateCommandQueue(vkGPU.context, vkGPU.device, 0, &res);
         launchParams.commandQueue = &vkGPU.commandQueue;
+        // Create the OpenCL kernel
+        copyData_kernel = clCreateKernel(program_g(), "copyData", NULL);
 
         fft_real_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_R4, 0, &res);
         fft_complex_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_C4, 0, &res);
@@ -113,7 +120,9 @@ int calcEBV(fields *fi, par *par)
         cl_mem r2_base_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_R, 0, &res);
         r3_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_C6, 0, &res);
         r2_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_C, 0, &res);
-
+        // Create memory buffers on the device for each vector
+        // cl::Buffer npt_buffer (context_g, CL_MEM_READ_WRITE, sizeof(float) * n_cells);
+        npt_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, sizeof(float) * n_cells, 0, &res);
         VkFFTConfiguration configuration = {};
         VkFFTApplication appfor_k = {};
 
@@ -318,7 +327,8 @@ int calcEBV(fields *fi, par *par)
         delete[] precalc_r2_base;
 #endif
 
-        cout << "filter" << endl; // filter
+        //      cout << "filter" << endl; // filter
+#pragma omp parallel for simd num_threads(nthreads)
         for (k = 0; k < n_space_divz; k++)
         {
             loc_k = k + (k < 0 ? n_space_divz2 : 0); // The "logical" array position
@@ -356,21 +366,35 @@ int calcEBV(fields *fi, par *par)
 #ifdef Eon_
     // #pragma omp parallel sections
     {
-        fill(&fft_real[0][0], &fft_real[3][n_cells8], 0.f);
-        //   #pragma omp section
-        {
-            // density field
-            size_t i, j, k, jj;
-            jj = 0;
-            for (k = 0; k < n_space_divz; ++k)
-            {
-                for (j = 0; j < n_space_divy; ++j)
-                    memcpy(&fft_real[0][jj += N0], fi->npt[k][j], sizeof(float) * n_space_divx);
-                jj += N0N1_2;
-            }
+        {  size_t i, j, k, jj;
+            /*
+           fill(&fft_real[0][0], &fft_real[3][n_cells8], 0.f);
+           //   #pragma omp section
+           {
+               // density field
+             
+               jj = 0;
+               // #pragma omp parallel for simd num_threads(nthreads)
+               for (k = 0; k < n_space_divz; ++k)
+               {
+                   for (j = 0; j < n_space_divy; ++j)
+                       memcpy(&fft_real[0][jj += N0], fi->npt[k][j], sizeof(float) * n_space_divx);
+                   jj += N0N1_2;
+               }
+    */
+            // cl_command_queue commandQueue = clCreateCommandQueue(vkGPU.context, vkGPU.device, 0, &res);
+            res = clEnqueueWriteBuffer(vkGPU.commandQueue, npt_buffer, CL_TRUE, 0, sizeof(float) * n_cells, fi->npt, 0, NULL, NULL);
+            // Set the arguments of the kernel
+            clSetKernelArg(copyData_kernel, 0, sizeof(cl_mem), &npt_buffer);
+            clSetKernelArg(copyData_kernel, 1, sizeof(cl_mem), &fft_real_buffer);
+            //  Enqueue NDRange kernel
+            size_t global_work_size[3] = {n_space_divx, n_space_divy, n_space_divz};
+            clEnqueueNDRangeKernel(vkGPU.commandQueue, copyData_kernel, 3, NULL, global_work_size, NULL, 0, NULL, NULL);
+            clFinish(vkGPU.commandQueue);
+            // res = clReleaseCommandQueue(vkGPU.commandQueue);
 
             // only density arrn1 = fft(arrn) multiply fft charge with fft of kernel(i.e field associated with 1 charge)
-            resFFT = transferDataFromCPU(&vkGPU, &fft_real[0][0], &fft_real_buffer, bufferSize_R);
+            //  resFFT = transferDataFromCPU(&vkGPU, &fft_real[0][0], &fft_real_buffer, bufferSize_R);
             resFFT = VkFFTAppend(&app1, -1, &launchParams); // -1 = forward transform
             if (resFFT)
                 cout << "execute plan for E resFFT = " << resFFT << endl;

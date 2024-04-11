@@ -79,7 +79,7 @@ void kernel vector_mul_complex(global float2 *A, global float2 *B,
   A[i] = (float2)(b.s0 * c.s0 - b.s1 * c.s1, b.s0 * c.s1 + b.s1 * c.s0);
 }
 
-void copyData(global float *fft_real, global float *npt) {
+void copyData(global float *npt, global float *fft_real ) {
   int jj = 0;
   int N0N1_2 = NX * NY * 2;
   // Calculate global indices
