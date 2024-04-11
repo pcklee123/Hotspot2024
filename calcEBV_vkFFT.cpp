@@ -384,7 +384,7 @@ int calcEBV(fields *fi, par *par)
             }
 */
             // cl_command_queue commandQueue = clCreateCommandQueue(vkGPU.context, vkGPU.device, 0, &res);
-            res = clEnqueueWriteBuffer(vkGPU.commandQueue, npt_buffer, CL_TRUE, 0, sizeof(float) * n_cells, &fi->npt[0][0][0], 0, NULL, NULL);
+            res = clEnqueueWriteBuffer(vkGPU.commandQueue, npt_buffer, CL_TRUE, 0, sizeof(float) * n_cells, fi->npt, 0, NULL, NULL);
             // Set the arguments of the kernel
             clSetKernelArg(copyData_kernel, 0, sizeof(cl_mem), &npt_buffer);
             clSetKernelArg(copyData_kernel, 1, sizeof(cl_mem), &fft_real_buffer);
