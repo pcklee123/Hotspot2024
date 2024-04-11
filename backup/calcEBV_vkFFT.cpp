@@ -50,6 +50,7 @@ int calcEBV(fields *fi, par *par)
 #endif
 
     static float posL2[3];
+    //   static unsigned int *n_space_div2;
 
     static VkFFTApplication app1 = {};
     static VkFFTApplication app3 = {};
@@ -71,8 +72,8 @@ int calcEBV(fields *fi, par *par)
     static cl_mem fft_complex_buffer = 0;
     static cl_mem fft_p_buffer = 0;
     static VkGPU vkGPU = {};
-    // vkGPU.device_id = 0; // 0 = use iGPU for FFT
-    vkGPU.device_id = device_id_g; // use same GPU as motion code
+    vkGPU.device_id = 0; // 0 = use iGPU for FFT
+    // vkGPU.device_id = device_id_g; //use same GPU as motion code
     VkFFTResult resFFT = VKFFT_SUCCESS;
     cl_int res = CL_SUCCESS;
 
@@ -97,6 +98,7 @@ int calcEBV(fields *fi, par *par)
         auto precalc_r3_base = new float[2][3][N2][N1][N0];
         fi->precalc_r3 = (reinterpret_cast<float *>(precalc_r3));
 
+        //     fftwf_plan planfor_k, planfor_k2;
         vkGPU.device = default_device_g();
         vkGPU.context = context_g();
         vkGPU.commandQueue = clCreateCommandQueue(vkGPU.context, vkGPU.device, 0, &res);
@@ -112,7 +114,24 @@ int calcEBV(fields *fi, par *par)
         auto precalc_r2_base = new float[N2][N1][N0];
         fi->precalc_r2 = (reinterpret_cast<float *>(precalc_r2));
 #endif
-
+        /*
+                // Create fftw plans
+                fftwf_init_threads();
+                //        cout << "omp_get_max_threads " << omp_get_max_threads() << endl;
+                fftwf_plan_with_nthreads(omp_get_max_threads() * 1);
+                //       planfor_k = fftwf_plan_many_dft_r2c(3, dims, 6, reinterpret_cast<float *>(precalc_r3_base[0][0]), NULL, 1, n_cells8, reinterpret_cast<fftwf_complex *>(precalc_r3[0][0]), NULL, 1, n_cells4, FFTW_ESTIMATE);
+                planforE = fftwf_plan_dft_r2c_3d(N0, N1, N2, fft_real[0], reinterpret_cast<fftwf_complex(&)[n_cells4]>(fft_complex[3]), FFTW_MEASURE);
+        #ifdef Uon_
+                planfor_k2 = fftwf_plan_dft_r2c_3d(N0, N1, N2, reinterpret_cast<float *>(precalc_r2_base), reinterpret_cast<fftwf_complex *>(precalc_r2), FFTW_ESTIMATE);
+                // Perform ifft on the entire array; the first 3/4 is used for E while the last 1/4 is used for V
+                planbacE = fftwf_plan_many_dft_c2r(3, dims, 4, fft_complex[0], NULL, 1, n_cells4, fft_real[0], NULL, 1, n_cells8, FFTW_MEASURE);
+        #else
+                // Perform ifft on the first 3/4 of the array for 3 components of E field
+                planbacE = fftwf_plan_many_dft_c2r(3, dims, 3, reinterpret_cast<fftwf_complex(&)[n_cells4]>(fft_complex[0]), NULL, 1, n_cells4, fft_real[0], NULL, 1, n_cells8, FFTW_MEASURE);
+        #endif
+                planforB = fftwf_plan_many_dft_r2c(3, dims, 3, fft_real[0], NULL, 1, n_cells8, reinterpret_cast<fftwf_complex(&)[n_cells4]>(fft_complex[0]), NULL, 1, n_cells4, FFTW_MEASURE);
+                planbacB = fftwf_plan_many_dft_c2r(3, dims, 3, reinterpret_cast<fftwf_complex(&)[n_cells4]>(fft_complex[0]), NULL, 1, n_cells4, fft_real[0], NULL, 1, n_cells8, FFTW_MEASURE);
+        */
         VkFFTConfiguration configuration = {};
         VkFFTApplication appfor_k = {};
 
@@ -246,7 +265,7 @@ int calcEBV(fields *fi, par *par)
         posL2[0] = -par->dd[0] * ((float)n_space_divx - 0.5);
         posL2[1] = -par->dd[1] * ((float)n_space_divy - 0.5);
         posL2[2] = -par->dd[2] * ((float)n_space_divz - 0.5);
-
+        //   n_space_div2 = new unsigned int[3]{n_space_divx2, n_space_divy2, n_space_divz2};
 // precalculate 1/r^3 (field) and 1/r^2 (energy)
 #pragma omp parallel for simd num_threads(nthreads)
         for (k = -n_space_divz; k < n_space_divz; k++)
@@ -308,39 +327,51 @@ int calcEBV(fields *fi, par *par)
         clReleaseMemObject(r2_base_buffer);
         delete[] precalc_r2_base;
 #endif
+        /*
+                              cout << "filter" << endl; // filter
+                              for (k = 0; k < n_space_divz; k++)
+                              {
+                                  loc_k = k + (k < 0 ? n_space_divz2 : 0); // The "logical" array position
+                                                                           //     cout << loc_k << " ";
+                                  // We wrap around values smaller than 0 to the other side of the array, since 0, 0, 0 is defined as the center of the convolution pattern an hence rz should be 0
+                                  rz = k; // The change in z coordinate for the k-th cell.
+                                  rz2 = rz * rz;
+                                  for (j = -n_space_divy; j < n_space_divy; j++)
+                                  {
+                                      loc_j = j + (j < 0 ? n_space_divy2 : 0);
+                                      ry = j;
+                                      ry2 = ry * ry + rz2;
+                                      for (i = -n_space_divx; i < n_space_divx; i++)
+                                      {
+                                          loc_i = i + (i < 0 ? n_space_divx2 : 0);
+                                          rx = i;
+                                          rx2 = rx * rx + ry2;
+                                          float r = pi * sqrt(rx2) / R_s;
+                                          float w = r > pi / 2 ? 0.f : cos(r);
+                                          w *= w;
+                                          precalc_r3[0][0][loc_k][loc_j][loc_i][0] *= w;
+                                          precalc_r3[0][1][loc_k][loc_j][loc_i][0] *= w;
+                                          precalc_r3[0][2][loc_k][loc_j][loc_i][0] *= w;
+                                          /*precalc_r3[0][0][loc_k][loc_j][loc_i][1] *= w;
+                                                              precalc_r3[0][1][loc_k][loc_j][loc_i][1] *= w;
+                                                              precalc_r3[0][2][loc_k][loc_j][loc_i][1] *= w;
+                                                                          precalc_r3[1][0][loc_k][loc_j][loc_i][1] *= w;
+                                                              precalc_r3[1][1][loc_k][loc_j][loc_i][1] *= w;
+                                                              precalc_r3[1][2][loc_k][loc_j][loc_i][1] *= w;
+                                                              //*
+                                          precalc_r3[1][0][loc_k][loc_j][loc_i][0] *= w;
+                                          precalc_r3[1][1][loc_k][loc_j][loc_i][0] *= w;
+                                          precalc_r3[1][2][loc_k][loc_j][loc_i][0] *= w;
 
-        cout << "filter" << endl; // filter
-        for (k = 0; k < n_space_divz; k++)
-        {
-            loc_k = k + (k < 0 ? n_space_divz2 : 0); // The "logical" array position
-                                                     //     cout << loc_k << " ";
-            // We wrap around values smaller than 0 to the other side of the array, since 0, 0, 0 is defined as the center of the convolution pattern an hence rz should be 0
-            rz = k; // The change in z coordinate for the k-th cell.
-            rz2 = rz * rz;
-            for (j = -n_space_divy; j < n_space_divy; j++)
-            {
-                loc_j = j + (j < 0 ? n_space_divy2 : 0);
-                ry = j;
-                ry2 = ry * ry + rz2;
-                for (i = 0; i <= n_space_divx; i++)
-                {
-                    loc_i = i + (i < 0 ? n_space_divx2 : 0);
-                    rx = i;
-                    rx2 = rx * rx + ry2;
-                    float r = pi * sqrt(rx2) / R_s;
-                    float w = r > pi / 2 ? 0.f : cos(r);
-                    w *= w;
-                    for (int c = 0; c < 3; c++)
-                    {
-                        precalc_r3[0][c][loc_k*N0N1+loc_j*N0+ loc_i] *= w;
-                        precalc_r3[1][c][loc_k*N0N1+loc_j*N0+ loc_i] *= w;
-                    }
-#ifdef Uon_
-                    precalc_r2[loc_k][loc_j][loc_i][0] *= w;
-#endif
-                }
-            }
-        }
+                      #ifdef Uon_
+                                          // precalc_r2[loc_k][loc_j][loc_i][0] = r > pi ? 0.f : w;
+                                          // precalc_r2[loc_k][loc_j][loc_i][1] = r > pi ? 0.f : w;
+                                          precalc_r2[loc_k][loc_j][loc_i][0] *= w;
+                                          //     precalc_r2[loc_k][loc_j][loc_i][1] *=  w;
+                      #endif
+                                      }
+                                  }
+                              }*/
         first = 0; //      cout << "precalc done\n";
     }
 
