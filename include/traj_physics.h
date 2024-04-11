@@ -8,7 +8,7 @@
 constexpr double weibullb = 4; // b factor for weibull. larger means closer to a shell. ~1 means filled more at the center.
 #define Temp_e 1e7             // in Kelvin 1e7 ~1keV
 #define Temp_d 1e7             // in Kelvin
-constexpr int f1 = 1;         // make bigger to make smaller time steps // 8 is min for sphere slight increas in KE
+constexpr int f1 = 1;          // make bigger to make smaller time steps // 8 is min for sphere slight increas in KE
 constexpr int f2 = f1 * 1.2;
 constexpr float incf = 1.2f;        // increment
 constexpr float decf = 1.0f / incf; // decrement factor
@@ -20,7 +20,7 @@ constexpr size_t n_parte = n_partd;
 constexpr size_t nback = n_partd / 4; // background stationary particles distributed over all cells - improves stability
 
 constexpr float R_s = n_space / 1;                                 // LPF smoothing radius
-constexpr float r0_f[3] = {n_space / 4 +1, n_space / 4, n_space}; //  radius of sphere or cylinder (electron, ion, plasma)
+constexpr float r0_f[3] = {n_space / 4 + 1, n_space / 4, n_space}; //  radius of sphere or cylinder (electron, ion, plasma)
 
 constexpr float Bz0 = 1.0001;     // in T, static constant fields
 constexpr float Btheta0 = 1.0001; // in T, static constant fields
@@ -46,9 +46,9 @@ constexpr unsigned int ncoeff = 8;
 constexpr int n_output_part = (n_partd > 9369) ? 9369 : n_partd; // maximum number of particles to output to file
 // const int nprtd=floor(n_partd/n_output_part);
 
-constexpr int ndatapoints = 2; // total number of time steps to print 
-constexpr int nc1 = 1;           // f1 * 1;      // number of times to calculate E and B between printouts
-constexpr int md_me = 60;        // ratio of electron speed/deuteron speed at the same KE. Used to calculate electron motion more often than deuteron motion
+constexpr int ndatapoints = 2; // total number of time steps to print
+constexpr int nc1 = 1;         // f1 * 1;      // number of times to calculate E and B between printouts
+constexpr int md_me = 60;      // ratio of electron speed/deuteron speed at the same KE. Used to calculate electron motion more often than deuteron motion
 
 #define Hist_n 512
 // #define Hist_max Temp_e / 11600 * 60 // in eV Kelvin to eV is divide by 11600
@@ -56,9 +56,9 @@ constexpr int md_me = 60;        // ratio of electron speed/deuteron speed at th
 #define trilinon_
 
 #define Eon_ // whether to calculate the internally generated electric (E) field externally applied fields are always on
-// #define Uon_ // whether to calculate the electric (V) potential and potential energy (U). Needs Eon to be enabled.
+ #define Uon_ // whether to calculate the electric (V) potential and potential energy (U). Needs Eon to be enabled.
 #define UE_field //
-#define Bon_ // whether to calculate the internally generated magnetic (B) field
+#define Bon_     // whether to calculate the internally generated magnetic (B) field
 #define UB_field
 #define EFon_ // whether to apply electric force
 #define BFon_ // whether to apply magnetic force
@@ -82,7 +82,10 @@ constexpr int n_cells = n_space_divx * n_space_divy * n_space_divz;
 constexpr int n_cells8 = n_cells * 8;
 constexpr size_t N0 = n_space_divx2, N1 = n_space_divy2, N2 = n_space_divz2,
                  N0N1 = N0 * N1, N0N1_2 = N0N1 / 2, N0N1N2 = N0 * N1 * N2,
+                 N0_c = N2 / 2 + 1,
+                 N1N0_c = N1 * N0_c,
                  N2_c = N2 / 2 + 1; // Dimension to store the complex data, as required by fftw (from their docs)
+
 constexpr size_t n_cells4 = N0 * N1 * N2_c;
 
 // physical "constants"
