@@ -110,8 +110,6 @@ int calcEBV(fields *fi, par *par)
         // vkGPU. = program_g();
         vkGPU.commandQueue = clCreateCommandQueue(vkGPU.context, vkGPU.device, 0, &res);
         launchParams.commandQueue = &vkGPU.commandQueue;
-        // Create the OpenCL kernel
-        copyData_kernel = clCreateKernel(program_g(), "copyData", NULL);
 
         fft_real_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_R4, 0, &res);
         fft_complex_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_C4, 0, &res);
@@ -384,19 +382,29 @@ int calcEBV(fields *fi, par *par)
     */
             // cl_command_queue commandQueue = clCreateCommandQueue(vkGPU.context, vkGPU.device, 0, &res);
             res = clEnqueueWriteBuffer(vkGPU.commandQueue, npt_buffer, CL_TRUE, 0, sizeof(float) * n_cells, fi->npt, 0, NULL, NULL);
-            for (int i = 0; i < n_space_divx;i++)
-                cout << fi->npt[0][0][i] << ", ";
-                cout <<endl;
+           // cout <<res <<endl;
+            //for (int i = 0; i < n_space_divx; i++)
+           //     cout << fi->npt[0][0][i] << ", ";
+           // cout << endl;
+
             // Set the arguments of the kernel
             clSetKernelArg(copyData_kernel, 0, sizeof(cl_mem), npt_buffer);
             clSetKernelArg(copyData_kernel, 1, sizeof(cl_mem), fft_real_buffer);
+            // Create the OpenCL kernel
+            copyData_kernel = clCreateKernel(program_g(), "copyData", NULL);
             //  Enqueue NDRange kernel
             size_t global_work_size[3] = {N0, N1, N2};
             clEnqueueNDRangeKernel(vkGPU.commandQueue, copyData_kernel, 3, NULL, global_work_size, NULL, 0, NULL, NULL);
             clFinish(vkGPU.commandQueue);
             // res = clReleaseCommandQueue(vkGPU.commandQueue);
-            res = clEnqueueReadBuffer(vkGPU.commandQueue, fft_real_buffer, CL_TRUE, 0, sizeof(float) * n_cells8, &fft_real[0][0], 0, NULL, NULL);
-            for (int i = 0; i < n_space_divx;i++)
+            res = clEnqueueReadBuffer(vkGPU.commandQueue, fft_real_buffer, CL_TRUE, 0, sizeof(float) * n_cells, fi->npt, 0, NULL, NULL);
+            cout <<res <<endl;
+            for (int i = 0; i < n_space_divx; i++)
+                cout << fi->npt[0][0][i] << ", ";
+            cout << endl;
+            res = clEnqueueReadBuffer(vkGPU.commandQueue, npt_buffer, CL_TRUE, 0, sizeof(float) *n_cells, &fft_real[0], 0, NULL, NULL);
+            cout <<res <<endl;
+            for (int i = 0; i < n_space_divx; i++)
                 cout << fft_real[0][i] << ", ";
             // only density arrn1 = fft(arrn) multiply fft charge with fft of kernel(i.e field associated with 1 charge)
             resFFT = transferDataFromCPU(&vkGPU, &fft_real[0][0], &fft_real_buffer, bufferSize_R);

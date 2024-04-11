@@ -80,12 +80,12 @@ void kernel vector_mul_complex(global float2 *A, global float2 *B,
 }
 
 void copyData(global const float *npt, global float *fft_real) {
-  int N0N1 = NX * NY * 4;
-  int N0 = NX * 2;
+  size_t N0N1 = NX * NY * 4;
+  size_t N0 = NX * 2;
   // get global indices
-  int i = get_global_id(0);
-  int j = get_global_id(1);
-  int k = get_global_id(2);
+  size_t i = get_global_id(0);
+  size_t j = get_global_id(1);
+  size_t k = get_global_id(2);
 
   // Compute global index for dest array
   size_t destination_index = k * N0N1 + j * N0 + i;
@@ -94,10 +94,11 @@ void copyData(global const float *npt, global float *fft_real) {
   size_t source_index = k * NY * NX + j * NX + i;
 
   // Check if in range of source
-  int in = (i < NX) && (j < NY) && (k < NZ);
-  printf("%d",i);
+  size_t in = (i < NX) && (j < NY) && (k < NZ);
+  //printf("%d", i);
   // Copy element from source to destination array or with zeroes
-  fft_real[destination_index] = (in) ? (NX-i)*(NY-j)*(NZ-k)*1e9 : 0;
+  //fft_real[destination_index] = (in) ? (NX - i) * (NY - j) * (NZ - k) * 1e9 : 0;
+  fft_real[destination_index] = (in) ? 1 : 0;
 }
 
 void kernel tnp_k_implicit(global const float8 *a1,
