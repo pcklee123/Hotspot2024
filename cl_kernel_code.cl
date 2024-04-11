@@ -79,6 +79,32 @@ void kernel vector_mul_complex(global float2 *A, global float2 *B,
   A[i] = (float2)(b.s0 * c.s0 - b.s1 * c.s1, b.s0 * c.s1 + b.s1 * c.s0);
 }
 
+void copyData(global float *fft_real, global float *npt) {
+  int jj = 0;
+  int N0N1_2 = NX * NY * 2;
+  // Calculate global indices
+  int global_id_x = get_global_id(0);
+  int global_id_y = get_global_id(1);
+  int global_id_z = get_global_id(2);
+
+  // Compute indices for 3D array
+  int i = global_id_x % NX;
+  int j = (global_id_x / NX) % NY;
+  int k = global_id_y;
+
+  // Compute global index for destination array
+  int destination_index = global_id_z * N0N1_2 + jj + i;
+
+  // Fill the fft_real array with zeroes
+  fft_real[destination_index] = 0.0f;
+
+  // Compute global index for source array
+  int source_index = k * NY * NX + j * NX + i;
+
+  // Copy element from source to destination array
+  fft_real[destination_index] = npt[source_index];
+}
+
 void kernel tnp_k_implicit(global const float8 *a1,
                            global const float8 *a2, // E, B coeff
                            global float *x0, global float *y0,
@@ -207,16 +233,16 @@ void kernel tnp_k_implicit(global const float8 *a1,
   z1[id] = z;
 }
 void kernel tnp_k_implicito1(global const float8 *a1,
-                            global const float8 *a2, // E, B coeff
-                            global float *x0, global float *y0,
-                            global float *z0, // prev pos
-                            global float *x1, global float *y1,
-                            global float *z1, // current pos
-                            float Bcoef,
-                            float Ecoef, // Bcoeff, Ecoeff
-                            float a0_f, const unsigned int n,
-                            const unsigned int ncalc, // n, ncalc
-                            global int *q) {
+                             global const float8 *a2, // E, B coeff
+                             global float *x0, global float *y0,
+                             global float *z0, // prev pos
+                             global float *x1, global float *y1,
+                             global float *z1, // current pos
+                             float Bcoef,
+                             float Ecoef, // Bcoeff, Ecoeff
+                             float a0_f, const unsigned int n,
+                             const unsigned int ncalc, // n, ncalc
+                             global int *q) {
 
   uint id = get_global_id(0);
   uint prev_idx = UINT_MAX;
@@ -237,7 +263,8 @@ void kernel tnp_k_implicito1(global const float8 *a1,
   const float XH = (XHIGH - 1.5f * DX), YH = (YHIGH - 1.5f * DY),
               ZH = (ZHIGH - 1.5f * DZ);
               */
-  const float XL = (XLOW + 0.5f*DX), YL = (YLOW + 0.5f*DY), ZL = (ZLOW + 0.5f*DZ);
+  const float XL = (XLOW + 0.5f * DX), YL = (YLOW + 0.5f * DY),
+              ZL = (ZLOW + 0.5f * DZ);
   const float XH = (XHIGH - 1.5f * DX), YH = (YHIGH - 1.5f * DY),
               ZH = (ZHIGH - 1.5f * DZ);
 
@@ -477,16 +504,16 @@ void kernel tnp_k_implicitz(global const float8 *a1,
 }
 
 void kernel tnp_k_implicito(global const float8 *a1,
-                             global const float8 *a2, // E, B coeff
-                             global float *x0, global float *y0,
-                             global float *z0, // prev pos
-                             global float *x1, global float *y1,
-                             global float *z1, // current pos
-                             float Bcoef,
-                             float Ecoef, // Bcoeff, Ecoeff
-                             float a0_f, const unsigned int n,
-                             const unsigned int ncalc, // n, ncalc
-                             global int *q) {
+                            global const float8 *a2, // E, B coeff
+                            global float *x0, global float *y0,
+                            global float *z0, // prev pos
+                            global float *x1, global float *y1,
+                            global float *z1, // current pos
+                            float Bcoef,
+                            float Ecoef, // Bcoeff, Ecoeff
+                            float a0_f, const unsigned int n,
+                            const unsigned int ncalc, // n, ncalc
+                            global int *q) {
 
   uint id = get_global_id(0);
   uint prev_idx = UINT_MAX;
@@ -504,7 +531,8 @@ void kernel tnp_k_implicito(global const float8 *a1,
               ZHIGH = ZHIGHo * a0_f;
   // const float XL = (XLOW + 1.5f * DX), YL = (YLOW + 1.5f * DY),
   //             ZL = (ZLOW + 1.5f * DZ);
-  const float XL = (XLOW + 0.5f*DX), YL = (YLOW + 0.5f*DX), ZL = (ZLOW + 0.5f*DX);
+  const float XL = (XLOW + 0.5f * DX), YL = (YLOW + 0.5f * DX),
+              ZL = (ZLOW + 0.5f * DX);
   const float XH = (XHIGH - 1.5f * DX), YH = (YHIGH - 1.5f * DY),
               ZH = (ZHIGH - 1.5f * DZ);
   const float ZDZ = ZH - ZL - DZ / 10;
