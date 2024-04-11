@@ -332,8 +332,8 @@ int calcEBV(fields *fi, par *par)
                     w *= w;
                     for (int c = 0; c < 3; c++)
                     {
-                        precalc_r3[0][c][loc_k*N0N1+loc_j*N0+ loc_i] *= w;
-                        precalc_r3[1][c][loc_k*N0N1+loc_j*N0+ loc_i] *= w;
+                        precalc_r3[0][c][loc_k*N0*N2_c+loc_j*N2_c+ loc_i] *= w;
+                        precalc_r3[1][c][loc_k*N0*N2_c+loc_j*N2_c+ loc_i] *= w;
                     }
 #ifdef Uon_
                     precalc_r2[loc_k][loc_j][loc_i][0] *= w;
