@@ -388,7 +388,7 @@ int calcEBV(fields *fi, par *par)
             clSetKernelArg(copyData_kernel, 0, sizeof(cl_mem), &npt_buffer);
             clSetKernelArg(copyData_kernel, 1, sizeof(cl_mem), &fft_real_buffer);
             //  Enqueue NDRange kernel
-            size_t global_work_size[3] = {n_space_divx, n_space_divy, n_space_divz};
+            size_t global_work_size[3] = {N0, N1, N2};
             clEnqueueNDRangeKernel(vkGPU.commandQueue, copyData_kernel, 3, NULL, global_work_size, NULL, 0, NULL, NULL);
             clFinish(vkGPU.commandQueue);
             // res = clReleaseCommandQueue(vkGPU.commandQueue);
