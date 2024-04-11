@@ -127,7 +127,7 @@ int calcEBV(fields *fi, par *par)
         configuration.size[2] = N2;
 
         configuration.performR2C = true;
-        configuration.disableReorderFourStep = false; // disable reordering =true false
+        configuration.disableReorderFourStep = true; // disable reordering =true false
 
         configuration.isInputFormatted = 1; // out-of-place - we need to specify that input buffer is separate from the main buffer
 
@@ -148,6 +148,16 @@ int calcEBV(fields *fi, par *par)
         configuration.buffer = &r3_buffer;
         configuration.bufferSize = &bufferSize_C6;
         resFFT = initializeVkFFT(&appfor_k, configuration);
+
+#ifdef Uon_
+        configuration.makeForwardPlanOnly = true;
+        configuration.numberBatches = 1;
+        configuration.inputBuffer = &r2_base_buffer;
+        configuration.inputBufferSize = &bufferSize_R;
+        configuration.buffer = &r2_buffer;
+        configuration.bufferSize = &bufferSize_C;
+        resFFT = initializeVkFFT(&appfor_k2, configuration);
+#endif
 
         // plan for density (forward R2C FFT scalar)
         configuration.numberBatches = 1;
@@ -214,21 +224,25 @@ int calcEBV(fields *fi, par *par)
         configuration.inputBuffer = &fft_complex_buffer;
         configuration.inputBufferSize = &bufferSize_C3;
         resFFT = initializeVkFFT(&appbac3, configuration);
-#ifdef Uon_
-        configuration.makeForwardPlanOnly = 1;
-        configuration.numberBatches = 1;
-        configuration.inputBuffer = &r2_base_buffer;
-        configuration.inputBufferSize = &bufferSize_R;
-        configuration.buffer = &r2_buffer;
-        configuration.bufferSize = &bufferSize_C;
-        resFFT = initializeVkFFT(&appfor_k2, configuration);
 
+#ifdef Uon_
         // Perform ifft on the entire array; the first 3/4 is used for E while the last 1/4 is used for V
+        configuration.isOutputFormatted = true;
+        configuration.inverseReturnToInputBuffer = false;
+        configuration.makeForwardPlanOnly = false;
+        configuration.makeInversePlanOnly = true;
+        configuration.performZeropadding[0] = false;
+        configuration.performZeropadding[1] = false;
+        configuration.performZeropadding[2] = false;
+
         configuration.numberBatches = 4;
-        configuration.inputBuffer = &fft_real_buffer;
-        configuration.inputBufferSize = &bufferSize_R4;
-        configuration.buffer = &fft_complex_buffer;
-        configuration.bufferSize = &bufferSize_C4;
+        configuration.outputBuffer = &fft_real_buffer;
+        configuration.outputBufferSize = &bufferSize_R4;
+        configuration.buffer = &fft_p_buffer;
+        configuration.bufferSize = &bufferSize_P4;
+        configuration.inputBuffer = &fft_complex_buffer;
+        configuration.inputBufferSize = &bufferSize_C4;
+
         resFFT = initializeVkFFT(&appbac4, configuration);
 #endif
 
@@ -290,6 +304,7 @@ int calcEBV(fields *fi, par *par)
         resFFT = transferDataFromCPU(&vkGPU, precalc_r3_base, &r3_base_buffer, bufferSize_R6);
         resFFT = VkFFTAppend(&appfor_k, -1, &launchParams); //   cout << "forward transform precalc_r3" << endl;
         res = clFinish(vkGPU.commandQueue);
+        deleteVkFFT(&appfor_k);
         resFFT = transferDataToCPU(&vkGPU, precalc_r3, &r3_buffer, bufferSize_C6);
         clReleaseMemObject(r3_base_buffer);
         delete[] precalc_r3_base;
@@ -297,6 +312,7 @@ int calcEBV(fields *fi, par *par)
         resFFT = transferDataFromCPU(&vkGPU, precalc_r2_base, &r2_base_buffer, bufferSize_R);
         resFFT = VkFFTAppend(&appfor_k2, -1, &launchParams);
         res = clFinish(vkGPU.commandQueue);
+        deleteVkFFT(&appfor_k2);
         resFFT = transferDataToCPU(&vkGPU, precalc_r2, &r2_buffer, bufferSize_C);
         clReleaseMemObject(r2_base_buffer);
         delete[] precalc_r2_base;
