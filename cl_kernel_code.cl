@@ -79,30 +79,24 @@ void kernel vector_mul_complex(global float2 *A, global float2 *B,
   A[i] = (float2)(b.s0 * c.s0 - b.s1 * c.s1, b.s0 * c.s1 + b.s1 * c.s0);
 }
 
-void copyData(global float *npt, global float *fft_real ) {
-  int jj = 0;
-  int N0N1_2 = NX * NY * 2;
+void copyData(global float *npt, global float *fft_real) {
+
   // Calculate global indices
-  int global_id_x = get_global_id(0);
-  int global_id_y = get_global_id(1);
-  int global_id_z = get_global_id(2);
+  // int i = get_global_id(0);
+  // int j = get_global_id(1);
+  // int k = get_global_id(2);
+  for (int k = 0; k < NZ; ++k)
+    for (int j = 0; j < NY; ++j)
+      for (int i = 0; i < NX; ++i) {
+        // Compute in or out  for 3D npt array
+        bool in = (i < NX) || (j < NY) || (k < NZ);
 
-  // Compute indices for 3D array
-  int i = global_id_x % NX;
-  int j = (global_id_x / NX) % NY;
-  int k = global_id_y;
+        // Compute global index for destination array
+        int index = k * NX * NY * 4 + j * NX * 2 + i;
 
-  // Compute global index for destination array
-  int destination_index = global_id_z * N0N1_2 + jj + i;
-
-  // Fill the fft_real array with zeroes
-  fft_real[destination_index] = 0.0f;
-
-  // Compute global index for source array
-  int source_index = k * NY * NX + j * NX + i;
-
-  // Copy element from source to destination array
-  fft_real[destination_index] = npt[source_index];
+        // Fill the fft_real array npt or with zeroes if outside
+        fft_real[index] = (in) ? npt[index] : 0.0f;
+      }
 }
 
 void kernel tnp_k_implicit(global const float8 *a1,

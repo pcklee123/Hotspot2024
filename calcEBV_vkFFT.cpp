@@ -366,35 +366,37 @@ int calcEBV(fields *fi, par *par)
 #ifdef Eon_
     // #pragma omp parallel sections
     {
-        {  size_t i, j, k, jj;
-            /*
-           fill(&fft_real[0][0], &fft_real[3][n_cells8], 0.f);
-           //   #pragma omp section
-           {
-               // density field
-             
-               jj = 0;
-               // #pragma omp parallel for simd num_threads(nthreads)
-               for (k = 0; k < n_space_divz; ++k)
-               {
-                   for (j = 0; j < n_space_divy; ++j)
-                       memcpy(&fft_real[0][jj += N0], fi->npt[k][j], sizeof(float) * n_space_divx);
-                   jj += N0N1_2;
-               }
-    */
+        {
+            size_t i, j, k, jj;
+/*
+            fill(&fft_real[0][0], &fft_real[3][n_cells8], 0.f);
+            //   #pragma omp section
+
+            // density field
+
+            jj = 0;
+            // #pragma omp parallel for simd num_threads(nthreads)
+            for (k = 0; k < n_space_divz; ++k)
+            {
+                for (j = 0; j < n_space_divy; ++j)
+                    memcpy(&fft_real[0][jj += N0], fi->npt[k][j], sizeof(float) * n_space_divx);
+                jj += N0N1_2;
+            }
+*/
             // cl_command_queue commandQueue = clCreateCommandQueue(vkGPU.context, vkGPU.device, 0, &res);
-            res = clEnqueueWriteBuffer(vkGPU.commandQueue, npt_buffer, CL_TRUE, 0, sizeof(float) * n_cells, fi->npt, 0, NULL, NULL);
+            res = clEnqueueWriteBuffer(vkGPU.commandQueue, npt_buffer, CL_TRUE, 0, sizeof(float) * n_cells, &fi->npt[0][0][0], 0, NULL, NULL);
             // Set the arguments of the kernel
             clSetKernelArg(copyData_kernel, 0, sizeof(cl_mem), &npt_buffer);
             clSetKernelArg(copyData_kernel, 1, sizeof(cl_mem), &fft_real_buffer);
             //  Enqueue NDRange kernel
-            size_t global_work_size[3] = {n_space_divx, n_space_divy, n_space_divz};
+            //   queue.enqueueNDRangeKernel(kernel_add, cl::NullRange, cl::NDRange(n), cl::NullRange);
+            size_t global_work_size[3] = {N0, N1, N2};
             clEnqueueNDRangeKernel(vkGPU.commandQueue, copyData_kernel, 3, NULL, global_work_size, NULL, 0, NULL, NULL);
             clFinish(vkGPU.commandQueue);
             // res = clReleaseCommandQueue(vkGPU.commandQueue);
 
             // only density arrn1 = fft(arrn) multiply fft charge with fft of kernel(i.e field associated with 1 charge)
-            //  resFFT = transferDataFromCPU(&vkGPU, &fft_real[0][0], &fft_real_buffer, bufferSize_R);
+           // resFFT = transferDataFromCPU(&vkGPU, &fft_real[0][0], &fft_real_buffer, bufferSize_R);
             resFFT = VkFFTAppend(&app1, -1, &launchParams); // -1 = forward transform
             if (resFFT)
                 cout << "execute plan for E resFFT = " << resFFT << endl;
