@@ -1,6 +1,6 @@
 #define RamDisk // whether to use RamDisk if no ramdisk files will be in temp directory
 #define maxcells 32
-#define cldevice 1 // 0 usually means integrated GPU
+#define cldevice 0 // 0 usually means integrated GPU
 #define sphere     // do hot spot  problem
 #define octant     // do hot spot  problem 1/8 sphere
 // #define cylinder //do hot rod problem
@@ -13,7 +13,7 @@ constexpr int f2 = f1 * 1.2;
 constexpr float incf = 1.2f;        // increment
 constexpr float decf = 1.0f / incf; // decrement factor
 
-constexpr int n_space = 128; // should be 2 to power of n for faster FFT
+constexpr int n_space = 8; // should be 2 to power of n for faster FFT
 
 constexpr size_t n_partd = 1 * 1024 * 1024; // n_space * n_space * n_space * 1 * 16; // must be 2 to power of n
 constexpr size_t n_parte = n_partd;
