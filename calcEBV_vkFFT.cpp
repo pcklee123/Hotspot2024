@@ -395,14 +395,14 @@ int calcEBV(fields *fi, par *par)
 
             clFinish(vkGPU.commandQueue);
             for (int i = 0; i < n_space_divx; ++i)
-                cout << fi->npt[i] << ", ";
+                cout << fi->npt[0][0][i] << ", ";
             cout << endl;
             res = clEnqueueReadBuffer(vkGPU.commandQueue, fft_real_buffer, CL_TRUE, 0, sizeof(float) * n_space_divx, fi->npt, 0, NULL, NULL);
             cout << res << endl;
             // res = clReleaseCommandQueue(vkGPU.commandQueue);
             clEnqueueNDRangeKernel(vkGPU.commandQueue, copyData_kernel, 1, NULL, &global_work_size, NULL, 0, NULL, NULL);
             for (int i = 0; i < n_space_divx; ++i)
-                cout << fi->npt[i] << ", ";
+                cout << fi->npt[0][0][i] << ", ";
             cout << endl;
             // only density arrn1 = fft(arrn) multiply fft charge with fft of kernel(i.e field associated with 1 charge)
             resFFT = transferDataFromCPU(&vkGPU, &fft_real[0][0], &fft_real_buffer, bufferSize_R);
