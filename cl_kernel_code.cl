@@ -125,6 +125,14 @@ void kernel NxPrecalc(global const float2 *r3, global float2 *fft_complex) {
         (float2)(b.s0 * c.s0 - b.s1 * c.s1, b.s0 * c.s1 + b.s1 * c.s0);
   }
 }
+void kernel NxPrecalcr2(global const float2 *r2, global float2 *fft_complex) {
+  const size_t n = 3* 4 * NZ * NY * (NX + 1);
+  size_t i = get_global_id(0);
+  float2 b = fft_complex[n + i], c = r2[i];
+  fft_complex[n + i] =
+      (float2)(b.s0 * c.s0 - b.s1 * c.s1, b.s0 * c.s1 + b.s1 * c.s0);
+}
+
 void kernel tnp_k_implicit(global const float8 *a1,
                            global const float8 *a2, // E, B coeff
                            global float *x0, global float *y0,
