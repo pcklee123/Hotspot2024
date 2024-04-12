@@ -106,10 +106,10 @@ int calcEBV(fields *fi, par *par)
     { // allocate and initialize to 0
         int dims[3] = {N0, N1, N2};
         auto precalc_r3_base = new float[2][3][N2][N1][N0];
-        fi->precalc_r3 = (reinterpret_cast<float *>(precalc_r3));
+        //fi->precalc_r3 = (reinterpret_cast<float *>(precalc_r3));
 #ifdef Uon_ // similar arrays for U, but kept separately in one ifdef
         auto precalc_r2_base = new float[N2][N1][N0];
-        fi->precalc_r2 = (reinterpret_cast<float *>(precalc_r2));
+        //fi->precalc_r2 = (reinterpret_cast<float *>(precalc_r2));
 #endif
 
         vkGPU.device = default_device_g();
@@ -328,6 +328,8 @@ int calcEBV(fields *fi, par *par)
         resFFT = transferDataToCPU(&vkGPU, precalc_r3, &r3_buffer, bufferSize_C6);
         clReleaseMemObject(r3_base_buffer);
         delete[] precalc_r3_base;
+        delete[] precalc_r3;
+
 #ifdef Uon_
         resFFT = transferDataFromCPU(&vkGPU, precalc_r2_base, &r2_base_buffer, bufferSize_R);
         resFFT = VkFFTAppend(&appfor_k2, -1, &launchParams);
@@ -336,6 +338,7 @@ int calcEBV(fields *fi, par *par)
         resFFT = transferDataToCPU(&vkGPU, precalc_r2, &r2_buffer, bufferSize_C);
         clReleaseMemObject(r2_base_buffer);
         delete[] precalc_r2_base;
+        delete[] precalc_r2;
 #endif
 
         //      cout << "filter" << endl; // filter
@@ -495,14 +498,16 @@ int calcEBV(fields *fi, par *par)
         res = clEnqueueWriteBuffer(vkGPU.commandQueue, jc_buffer, CL_TRUE, 0, sizeof(float) * n_cells * 3, fi->jc, 0, NULL, NULL);
         res = clEnqueueNDRangeKernel(vkGPU.commandQueue, copy3Data_kernel, 1, NULL, &n_cells8, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
         res = clFinish(vkGPU.commandQueue);
-        // resFFT = transferDataFromCPU(&vkGPU, &fft_real[0][0], &fft_real_buffer, bufferSize_R3);
+
         resFFT = VkFFTAppend(&app3, -1, &launchParams); // -1 = forward transform // cout << "execute plan for E resFFT = " << resFFT << endl;
         res = clFinish(vkGPU.commandQueue);             //  cout << "execute plan for E" << endl;
 
         res = clEnqueueNDRangeKernel(vkGPU.commandQueue, jcxPrecalc_kernel, 1, NULL, &n_cells8, NULL, 0, NULL, NULL);
         res = clFinish(vkGPU.commandQueue);
+
         resFFT = VkFFTAppend(&appbac3, 1, &launchParams); // 1 = inverse FFT// cout << "execute plan bac E resFFT = " << resFFT << endl;
         res = clFinish(vkGPU.commandQueue);               // cout << "execute plan bac E ,clFinish res = " << res << endl;
+
         resFFT = transferDataToCPU(&vkGPU, &fft_real[0][0], &fft_real_buffer, bufferSize_R3);
         for (int c = 0; c < 3; c++)
         { // 3 axis
