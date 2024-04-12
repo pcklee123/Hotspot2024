@@ -130,16 +130,38 @@ void kernel copyData(global const float *npt, global float *fft_real) {
 }
 void kernel NxPrecalc(global const float2 *r3, global float2 *fft_complex) {
   const size_t n = 4 * NZ * NY * (NX + 1);
-  size_t i = get_global_id(0);
-  float2 b = fft_complex[i], c = r3[2 * n + i];
-  fft_complex[3 * n + i] =
+  size_t i = get_global_id(0), j = i + n, k = j + n;
+  float2 b = fft_complex[i], c = r3[k];
+  fft_complex[n + k] =
       (float2)(b.s0 * c.s0 - b.s1 * c.s1, b.s0 * c.s1 + b.s1 * c.s0);
-  c = r3[n + i];
-  fft_complex[2 * n + i] =
+  c = r3[j];
+  fft_complex[n + j] =
       (float2)(b.s0 * c.s0 - b.s1 * c.s1, b.s0 * c.s1 + b.s1 * c.s0);
   c = r3[i];
   fft_complex[n + i] =
       (float2)(b.s0 * c.s0 - b.s1 * c.s1, b.s0 * c.s1 + b.s1 * c.s0);
+}
+
+void kernel jcxPrecalc(global const float2 *r3, global float2 *ptr) {
+  float2 t1, t2, t3;
+  const size_t n = 4 * NZ * NY * (NX + 1);
+  size_t i = get_global_id(0), j = i + n, k = j + n, i1 = k + n, j1 = i1 + n,
+         k1 = j1 + n;
+  t1 = (ptr[j].s0 * r3[k1].s0 - ptr[j].s1 * r3[k1].s1,
+        ptr[j].s0 * r3[k1].s1 + ptr[j].s1 * r3[k1].s0) -
+       (ptr[k].s0 * r3[j1].s0 - ptr[k].s1 * r3[j1].s1,
+        ptr[k].s0 * r3[j1].s1 + ptr[k].s1 * r3[j1].s0);
+  t2 = (ptr[k].s0 * r3[i1].s0 - ptr[i].s1 * r3[k1].s1,
+        ptr[k].s0 * r3[i1].s1 + ptr[i].s1 * r3[k1].s0) -
+       (ptr[i].s0 * r3[k1].s0 - ptr[k].s1 * r3[i1].s1,
+        ptr[i].s0 * r3[k1].s1 + ptr[k].s1 * r3[i1].s0);
+  t3 = (ptr[i].s0 * r3[j1].s0 - ptr[i].s1 * r3[j1].s1,
+        ptr[i].s0 * r3[j1].s1 + ptr[i].s1 * r3[j1].s0) -
+       (ptr[j].s0 * r3[i1].s0 - ptr[j].s1 * r3[i1].s1,
+        ptr[j].s0 * r3[i1].s1 + ptr[j].s1 * r3[i1].s0); // ptr[i] * r3[j1] - ptr[j] * r3[i1];
+  ptr[i] = t1;
+  ptr[j] = t2;
+  ptr[k] = t3;
 }
 
 void kernel NxPrecalcr2(global const float2 *r2, global float2 *fft_complex) {

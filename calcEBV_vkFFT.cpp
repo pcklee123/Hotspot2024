@@ -486,7 +486,8 @@ int calcEBV(fields *fi, par *par)
 #endif
 //                  cout << "E done\n";
 #ifdef Bon_
-    { /*
+    { 
+        /*
          fill(&fft_real[0][0], &fft_real[2][n_cells8], 0.f);
          for (int c = 0; c < 3; c++)
          { // 3 axis
@@ -500,7 +501,7 @@ int calcEBV(fields *fi, par *par)
              }
          }
          */
-        res = clEnqueueWriteBuffer(vkGPU.commandQueue, jc_buffer, CL_TRUE, 0, bufferSize_R3, fi->jc, 0, NULL, NULL);
+        res = clEnqueueWriteBuffer(vkGPU.commandQueue, jc_buffer, CL_TRUE, 0, sizeof(float) * n_cells * 3, fi->jc, 0, NULL, NULL);
         res = clEnqueueNDRangeKernel(vkGPU.commandQueue, copy3Data_kernel, 1, NULL, &n_cells8, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
         res = clFinish(vkGPU.commandQueue);
         // resFFT = transferDataFromCPU(&vkGPU, &fft_real[0][0], &fft_real_buffer, bufferSize_R3);

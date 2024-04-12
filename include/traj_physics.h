@@ -13,7 +13,7 @@ constexpr int f2 = f1 * 1.2;
 constexpr float incf = 1.2f;        // increment
 constexpr float decf = 1.0f / incf; // decrement factor
 
-constexpr int n_space = 128; // should be 2 to power of n for faster FFT
+constexpr int n_space = 32; // should be 2 to power of n for faster FFT
 
 constexpr size_t n_partd = 1 * 1024 * 1024; // n_space * n_space * n_space * 1 * 16; // must be 2 to power of n
 constexpr size_t n_parte = n_partd;
@@ -22,8 +22,8 @@ constexpr size_t nback = n_partd / 4; // background stationary particles distrib
 constexpr float R_s = n_space / 1;                                 // LPF smoothing radius
 constexpr float r0_f[3] = {n_space / 4 + 1, n_space / 4, n_space}; //  radius of sphere or cylinder (electron, ion, plasma)
 
-constexpr float Bz0 = 1.0001;     // in T, static constant fields
-constexpr float Btheta0 = 1.0001; // in T, static constant fields
+constexpr float Bz0 = 0.0001;     // in T, static constant fields
+constexpr float Btheta0 = 0.0001; // in T, static constant fields
 constexpr float Ez0 = 0.0f;       // in V/m
 constexpr float vz0 = 0.0f;
 constexpr float a0 = 0.25e-6; // typical dimensions of a cell in m This needs to be smaller than debye length otherwise energy is not conserved if a particle moves across a cell
@@ -33,7 +33,7 @@ constexpr float v0_r = 0;          // initial directed radial velocity outwards 
 
 // The maximum expected E and B fields. If fields go beyond this, the the time step, cell size etc will be wrong. Should adjust and recalculate.
 //  maximum expected magnetic field
-constexpr float Bmax0 = Bz0 + Btheta0; // in T earth's magnetic field is of the order of ~ 1e-4 T DPF ~ 100T
+constexpr float Bmax0 = Bz0 + Btheta0+0.0001; // in T earth's magnetic field is of the order of ~ 1e-4 T DPF ~ 100T
 constexpr float Emax0 = Ez0 + 1;       // 1e11V/m is approximately interatomic E field -extremely large fields implies poor numerical stability
 
 // technical parameters
