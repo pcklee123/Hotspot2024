@@ -80,7 +80,6 @@ void kernel vector_mul_complex(global float2 *A, global float2 *B,
 }
 
 void kernel copy3Data(global const float *jc, global float *fft_real) {
-
   const size_t N0 = NX * 2;
   const size_t N1 = NY * 2;
   const size_t N2 = NZ * 2;
@@ -94,19 +93,19 @@ void kernel copy3Data(global const float *jc, global float *fft_real) {
   size_t j = (idx / N0) % N1;
   size_t k = (idx / N0N1) % N2;
 
-  // Check if in range of source
-  size_t in = (i < NX) && (j < NY) && (k < NZ);
+  size_t in = (i < NX) && (j < NY) && (k < NZ); // Check if in range of source
 
-  // Compute global index for source array
-  size_t source_index = (in) ? k * NY * NX + j * NX + i : 0;
-  //  Copy element from source to destination array or with zeroes
-  fft_real[idx] = (in) ? jc[source_index] : 0;
+  size_t s_idx = (in) ? k * NY * NX + j * NX + i
+                      : 0; // Compute global index for source array
+  //  Copy element from source to destination array or with zeroes do for each
+  //  component
+  fft_real[idx] = (in) ? jc[s_idx] : 0;
   idx += N0N1N2;
-  source_index += NXNYNZ;
-  fft_real[idx] = (in) ? jc[source_index] : 0;
+  s_idx += NXNYNZ;
+  fft_real[idx] = (in) ? jc[s_idx] : 0;
   idx += N0N1N2;
-  source_index += NXNYNZ;
-  fft_real[idx] = (in) ? jc[source_index] : 0;
+  s_idx += NXNYNZ;
+  fft_real[idx] = (in) ? jc[s_idx] : 0;
 }
 
 void kernel copyData(global const float *npt, global float *fft_real) {
