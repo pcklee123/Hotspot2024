@@ -6,7 +6,7 @@
             "name": "(gdb) Launch",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/TS3.exe",
+            "program": "${workspaceFolder}/TS3vk.exe",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
