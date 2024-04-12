@@ -79,7 +79,7 @@ void kernel vector_mul_complex(global float2 *A, global float2 *B,
   A[i] = (float2)(b.s0 * c.s0 - b.s1 * c.s1, b.s0 * c.s1 + b.s1 * c.s0);
 }
 
-void kernel copyData(global const float *npt, global float *fft_real) {
+void kernel copy3Data(global const float *npt, global float *fft_real) {
   size_t N0N1 = NX * NY * 4;
   size_t N0 = NX * 2;
   // get global indices
@@ -95,10 +95,35 @@ void kernel copyData(global const float *npt, global float *fft_real) {
 
   // Check if in range of source
   size_t in = (i < NX) && (j < NY) && (k < NZ);
-  //printf("%d", i);
-  // Copy element from source to destination array or with zeroes
-  //fft_real[destination_index] = (in) ? (NX - i) * (NY - j) * (NZ - k) * 1e9 : 0;
+  // printf("%d", i);
+  //  Copy element from source to destination array or with zeroes
+  // fft_real[destination_index] = (in) ? (NX - i) * (NY - j) * (NZ - k) * 1e9 :
+  // 0;
   fft_real[destination_index] = (in) ? 1 : 0;
+}
+
+void kernel copyData(global const float *npt, global float *fft_real) {
+  const size_t N0N1 = NX * NY * 4;
+  const size_t N0 = NX * 2;
+  const size_t N1 = NY * 2;
+  const size_t N2 = NZ * 2;
+  // get global indices
+
+  // Compute global index for dest array
+  size_t idx = get_global_id(0);
+  size_t i = idx % N1;
+  size_t j = (idx / N) % N1;
+  size_t k = (idx / N0N1) % N2;
+  // Compute global index for source array
+  size_t source_index = k * NY * NX + j * NX + i;
+
+  // Check if in range of source
+  size_t in = (i < NX) && (j < NY) && (k < NZ);
+  // printf("%d", i);
+  //  Copy element from source to destination array or with zeroes
+  // fft_real[destination_index] = (in) ? (NX - i) * (NY - j) * (NZ - k) * 1e9 :
+  // 0;
+  fft_real[destination_index] = (in) ? npt[source_index] : 0;
 }
 
 void kernel tnp_k_implicit(global const float8 *a1,
