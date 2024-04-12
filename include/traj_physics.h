@@ -179,9 +179,9 @@ struct fields                                                      // particles
     int (*cj_centeri)[3][n_space_divz][n_space_divy][n_space_divx];
     float (*jc)[n_space_divz][n_space_divy][n_space_divx];
 
-    //   float *precalc_r3; //  pre-calculate 1/ r3 to make it faster to calculate electric and magnetic fields
+       float *precalc_r3; //  pre-calculate 1/ r3 to make it faster to calculate electric and magnetic fields
 #ifdef Uon_
-    //   float *precalc_r2; // similar arrays for U, but kept separately in one ifdef
+       float *precalc_r2; // similar arrays for U, but kept separately in one ifdef
 #endif
     cl_mem r3_buffer = 0;
     cl_mem r2_buffer = 0;

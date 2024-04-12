@@ -308,6 +308,7 @@ int calcEBV(fields *fi, par *par)
                 }
             }
         }
+        cout << "precalc calculate done\n";
         // Multiply by the respective constants here, since it is faster to parallelize it
         const float Vconst = kc * e_charge * r_part_spart / n_cells8;
         const float Aconst = 1e-7 * e_charge * r_part_spart / n_cells8;
@@ -394,7 +395,8 @@ int calcEBV(fields *fi, par *par)
         clSetKernelArg(jcxPrecalc_kernel, 0, sizeof(cl_mem), &r3_buffer);
         clSetKernelArg(jcxPrecalc_kernel, 1, sizeof(cl_mem), &fft_complex_buffer);
 
-        first = 0; //      cout << "precalc done\n";
+        first = 0; //
+        cout << "precalc done\n";
     }
 
 #ifdef Eon_
