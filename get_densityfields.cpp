@@ -43,8 +43,8 @@ void get_densityfields(fields *fi, particles *pt, par *par)
    static cl::Buffer buff_npt(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cellsi, fastIO ? fi->npt : NULL);
    static cl::Buffer buff_jc(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cellsi * 3, fastIO ? fi->jc : NULL);
 
-   //fi->buff_E = buff_E();
-   //fi->buff_B = buff_B();
+   // fi->buff_E = buff_E();
+   // fi->buff_B = buff_B();
    fi->buff_npt = buff_npt();
    fi->buff_jc = buff_jc();
 
@@ -187,14 +187,18 @@ void get_densityfields(fields *fi, particles *pt, par *par)
 
       queue.enqueueReadBuffer(buff_currentj_e, CL_TRUE, 0, n_cellsf * 3, fi->currentj[0]);
       queue.enqueueReadBuffer(buff_currentj_i, CL_TRUE, 0, n_cellsf * 3, fi->currentj[1]);
-#pragma omp parallel for simd num_threads(nthreads)
-      for (unsigned int i = 0; i < n_cells; i++)
-         (reinterpret_cast<float *>(fi->npt))[i] = (reinterpret_cast<float *>(fi->np[0]))[i] + (reinterpret_cast<float *>(fi->np[1]))[i];
 
-#pragma omp parallel for simd num_threads(nthreads)
-      for (unsigned int i = 0; i < n_cells * 3; i++)
-         (reinterpret_cast<float *>(fi->jc))[i] = (reinterpret_cast<float *>(fi->currentj[0]))[i] / par->dt[0] + (reinterpret_cast<float *>(fi->currentj[1]))[i] / par->dt[1];
-#pragma omp barrier
+      queue.enqueueReadBuffer(buff_npt, CL_TRUE, 0, n_cellsf, fi->npt);
+      queue.enqueueReadBuffer(buff_jc, CL_TRUE, 0, n_cellsf * 3, fi->jc);
+      /*
+      #pragma omp parallel for simd num_threads(nthreads)
+            for (unsigned int i = 0; i < n_cells; i++)
+               (reinterpret_cast<float *>(fi->npt))[i] = (reinterpret_cast<float *>(fi->np[0]))[i] + (reinterpret_cast<float *>(fi->np[1]))[i];
+
+      #pragma omp parallel for simd num_threads(nthreads)
+            for (unsigned int i = 0; i < n_cells * 3; i++)
+               (reinterpret_cast<float *>(fi->jc))[i] = (reinterpret_cast<float *>(fi->currentj[0]))[i] / par->dt[0] + (reinterpret_cast<float *>(fi->currentj[1]))[i] / par->dt[1];
+      #pragma omp barrier*/
    }
 
    first = false;

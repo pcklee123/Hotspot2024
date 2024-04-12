@@ -302,6 +302,8 @@ void tnp(fields *fi, particles *pt, par *par)
          queue.enqueueWriteBuffer(buff_B, CL_TRUE, 0, n_cellsf * 3, fi->B);
       }
    }
+   queue.enqueueReadBuffer(buff_npt, CL_TRUE, 0, n_cellsf, fi->npt);
+   queue.enqueueReadBuffer(buff_jc, CL_TRUE, 0, n_cellsf * 3, fi->jc);
    /*
    #pragma omp parallel for simd num_threads(nthreads)
          for (unsigned int i = 0; i < n_cells; i++)
