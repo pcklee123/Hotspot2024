@@ -492,43 +492,13 @@ int calcEBV(fields *fi, par *par)
 //                  cout << "E done\n";
 #ifdef Bon_
     {
-        /*
-         fill(&fft_real[0][0], &fft_real[2][n_cells8], 0.f);
-         for (int c = 0; c < 3; c++)
-         { // 3 axis
-             size_t i, j, k, jj;
-             jj = 0;
-             for (k = 0; k < n_space_divz; ++k)
-             {
-                 for (j = 0; j < n_space_divy; ++j)
-                     memcpy(&fft_real[c][jj += N0], fi->jc[c][k][j], sizeof(float) * n_space_divx);
-                 jj += N0N1_2;
-             }
-         }
-         */
         res = clEnqueueWriteBuffer(vkGPU.commandQueue, jc_buffer, CL_TRUE, 0, sizeof(float) * n_cells * 3, fi->jc, 0, NULL, NULL);
         res = clEnqueueNDRangeKernel(vkGPU.commandQueue, copy3Data_kernel, 1, NULL, &n_cells8, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
         res = clFinish(vkGPU.commandQueue);
         // resFFT = transferDataFromCPU(&vkGPU, &fft_real[0][0], &fft_real_buffer, bufferSize_R3);
         resFFT = VkFFTAppend(&app3, -1, &launchParams); // -1 = forward transform // cout << "execute plan for E resFFT = " << resFFT << endl;
         res = clFinish(vkGPU.commandQueue);             //  cout << "execute plan for E" << endl;
-                                                        // resFFT = transferDataToCPU(&vkGPU, reinterpret_cast<complex<float> *>(fft_complex[0]), &fft_complex_buffer, bufferSize_C3);
-        //  cout << "bufferSize_C3 = " << bufferSize_C3 << ", bufferSize_R3 = " << bufferSize_R3 << endl;
-        /*
-        const auto ptr = reinterpret_cast<complex<float> *>(fft_complex), r3_1d = reinterpret_cast<complex<float> *>(precalc_r3[1]);
-        complex<float> temp1, temp2, temp3;
 
-        for (size_t i = 0, j = n_cells4, k = n_cells4 * 2; i < n_cells4; ++i, ++j, ++k)
-        {
-            temp1 = ptr[j] * r3_1d[k] - ptr[k] * r3_1d[j];
-            temp2 = ptr[k] * r3_1d[i] - ptr[i] * r3_1d[k];
-            temp3 = ptr[i] * r3_1d[j] - ptr[j] * r3_1d[i];
-            ptr[i] = temp1;
-            ptr[j] = temp2;
-            ptr[k] = temp3;
-        }
-*/
-        //      resFFT = transferDataFromCPU(&vkGPU, reinterpret_cast<complex<float> *>(fft_complex[0]), &fft_complex_buffer, bufferSize_C3); // cout << resFFT << endl;
         res = clEnqueueNDRangeKernel(vkGPU.commandQueue, jcxPrecalc_kernel, 1, NULL, &n_cells8, NULL, 0, NULL, NULL);
         res = clFinish(vkGPU.commandQueue);
         resFFT = VkFFTAppend(&appbac3, 1, &launchParams); // 1 = inverse FFT// cout << "execute plan bac E resFFT = " << resFFT << endl;
