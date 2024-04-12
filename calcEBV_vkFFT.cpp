@@ -54,6 +54,7 @@ int calcEBV(fields *fi, par *par)
     static cl_kernel copy3Data_kernel;
     static cl_kernel NxPrecalc_kernel;
     static cl_kernel NxPrecalcr2_kernel;
+    static cl_kernel jcxPrecalc_kernel;
 
     static VkFFTApplication app1 = {};
     static VkFFTApplication app3 = {};
@@ -121,6 +122,7 @@ int calcEBV(fields *fi, par *par)
         copy3Data_kernel = clCreateKernel(program_g(), "copy3Data", NULL);
         NxPrecalc_kernel = clCreateKernel(program_g(), "NxPrecalc", NULL);
         NxPrecalcr2_kernel = clCreateKernel(program_g(), "NxPrecalcr2", NULL);
+        jcxPrecalc_kernel = clCreateKernel(program_g(), "jcxPrecalc", NULL);
 
         fft_real_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_R4, 0, &res);
         fft_complex_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_C4, 0, &res);
@@ -382,6 +384,9 @@ int calcEBV(fields *fi, par *par)
         clSetKernelArg(NxPrecalcr2_kernel, 0, sizeof(cl_mem), &r2_buffer);
         res = clSetKernelArg(NxPrecalcr2_kernel, 1, sizeof(cl_mem), &fft_complex_buffer);
 
+        clSetKernelArg(jcxPrecalc_kernel, 0, sizeof(cl_mem), &r3_buffer);
+        clSetKernelArg(jcxPrecalc_kernel, 1, sizeof(cl_mem), &fft_complex_buffer);
+
         first = 0; //      cout << "precalc done\n";
     }
 
@@ -486,7 +491,7 @@ int calcEBV(fields *fi, par *par)
 #endif
 //                  cout << "E done\n";
 #ifdef Bon_
-    { 
+    {
         /*
          fill(&fft_real[0][0], &fft_real[2][n_cells8], 0.f);
          for (int c = 0; c < 3; c++)
@@ -507,8 +512,9 @@ int calcEBV(fields *fi, par *par)
         // resFFT = transferDataFromCPU(&vkGPU, &fft_real[0][0], &fft_real_buffer, bufferSize_R3);
         resFFT = VkFFTAppend(&app3, -1, &launchParams); // -1 = forward transform // cout << "execute plan for E resFFT = " << resFFT << endl;
         res = clFinish(vkGPU.commandQueue);             //  cout << "execute plan for E" << endl;
-        resFFT = transferDataToCPU(&vkGPU, reinterpret_cast<complex<float> *>(fft_complex[0]), &fft_complex_buffer, bufferSize_C3);
-        // cout << "bufferSize_C3 = " << bufferSize_C3 << ", bufferSize_R3 = " << bufferSize_R3 << endl;
+                                                        // resFFT = transferDataToCPU(&vkGPU, reinterpret_cast<complex<float> *>(fft_complex[0]), &fft_complex_buffer, bufferSize_C3);
+        //  cout << "bufferSize_C3 = " << bufferSize_C3 << ", bufferSize_R3 = " << bufferSize_R3 << endl;
+        /*
         const auto ptr = reinterpret_cast<complex<float> *>(fft_complex), r3_1d = reinterpret_cast<complex<float> *>(precalc_r3[1]);
         complex<float> temp1, temp2, temp3;
 
@@ -521,10 +527,12 @@ int calcEBV(fields *fi, par *par)
             ptr[j] = temp2;
             ptr[k] = temp3;
         }
-
-        resFFT = transferDataFromCPU(&vkGPU, reinterpret_cast<complex<float> *>(fft_complex[0]), &fft_complex_buffer, bufferSize_C3); // cout << resFFT << endl;
-        resFFT = VkFFTAppend(&appbac3, 1, &launchParams);                                                                             // 1 = inverse FFT// cout << "execute plan bac E resFFT = " << resFFT << endl;
-        res = clFinish(vkGPU.commandQueue);                                                                                           // cout << "execute plan bac E ,clFinish res = " << res << endl;
+*/
+        //      resFFT = transferDataFromCPU(&vkGPU, reinterpret_cast<complex<float> *>(fft_complex[0]), &fft_complex_buffer, bufferSize_C3); // cout << resFFT << endl;
+        res = clEnqueueNDRangeKernel(vkGPU.commandQueue, jcxPrecalc_kernel, 1, NULL, &n_cells8, NULL, 0, NULL, NULL);
+        res = clFinish(vkGPU.commandQueue);
+        resFFT = VkFFTAppend(&appbac3, 1, &launchParams); // 1 = inverse FFT// cout << "execute plan bac E resFFT = " << resFFT << endl;
+        res = clFinish(vkGPU.commandQueue);               // cout << "execute plan bac E ,clFinish res = " << res << endl;
         resFFT = transferDataToCPU(&vkGPU, &fft_real[0][0], &fft_real_buffer, bufferSize_R3);
         for (int c = 0; c < 3; c++)
         { // 3 axis
