@@ -44,9 +44,9 @@ int calcEBV(fields *fi, par *par)
     static auto *fft_real = static_cast<float(*)[n_cells8]>(_aligned_malloc(sizeof(float) * n_cells8 * 4, 4096));                      // fft_real[4][n_cells8]
     static auto *fft_complex = static_cast<complex<float>(*)[n_cells4]>(_aligned_malloc(sizeof(complex<float>) * n_cells4 * 4, 4096)); // fft_complex[4][n_cells4]
     //  pre-calculate 1/ r3 to make it faster to calculate electric and magnetic fields
- //   static auto *precalc_r3 = static_cast<complex<float>(*)[3][n_cells4]>(_aligned_malloc(sizeof(complex<float>) * 2 * 3 * n_cells4, 4096)); // precalc_r3[2][3][n_cells4]
-#ifdef Uon_                                                                                                                                  // similar arrays for U, but kept separately in one ifdef
-   // static auto *precalc_r2 = static_cast<complex<float>(*)>(_aligned_malloc(sizeof(complex<float>) * n_cells4, 4096));                      // precalc_r3[n_cells4]
+    //   static auto *precalc_r3 = static_cast<complex<float>(*)[3][n_cells4]>(_aligned_malloc(sizeof(complex<float>) * 2 * 3 * n_cells4, 4096)); // precalc_r3[2][3][n_cells4]
+#ifdef Uon_ // similar arrays for U, but kept separately in one ifdef
+            // static auto *precalc_r2 = static_cast<complex<float>(*)>(_aligned_malloc(sizeof(complex<float>) * n_cells4, 4096));                      // precalc_r3[n_cells4]
 #endif
 
     static float posL2[3];
@@ -78,8 +78,8 @@ int calcEBV(fields *fi, par *par)
 
     static cl_mem npt_buffer = fi->buff_npt();
     static cl_mem jc_buffer = fi->buff_jc();
-    static cl_mem buff_E = fi->buff_E;
-    static cl_mem buff_B = fi->buff_B;
+    static cl_mem buff_E = fi->buff_E();
+    static cl_mem buff_B = fi->buff_B();
 
     static VkGPU vkGPU = {};
     // vkGPU.device_id = 0; // 0 = use iGPU for FFT
@@ -131,6 +131,8 @@ int calcEBV(fields *fi, par *par)
         cl_mem r2_base_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_R, 0, &res);
         r3_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_C6, 0, &res);
         r2_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_C, 0, &res);
+        fi->r3_buffer = r3_buffer;
+        fi->r2_buffer = r2_buffer;
         // Create memory buffers on the device for each vector
         // cl::Buffer npt_buffer (context_g, CL_MEM_READ_WRITE, sizeof(float) * n_cells);
         // npt_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, sizeof(float) * n_cells, 0, &res);
@@ -325,20 +327,20 @@ int calcEBV(fields *fi, par *par)
         resFFT = VkFFTAppend(&appfor_k, -1, &launchParams); //   cout << "forward transform precalc_r3" << endl;
         res = clFinish(vkGPU.commandQueue);
         deleteVkFFT(&appfor_k);
-       // resFFT = transferDataToCPU(&vkGPU, precalc_r3, &r3_buffer, bufferSize_C6);
+        // resFFT = transferDataToCPU(&vkGPU, precalc_r3, &r3_buffer, bufferSize_C6);
         clReleaseMemObject(r3_base_buffer);
         delete[] precalc_r3_base;
-       // _aligned_free(precalc_r3);
+        // _aligned_free(precalc_r3);
 
 #ifdef Uon_
         resFFT = transferDataFromCPU(&vkGPU, precalc_r2_base, &r2_base_buffer, bufferSize_R);
         resFFT = VkFFTAppend(&appfor_k2, -1, &launchParams);
         res = clFinish(vkGPU.commandQueue);
         deleteVkFFT(&appfor_k2);
-       // resFFT = transferDataToCPU(&vkGPU, precalc_r2, &r2_buffer, bufferSize_C);
+        // resFFT = transferDataToCPU(&vkGPU, precalc_r2, &r2_buffer, bufferSize_C);
         clReleaseMemObject(r2_base_buffer);
         delete[] precalc_r2_base;
-    //    _aligned_free(precalc_r2);
+        //    _aligned_free(precalc_r2);
 #endif
 
         //      cout << "filter" << endl; // filter

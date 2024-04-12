@@ -222,6 +222,32 @@ void vector_muls(float *A, float Bb, int n)
     // read result arrays from the device to main memory
     queue.enqueueReadBuffer(buffer_A, CL_TRUE, 0, sizeof(float) * n, A);
 }
+void buffer_muls(cl_mem buffer_A, float Bb, int n)
+{
+    // Create a command queue
+    cl::CommandQueue queue(context_g, default_device_g);
+    //float B[1] = {Bb};
+    //  cout << B[0] << endl;
+    // Create memory buffers on the device for each vector
+    //cl::Buffer buffer_A(context_g, CL_MEM_READ_WRITE, sizeof(float) * n);
+    //cl::Buffer buffer_B(context_g, CL_MEM_READ_ONLY, sizeof(float));
+
+    // Copy the lists C and B to their respective memory buffers
+    //queue.enqueueWriteBuffer(buffer_A, CL_TRUE, 0, sizeof(float) * n, A);
+    //queue.enqueueWriteBuffer(buffer_B, CL_TRUE, 0, sizeof(float), B);
+
+    // Create the OpenCL kernel
+    cl::Kernel kernel_add = cl::Kernel(program_g, "buffer_muls"); // select the kernel program to run
+
+    // Set the arguments of the kernel
+    clSetKernelArg(kernel_add(), 0, sizeof(cl_mem), &buffer_A);
+    //kernel_add.setArg(0, buffer_A); // the 1st argument to the kernel program
+    kernel_add.setArg(1, sizeof(float), &Bb);
+    queue.enqueueNDRangeKernel(kernel_add, cl::NullRange, cl::NDRange(n), cl::NullRange);
+    queue.finish(); // wait for the end of the kernel program
+    // read result arrays from the device to main memory
+    //queue.enqueueReadBuffer(buffer_A, CL_TRUE, 0, sizeof(float) * n, A);
+}
 
 // Vector multiplication for complex numbers. Note that this is not in-place.
 void vector_muls(fftwf_complex *dst, fftwf_complex *A, fftwf_complex *B, int n)

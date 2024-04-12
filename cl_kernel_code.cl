@@ -72,6 +72,13 @@ void kernel vector_muls(global float *A, global const float *B) {
   A[i] = Bb * A[i];         // Do the operation
 }
 
+
+void kernel buffer_muls(global float *A,  const float Bb) {
+  //float Bb = B[0];
+  int i = get_global_id(0); // Get index of current element processed
+  A[i] = Bb * A[i];         // Do the operation
+}
+
 void kernel vector_mul_complex(global float2 *A, global float2 *B,
                                global float2 *C) {
   int i = get_global_id(0); // Get index of the current element to be processed

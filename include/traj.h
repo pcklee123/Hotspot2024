@@ -139,4 +139,5 @@ void info(par *par);
 void changedx(fields *fi, par *par);
 particles *alloc_particles(par *par);
 fields *alloc_fields(par *par);
+void buffer_muls(cl_mem buffer_A, float Bb, int n);
 #endif // TRAJ_H_INCLUDED
