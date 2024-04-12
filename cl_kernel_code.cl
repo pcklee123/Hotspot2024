@@ -108,21 +108,18 @@ void kernel copyData(global const float *npt, global float *fft_real) {
   const size_t N1 = NY * 2;
   const size_t N2 = NZ * 2;
   // get global indices
-
-  // Compute global index for dest array
   size_t idx = get_global_id(0);
+  // Compute 3D index for dest array
   size_t i = idx % N0;
   size_t j = (idx / N0) % N1;
   size_t k = (idx / N0N1) % N2;
-  // Compute global index for source array
-  size_t source_index = k * NY * NX + j * NX + i;
 
   // Check if in range of source
   size_t in = (i < NX) && (j < NY) && (k < NZ);
-  // printf("%d", i);
+
+  // Compute global index for source array
+  size_t source_index = (in) ? k * NY * NX + j * NX + i : 0;
   //  Copy element from source to destination array or with zeroes
-  // fft_real[destination_index] = (in) ? (NX - i) * (NY - j) * (NZ - k) * 1e9 :
-  // 0;
   fft_real[idx] = (in) ? npt[source_index] : 0;
 }
 
