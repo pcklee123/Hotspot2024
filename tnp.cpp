@@ -20,6 +20,8 @@ void tnp(fields *fi, particles *pt, par *par)
    // Assume buffers A, B, I, J (Ea, Ba, ci, cf) will always be the same. Then we save a bit of time.
    static cl::Buffer buff_E(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_ONLY, n_cellsf * 3, fastIO ? fi->Ea : NULL);
    static cl::Buffer buff_B(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_ONLY, n_cellsf * 3, fastIO ? fi->Ba : NULL);
+   par->buff_E = buff_E();
+   par->buff_B = buff_B();
    static cl::Buffer buff_Ea(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, sizeof(float) * nc, fastIO ? fi->Ea : NULL);
    static cl::Buffer buff_Ba(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, sizeof(float) * nc, fastIO ? fi->Ba : NULL);
    static cl::Buffer buff_np_e(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cellsf, fastIO ? fi->np[0] : NULL);

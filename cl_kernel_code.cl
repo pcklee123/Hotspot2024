@@ -79,21 +79,34 @@ void kernel vector_mul_complex(global float2 *A, global float2 *B,
   A[i] = (float2)(b.s0 * c.s0 - b.s1 * c.s1, b.s0 * c.s1 + b.s1 * c.s0);
 }
 
-void kernel copy3Data(global const float *npt, global float *fft_real) {
-  size_t N0N1 = NX * NY * 4;
-  size_t N0 = NX * 2;
+void kernel copy3Data(global const float *jc, global float *fft_real) {
+
+  const size_t N0 = NX * 2;
+  const size_t N1 = NY * 2;
+  const size_t N2 = NZ * 2;
+  const size_t NXNYNZ = NX * NY * NZ;
+  const size_t N0N1N2 = N0 * N1 * N2;
+  const size_t N0N1 = N0 * N1;
   // get global indices
-  size_t i = get_global_id(0);
-  size_t j = get_global_id(1);
-  size_t k = get_global_id(2);
-  // Compute global index for dest array
-  size_t destination_index = k * N0N1 + j * N0 + i;
-  // Compute global index for source array
-  size_t source_index = k * NY * NX + j * NX + i;
+  size_t idx = get_global_id(0);
+  // Compute 3D index for dest array
+  size_t i = idx % N0;
+  size_t j = (idx / N0) % N1;
+  size_t k = (idx / N0N1) % N2;
+
   // Check if in range of source
   size_t in = (i < NX) && (j < NY) && (k < NZ);
+
+  // Compute global index for source array
+  size_t source_index = (in) ? k * NY * NX + j * NX + i : 0;
   //  Copy element from source to destination array or with zeroes
-  fft_real[destination_index] = (in) ? npt[source_index] : 0;
+  fft_real[idx] = (in) ? jc[source_index] : 0;
+  idx += N0N1N2;
+  source_index += NXNYNZ;
+  fft_real[idx] = (in) ? jc[source_index] : 0;
+  idx += N0N1N2;
+  source_index += NXNYNZ;
+  fft_real[idx] = (in) ? jc[source_index] : 0;
 }
 
 void kernel copyData(global const float *npt, global float *fft_real) {
@@ -119,17 +132,22 @@ void kernel copyData(global const float *npt, global float *fft_real) {
 void kernel NxPrecalc(global const float2 *r3, global float2 *fft_complex) {
   const size_t n = 4 * NZ * NY * (NX + 1);
   size_t i = get_global_id(0);
-  for (int co = 0; co < 3; co++) {
-    float2 b = fft_complex[3 * n + i], c = r3[co * n + i];
-    fft_complex[co * n + i] =
-        (float2)(b.s0 * c.s0 - b.s1 * c.s1, b.s0 * c.s1 + b.s1 * c.s0);
-  }
-}
-void kernel NxPrecalcr2(global const float2 *r2, global float2 *fft_complex) {
-  const size_t n = 3* 4 * NZ * NY * (NX + 1);
-  size_t i = get_global_id(0);
-  float2 b = fft_complex[n + i], c = r2[i];
+  float2 b = fft_complex[i], c = r3[2 * n + i];
+  fft_complex[3 * n + i] =
+      (float2)(b.s0 * c.s0 - b.s1 * c.s1, b.s0 * c.s1 + b.s1 * c.s0);
+  c = r3[n + i];
+  fft_complex[2 * n + i] =
+      (float2)(b.s0 * c.s0 - b.s1 * c.s1, b.s0 * c.s1 + b.s1 * c.s0);
+  c = r3[i];
   fft_complex[n + i] =
+      (float2)(b.s0 * c.s0 - b.s1 * c.s1, b.s0 * c.s1 + b.s1 * c.s0);
+}
+
+void kernel NxPrecalcr2(global const float2 *r2, global float2 *fft_complex) {
+  // const size_t n = 3 * 4 * NZ * NY * (NX + 1);
+  size_t i = get_global_id(0);
+  float2 b = fft_complex[i], c = r2[i];
+  fft_complex[i] =
       (float2)(b.s0 * c.s0 - b.s1 * c.s1, b.s0 * c.s1 + b.s1 * c.s0);
 }
 

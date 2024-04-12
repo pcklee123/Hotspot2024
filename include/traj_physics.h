@@ -55,8 +55,8 @@ constexpr int md_me = 60;      // ratio of electron speed/deuteron speed at the 
 #define Hist_max 50000 // 50keV
 #define trilinon_
 
-#define Eon_ // whether to calculate the internally generated electric (E) field externally applied fields are always on
- #define Uon_ // whether to calculate the electric (V) potential and potential energy (U). Needs Eon to be enabled.
+#define Eon_     // whether to calculate the internally generated electric (E) field externally applied fields are always on
+#define Uon_     // whether to calculate the electric (V) potential and potential energy (U). Needs Eon to be enabled.
 #define UE_field //
 #define Bon_     // whether to calculate the internally generated magnetic (B) field
 #define UB_field
@@ -82,11 +82,11 @@ constexpr int n_cells = n_space_divx * n_space_divy * n_space_divz;
 constexpr size_t n_cells8 = n_cells * 8;
 constexpr size_t N0 = n_space_divx2, N1 = n_space_divy2, N2 = n_space_divz2,
                  N0N1 = N0 * N1, N0N1_2 = N0N1 / 2, N0N1N2 = N0 * N1 * N2,
-                 N0_c = N2 / 2 + 1,
+                 N0_c = N0 / 2 + 1,
                  N1N0_c = N1 * N0_c,
                  N2_c = N2 / 2 + 1; // Dimension to store the complex data, as required by fftw (from their docs)
 
-constexpr size_t n_cells4 = N0 * N1 * N2_c;
+constexpr size_t n_cells4 = N2 * N1 * N0_c;
 
 // physical "constants"
 constexpr float kb = 1.38064852e-23;       // m^2kss^-2K-1
@@ -144,6 +144,8 @@ struct par // useful parameters
     unsigned int cl_align = 4096;
     std::string outpath;
     float a0_f = 1.0; // factor to scale cell size
+    cl_mem buff_E = 0;
+    cl_mem buff_B = 0;
 };
 
 struct particles // particles
