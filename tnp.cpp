@@ -278,6 +278,7 @@ void tnp(fields *fi, particles *pt, par *par)
       kernel_dtotal.setArg(3, buff_currentj_i); // current
       kernel_dtotal.setArg(4, buff_npt);        // total particles density
       kernel_dtotal.setArg(5, buff_jc);         // total current density
+      kernel_dtotal.setArg(6, sizeof(size_t), &n_cells);
       queue.enqueueNDRangeKernel(kernel_dtotal, cl::NullRange, cl::NDRange(n_cells / 16), cl::NullRange);
       queue.finish();
 

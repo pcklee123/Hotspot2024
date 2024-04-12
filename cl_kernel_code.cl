@@ -674,16 +674,17 @@ void kernel df(global float *np, global const int *npi, global float *currentj,
 }
 
 void kernel dtotal(global const float16 *ne, global const float16 *ni,
-                          global const float16 *je, global const float16 *ji,
-                          global float16 *nt, global float16 *jt,
-                          const uint n) {
-  const uint 2n = n + n;
+                   global const float16 *je, global const float16 *ji,
+                   global float16 *nt, global float16 *jt, const size_t n) {
+  const size_t n1 = n / 16;
+  const size_t n2 = n1 + n1;
   const int i = get_global_id(0); // Get index of current element processed
   nt[i] = ne[i] + ni[i];          // Do the operation
   jt[i] = je[i] + ji[i];
   jt[n + i] = je[n + i] + ji[n + i];
-  jt[2n + i] = je[2n + i] + ji[2n + i];
+  jt[n2 + i] = je[n2 + i] + ji[n2 + i];
 }
+
 void kernel trilin_k(
     global float8 *Ea, // E, B coeff Ea[k][j][i][3][8] according to tnp_k
     global const float *E_flat, // E or B 3 components per cell E[3][k][j][i]
