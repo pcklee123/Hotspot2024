@@ -106,10 +106,10 @@ int calcEBV(fields *fi, par *par)
     { // allocate and initialize to 0
         int dims[3] = {N0, N1, N2};
         auto precalc_r3_base = new float[2][3][N2][N1][N0];
-        //fi->precalc_r3 = (reinterpret_cast<float *>(precalc_r3));
+        // fi->precalc_r3 = (reinterpret_cast<float *>(precalc_r3));
 #ifdef Uon_ // similar arrays for U, but kept separately in one ifdef
         auto precalc_r2_base = new float[N2][N1][N0];
-        //fi->precalc_r2 = (reinterpret_cast<float *>(precalc_r2));
+        // fi->precalc_r2 = (reinterpret_cast<float *>(precalc_r2));
 #endif
 
         vkGPU.device = default_device_g();
@@ -328,7 +328,7 @@ int calcEBV(fields *fi, par *par)
         resFFT = transferDataToCPU(&vkGPU, precalc_r3, &r3_buffer, bufferSize_C6);
         clReleaseMemObject(r3_base_buffer);
         delete[] precalc_r3_base;
-        delete[] precalc_r3;
+        free(precalc_r3);
 
 #ifdef Uon_
         resFFT = transferDataFromCPU(&vkGPU, precalc_r2_base, &r2_base_buffer, bufferSize_R);
@@ -338,7 +338,7 @@ int calcEBV(fields *fi, par *par)
         resFFT = transferDataToCPU(&vkGPU, precalc_r2, &r2_buffer, bufferSize_C);
         clReleaseMemObject(r2_base_buffer);
         delete[] precalc_r2_base;
-        delete[] precalc_r2;
+        free(precalc_r2);
 #endif
 
         //      cout << "filter" << endl; // filter
