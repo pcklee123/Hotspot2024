@@ -76,8 +76,8 @@ int calcEBV(fields *fi, par *par)
     static cl_mem fft_complex_buffer = 0;
     static cl_mem fft_p_buffer = 0;
 
-    static cl_mem npt_buffer = fi->buff_npt;
-    static cl_mem jc_buffer = fi->buff_jc;
+    static cl_mem npt_buffer = fi->buff_npt();
+    static cl_mem jc_buffer = fi->buff_jc();
     static cl_mem buff_E = fi->buff_E;
     static cl_mem buff_B = fi->buff_B;
 

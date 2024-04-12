@@ -185,6 +185,8 @@ struct fields                                                      // particles
 #endif
     cl_mem buff_E = 0;
     cl_mem buff_B = 0;
-    cl_mem buff_npt = 0;
-    cl_mem buff_jc = 0;
+    // cl_mem buff_npt = 0;
+    // cl_mem buff_jc = 0;
+    cl::Buffer buff_npt;
+    cl::Buffer buff_jc;
 };
