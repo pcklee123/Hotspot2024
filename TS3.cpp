@@ -76,7 +76,7 @@ int main()
     // set time step to allow electrons to gyrate if there is B field or to allow electrons to move slowly throughout the plasma distance
     par->dt[0] = min(Tcyclotron / 4, TE / 8) / f1; // electron should not move more than 1 cell after ncalc*dt and should not make more than 1/4 gyration and must calculate E before the next 1/4 plasma period
     par->dt[1] = par->dt[0] * md_me;
-   // cout << "dt = " << par->dt[0] << ", " << par->dt[1] << endl;
+    // cout << "dt = " << par->dt[0] << ", " << par->dt[1] << endl;
 #define generateRandom
 #ifdef generateRandom
 #ifdef sphere
@@ -95,7 +95,7 @@ int main()
     cout << timer.replace() << "s\n"; // cout << "Set initial random positions: ";
 
     int i_time = 0;
-   // cout << "get_densityfields: ";
+    // cout << "get_densityfields: ";
     timer.mark();
 
     get_densityfields(fi, pt, par);
@@ -103,7 +103,7 @@ int main()
     //   float max_jc = maxvalf((reinterpret_cast<float *>(fi->jc)), n_cells * 3);
     //  cout << "max current density  = " << max_jc << endl;
     cout << timer.elapsed() << "s\n "; // density this is incorporated into tnp which also moves particles, but need to work out here to get good estimate of dt
-   // cout << "calcEBV: ";
+                                       // cout << "calcEBV: ";
     timer.mark();
     int cdt = calcEBV(fi, par); // electric and magnetic fields this is incorporated into tnp which also moves particles. Need here just to estimate dt
     cout << timer.elapsed() << "s\n ";
@@ -131,11 +131,11 @@ int main()
         // exit(1);
     }
     float TDebye = Debye_Length / vel_e;
-    acc_e = e_charge_mass * par->Emax;
+    acc_e = fabsf(e_charge_mass * par->Emax);
     TE = (sqrt(1 + 2 * a0 * par->a0_f * acc_e / pow(vel_e, 2)) - 1) * vel_e / acc_e; // time for electron to move across 1 cell
-    TE = TE <= 0 ? a0 * par->a0_f * vel_e : TE;                                      // if acc is negligible i.e. in square root ~=1, use approximation is more accurate
+    TE = ((TE <= 0) | (isnanf(TE))) ? a0 * par->a0_f / vel_e : TE;                   // if acc is negligible i.e. in square root ~=1, use approximation is more accurate
     // set time step to allow electrons to gyrate if there is B field or to allow electrons to move slowly throughout the plasma distance
-    float TExB = a0 * par->a0_f / par->Emax * (par->Bmax + .00001);
+    float TExB = a0 * par->a0_f / (par->Emax + .1) * (par->Bmax + .00001);
     info_file << "Tdebye=" << TDebye << ", Tcycloton/4=" << Tcyclotron / 4 << ", plasma period/4=" << plasma_period / 4 << ",TE=" << TE << ",TExB=" << TExB << endl;
     float inc = min(min(min(TDebye, Tcyclotron / 4), plasma_period / 4), TE / 16) / f1 / par->dt[0]; // redo dt
     par->dt[0] *= inc;

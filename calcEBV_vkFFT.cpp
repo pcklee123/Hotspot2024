@@ -41,16 +41,17 @@ int calcEBV(fields *fi, par *par)
 {
     static fftwf_plan planforE, planforB, planbacE, planbacB;
     static int first = 1;
-    static auto *fft_real = static_cast<float(*)[n_cells8]>(_aligned_malloc(sizeof(float) * n_cells8 * 4, 4096)); // fft_real[4][n_cells8]
-    static auto *fft_complex = static_cast<complex<float>(*)[n_cells4]>(_aligned_malloc(sizeof(float) * n_cells4 * 4 * 2, 4096));
+    static auto *fft_real = static_cast<float(*)[n_cells8]>(_aligned_malloc(sizeof(float) * n_cells8 * 4, 4096));                      // fft_real[4][n_cells8]
+    static auto *fft_complex = static_cast<complex<float>(*)[n_cells4]>(_aligned_malloc(sizeof(complex<float>) * n_cells4 * 4, 4096)); // fft_complex[4][n_cells4]
     //  pre-calculate 1/ r3 to make it faster to calculate electric and magnetic fields
-    static auto *precalc_r3 = static_cast<complex<float>(*)[3][n_cells4]>(_aligned_malloc(sizeof(complex<float>) * 2 * 3 * n_cells4, 4096));
-#ifdef Uon_ // similar arrays for U, but kept separately in one ifdef
-    static auto *precalc_r2 = static_cast<complex<float>(*)>(_aligned_malloc(sizeof(complex<float>) * n_cells4, 4096));
+    static auto *precalc_r3 = static_cast<complex<float>(*)[3][n_cells4]>(_aligned_malloc(sizeof(complex<float>) * 2 * 3 * n_cells4, 4096)); // precalc_r3[2][3][n_cells4]
+#ifdef Uon_                                                                                                                                  // similar arrays for U, but kept separately in one ifdef
+    static auto *precalc_r2 = static_cast<complex<float>(*)>(_aligned_malloc(sizeof(complex<float>) * n_cells4, 4096));                      // precalc_r3[n_cells4]
 #endif
 
     static float posL2[3];
     static cl_kernel copyData_kernel;
+    static cl_kernel NxPrecalc_kernel;
 
     static VkFFTApplication app1 = {};
     static VkFFTApplication app3 = {};
@@ -112,6 +113,7 @@ int calcEBV(fields *fi, par *par)
         launchParams.commandQueue = &vkGPU.commandQueue;
         // Create the OpenCL kernel
         copyData_kernel = clCreateKernel(program_g(), "copyData", NULL);
+        NxPrecalc_kernel = clCreateKernel(program_g(), "NxPrecalc", NULL);
 
         fft_real_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_R4, 0, &res);
         fft_complex_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_C4, 0, &res);
@@ -364,8 +366,9 @@ int calcEBV(fields *fi, par *par)
         clSetKernelArg(copyData_kernel, 0, sizeof(cl_mem), &npt_buffer);
         clSetKernelArg(copyData_kernel, 1, sizeof(cl_mem), &fft_real_buffer);
 
-        clSetKernelArg(multComp_kernel, 0, sizeof(cl_mem), &fft_complex_buffer);
-        clSetKernelArg(multComp_kernel, 1, sizeof(cl_mem), &precalc_r3[0]);
+        clSetKernelArg(NxPrecalc_kernel, 0, sizeof(cl_mem), &r3_buffer);
+        clSetKernelArg(NxPrecalc_kernel, 1, sizeof(cl_mem), &fft_complex_buffer);
+
         first = 0; //      cout << "precalc done\n";
     }
 
@@ -376,29 +379,35 @@ int calcEBV(fields *fi, par *par)
             size_t i, j, k, jj;
             size_t global_work_size = n_cells8;
 
-            res = clEnqueueWriteBuffer(vkGPU.commandQueue, npt_buffer, CL_TRUE, 0, sizeof(float) * n_cells, fi->npt, 0, NULL, NULL);         
-            res = clEnqueueNDRangeKernel(vkGPU.commandQueue, copyData_kernel, 1, NULL, &global_work_size, NULL, 0, NULL, NULL);//  Enqueue NDRange kernel
+            res = clEnqueueWriteBuffer(vkGPU.commandQueue, npt_buffer, CL_TRUE, 0, sizeof(float) * n_cells, fi->npt, 0, NULL, NULL);
+            res = clEnqueueNDRangeKernel(vkGPU.commandQueue, copyData_kernel, 1, NULL, &n_cells8, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
             res = clFinish(vkGPU.commandQueue);
             //  only density arrn1 = fft(arrn) multiply fft charge with fft of kernel(i.e field associated with 1 charge)
             //  resFFT = transferDataFromCPU(&vkGPU, &fft_real[0][0], &fft_real_buffer, bufferSize_R);
             resFFT = VkFFTAppend(&app1, -1, &launchParams); // -1 = forward transform
-            res = clFinish(vkGPU.commandQueue); //  cout << "execute plan for E" << endl;
+            res = clFinish(vkGPU.commandQueue);             //  cout << "execute plan for E" << endl;
 
             resFFT = transferDataToCPU(&vkGPU, reinterpret_cast<complex<float> *>(fft_complex[3]), &fft_complex_buffer, bufferSize_C);
-
+            res = clEnqueueNDRangeKernel(vkGPU.commandQueue, NxPrecalc_kernel, 1, NULL, &n_cells4, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
+            if (res)
+                cout << "clEnqueueNDRangeKernel NxPrecalc_kernel " << res << endl;
+            res = clFinish(vkGPU.commandQueue);
+            if (res)
+                cout << "clFinish NxPrecalc_kernel " << res << endl;
             for (int c = 0; c < 3; c++)
             {
 #pragma omp parallel for simd num_threads(nthreads)
                 for (int i = 0; i < n_cells4; ++i)
                     fft_complex[c][i] = fft_complex[3][i] * precalc_r3[0][c][i];
             }
+
 #ifdef Uon_
             {
 #pragma omp parallel for simd num_threads(nthreads)
                 for (int i = 0; i < n_cells4; ++i)
                     fft_complex[3][i] *= precalc_r2[i];
                 // cout << "inverse transform to get convolution" << endl;
-                resFFT = transferDataFromCPU(&vkGPU, fft_complex[0], &fft_complex_buffer, bufferSize_C4); // cout << resFFT << endl;
+                //resFFT = transferDataFromCPU(&vkGPU, fft_complex[0], &fft_complex_buffer, bufferSize_C4); // cout << resFFT << endl;
                 resFFT = VkFFTAppend(&appbac4, 1, &launchParams);                                         // 1 = inverse FFT//if (resFFT)                cout << "execute plan bac E resFFT = " << resFFT << endl;
                 res = clFinish(vkGPU.commandQueue);                                                       // cout << "execute plan bac E ,clFinish res = " << res << endl;
                 resFFT = transferDataToCPU(&vkGPU, fft_real[0], &fft_real_buffer, bufferSize_R4);
@@ -602,7 +611,7 @@ int calcEBV(fields *fi, par *par)
     float acc_e = fabsf(par->Emax * e_charge_mass);
     float vel_e = sqrt(kb * Temp_e / e_mass);
     float TE = (sqrt(1 + 2 * a0 * par->a0_f * acc_e / pow(vel_e, 2)) - 1) * vel_e / acc_e;
-    TE = TE == 0 ? a0 * par->a0_f * vel_e : TE; // if acc is negligible
+    TE = ((TE <= 0) | (isnanf(TE))) ? a0 * par->a0_f / vel_e : TE; // if acc is negligible
     float TE1 = a0 * par->a0_f / par->Emax * (par->Bmax + .00001);
     float TE2 = a0 * par->a0_f / 3e8;
     TE1 = TE1 < TE2 ? TE1 : TE2;

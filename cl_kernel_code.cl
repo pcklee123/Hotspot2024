@@ -27,13 +27,13 @@
 #define DZo 0
 #endif
 #ifndef NX
-#define NX 0
+#define NX 2
 #endif
 #ifndef NY
-#define NY 0
+#define NY 2
 #endif
 #ifndef NZ
-#define NZ 0
+#define NZ 2
 #endif
 
 void kernel vector_cross_mul(global float *A0, global const float *B0,
@@ -86,20 +86,14 @@ void kernel copy3Data(global const float *npt, global float *fft_real) {
   size_t i = get_global_id(0);
   size_t j = get_global_id(1);
   size_t k = get_global_id(2);
-
   // Compute global index for dest array
   size_t destination_index = k * N0N1 + j * N0 + i;
-
   // Compute global index for source array
   size_t source_index = k * NY * NX + j * NX + i;
-
   // Check if in range of source
   size_t in = (i < NX) && (j < NY) && (k < NZ);
-  // printf("%d", i);
   //  Copy element from source to destination array or with zeroes
-  // fft_real[destination_index] = (in) ? (NX - i) * (NY - j) * (NZ - k) * 1e9 :
-  // 0;
-  fft_real[destination_index] = (in) ? 1 : 0;
+  fft_real[destination_index] = (in) ? npt[source_index] : 0;
 }
 
 void kernel copyData(global const float *npt, global float *fft_real) {
@@ -122,7 +116,15 @@ void kernel copyData(global const float *npt, global float *fft_real) {
   //  Copy element from source to destination array or with zeroes
   fft_real[idx] = (in) ? npt[source_index] : 0;
 }
-
+void kernel NxPrecalc(global const float2 *r3, global float2 *fft_complex) {
+  const size_t n = 4 * NZ * NY * (NX + 1);
+  size_t i = get_global_id(0);
+  for (int co = 0; co < 3; co++) {
+    float2 b = fft_complex[3 * n + i], c = r3[co * n + i];
+    fft_complex[co * n + i] =
+        (float2)(b.s0 * c.s0 - b.s1 * c.s1, b.s0 * c.s1 + b.s1 * c.s0);
+  }
+}
 void kernel tnp_k_implicit(global const float8 *a1,
                            global const float8 *a2, // E, B coeff
                            global float *x0, global float *y0,
@@ -250,151 +252,7 @@ void kernel tnp_k_implicit(global const float8 *a1,
   y1[id] = y;
   z1[id] = z;
 }
-void kernel tnp_k_implicito1(global const float8 *a1,
-                             global const float8 *a2, // E, B coeff
-                             global float *x0, global float *y0,
-                             global float *z0, // prev pos
-                             global float *x1, global float *y1,
-                             global float *z1, // current pos
-                             float Bcoef,
-                             float Ecoef, // Bcoeff, Ecoeff
-                             float a0_f, const unsigned int n,
-                             const unsigned int ncalc, // n, ncalc
-                             global int *q) {
 
-  uint id = get_global_id(0);
-  uint prev_idx = UINT_MAX;
-  float xprev = x0[id], yprev = y0[id], zprev = z0[id], x = x1[id], y = y1[id],
-        z = z1[id];
-  float8 temp, pos;
-  float r1 = 1.0f;
-  float r2 = r1 * r1;
-  float8 store0, store1, store2, store3, store4, store5;
-  const float Bcoeff = Bcoef / r1;
-  const float Ecoeff = Ecoef / r1;
-  const float DX = DXo * a0_f, DY = DYo * a0_f, DZ = DZo * a0_f;
-  const float XLOW = XLOWo * a0_f, YLOW = YLOWo * a0_f, ZLOW = ZLOWo * a0_f;
-  const float XHIGH = XHIGHo * a0_f, YHIGH = YHIGHo * a0_f,
-              ZHIGH = ZHIGHo * a0_f;
-  /*const float XL = (XLOW + 1.5f * DX), YL = (YLOW + 1.5f * DY),
-              ZL = (ZLOW + 1.5f * DZ);
-  const float XH = (XHIGH - 1.5f * DX), YH = (YHIGH - 1.5f * DY),
-              ZH = (ZHIGH - 1.5f * DZ);
-              */
-  const float XL = (XLOW + 0.5f * DX), YL = (YLOW + 0.5f * DY),
-              ZL = (ZLOW + 0.5f * DZ);
-  const float XH = (XHIGH - 1.5f * DX), YH = (YHIGH - 1.5f * DY),
-              ZH = (ZHIGH - 1.5f * DZ);
-
-  const float8 ones = (float8)(1, 1, 1, 1, 1, 1, 1, 1);
-  for (int t = 0; t < ncalc; t++) {
-    float xy = x * y, xz = x * z, yz = y * z, xyz = x * yz;
-    uint idx =
-        ((uint)((z - ZLOW) / DZ) * NZ + (uint)((y - YLOW) / DY)) * NY +
-        (uint)((x - XLOW) / DX); // round down the cells - this is intentional
-    idx *= 3; // find out the index to which cell the particle is in.
-    pos = (float8)(1.f, x, y, z, xy, xz, yz, xyz);
-    // Is there no better way to do this? Why does float8 not have dot()?
-    if (prev_idx != idx) {
-      store0 = a1[idx]; // Ex
-      store1 = a1[idx + 1];
-      store2 = a1[idx + 2];
-      store3 = a2[idx]; // Bx
-      store4 = a2[idx + 1];
-      store5 = a2[idx + 2];
-      prev_idx = idx;
-    }
-    temp = store0 * pos;
-    // get interpolated Electric field at particle position
-    float xE = temp.s0 + temp.s1 + temp.s2 + temp.s3 + temp.s4 + temp.s5 +
-               temp.s6 + temp.s7;
-    temp = store1 * pos;
-    float yE = temp.s0 + temp.s1 + temp.s2 + temp.s3 + temp.s4 + temp.s5 +
-               temp.s6 + temp.s7;
-    temp = store2 * pos;
-    float zE = temp.s0 + temp.s1 + temp.s2 + temp.s3 + temp.s4 + temp.s5 +
-               temp.s6 + temp.s7;
-    // get interpolated Magnetic field at particle position
-    temp = store3 * pos;
-    float xP = temp.s0 + temp.s1 + temp.s2 + temp.s3 + temp.s4 + temp.s5 +
-               temp.s6 + temp.s7;
-    temp = store4 * pos;
-    float yP = temp.s0 + temp.s1 + temp.s2 + temp.s3 + temp.s4 + temp.s5 +
-               temp.s6 + temp.s7;
-    temp = store5 * pos;
-    float zP = temp.s0 + temp.s1 + temp.s2 + temp.s3 + temp.s4 + temp.s5 +
-               temp.s6 + temp.s7;
-
-    xP *= Bcoeff;
-    yP *= Bcoeff;
-    zP *= Bcoeff;
-    xE *= Ecoeff;
-    yE *= Ecoeff;
-    zE *= Ecoeff;
-
-    float xyP = xP * yP, yzP = yP * zP, xzP = xP * zP;
-    float xxP = xP * xP, yyP = yP * yP, zzP = zP * zP;
-    // float b_det = 1.f / (1.f + xxP + yyP + zzP);
-    float b_det = r2 / (r2 + xxP + yyP + zzP);
-
-    float vx = (x - xprev); // / dt -> cancels out in the end
-    float vy = (y - yprev);
-    float vz = (z - zprev);
-
-    xprev = x;
-    yprev = y;
-    zprev = z;
-
-    float vxxe = vx + xE, vyye = vy + yE, vzze = vz + zE;
-
-    x += fma(b_det,
-             fma(-vx, yyP + zzP,
-                 fma(vyye, zP + xyP, fma(vzze, xzP - yP, fma(xxP, xE, xE)))),
-             vx);
-    y += fma(b_det,
-             fma(vxxe, xyP - zP,
-                 fma(-vy, xxP + zzP, fma(vzze, xP + yzP, fma(yyP, yE, yE)))),
-             vy);
-    z += fma(b_det,
-             fma(vxxe, yP + xzP,
-                 fma(vyye, yzP - xP, fma(-vz, xxP + yyP, fma(zzP, zE, zE)))),
-             vz);
-  }
-
-  xprev = x > XL ? xprev : XL;
-  xprev = x < XH ? xprev : XH;
-  yprev = y > YL ? yprev : YL;
-  yprev = y < YH ? yprev : YH;
-  zprev = z > ZL ? zprev : ZL;
-  zprev = z < ZH ? zprev : ZH;
-  q[id] = (x > XL & x<XH & y> YL & y<YH & z> ZL & z < ZH) ? q[id] : 0;
-  x = x > XL ? x : XL;
-  x = x < XH ? x : XH;
-  y = y > YL ? y : YL;
-  y = y < YH ? y : YH;
-  z = z > ZL ? z : ZL;
-  z = z < ZH ? z : ZH;
-  /*
-  xprev = x > XL ? xprev : -xprev;
-  xprev = x < XH ? xprev : XH;
-  yprev = y > YL ? yprev : -yprev;
-  yprev = y < YH ? yprev : YH;
-  zprev = z > ZL ? zprev : -zprev;
-  zprev = z < ZH ? zprev : ZH;
-  q[id] = (x < XH & y < YH & z < ZH) ? q[id] : 0;
-  x = x > XL ? x : -x;
-  x = x < XH ? x : XH;
-  y = y > YL ? y : -y;
-  y = y < YH ? y : YH;
-  z = z > ZL ? z : -z;
-  z = z < ZH ? z : ZH;*/
-  x0[id] = xprev;
-  y0[id] = yprev;
-  z0[id] = zprev;
-  x1[id] = x;
-  y1[id] = y;
-  z1[id] = z;
-}
 void kernel tnp_k_implicitz(global const float8 *a1,
                             global const float8 *a2, // E, B coeff
                             global float *x0, global float *y0,
