@@ -76,10 +76,10 @@ int calcEBV(fields *fi, par *par)
     static cl_mem fft_complex_buffer = 0;
     static cl_mem fft_p_buffer = 0;
 
-    static cl_mem npt_buffer;
-    static cl_mem jc_buffer;
-    static cl_mem buff_E = par->buff_E;
-    static cl_mem buff_B = par->buff_B;
+    static cl_mem npt_buffer=fi->buff_npt;
+    static cl_mem jc_buffer=fi->buff_jc;
+    static cl_mem buff_E = fi->buff_E;
+    static cl_mem buff_B = fi->buff_B;
 
     static VkGPU vkGPU = {};
     // vkGPU.device_id = 0; // 0 = use iGPU for FFT
@@ -133,8 +133,8 @@ int calcEBV(fields *fi, par *par)
         r2_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_C, 0, &res);
         // Create memory buffers on the device for each vector
         // cl::Buffer npt_buffer (context_g, CL_MEM_READ_WRITE, sizeof(float) * n_cells);
-        npt_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, sizeof(float) * n_cells, 0, &res);
-        jc_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, sizeof(float) * n_cells * 3, 0, &res);
+        //npt_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, sizeof(float) * n_cells, 0, &res);
+        //jc_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, sizeof(float) * n_cells * 3, 0, &res);
         VkFFTConfiguration configuration = {};
         VkFFTApplication appfor_k = {};
 
@@ -328,7 +328,7 @@ int calcEBV(fields *fi, par *par)
         resFFT = transferDataToCPU(&vkGPU, precalc_r3, &r3_buffer, bufferSize_C6);
         clReleaseMemObject(r3_base_buffer);
         delete[] precalc_r3_base;
-        free(precalc_r3);
+        _aligned_free(precalc_r3);
 
 #ifdef Uon_
         resFFT = transferDataFromCPU(&vkGPU, precalc_r2_base, &r2_base_buffer, bufferSize_R);
@@ -338,7 +338,7 @@ int calcEBV(fields *fi, par *par)
         resFFT = transferDataToCPU(&vkGPU, precalc_r2, &r2_buffer, bufferSize_C);
         clReleaseMemObject(r2_base_buffer);
         delete[] precalc_r2_base;
-        free(precalc_r2);
+        _aligned_free(precalc_r2);
 #endif
 
         //      cout << "filter" << endl; // filter
@@ -400,7 +400,7 @@ int calcEBV(fields *fi, par *par)
             size_t i, j, k, jj;
             size_t global_work_size = n_cells8;
 
-            res = clEnqueueWriteBuffer(vkGPU.commandQueue, npt_buffer, CL_TRUE, 0, sizeof(float) * n_cells, fi->npt, 0, NULL, NULL);
+           // res = clEnqueueWriteBuffer(vkGPU.commandQueue, npt_buffer, CL_TRUE, 0, sizeof(float) * n_cells, fi->npt, 0, NULL, NULL);
             res = clEnqueueNDRangeKernel(vkGPU.commandQueue, copyData_kernel, 1, NULL, &n_cells8, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
             res = clFinish(vkGPU.commandQueue);
             //  only density arrn1 = fft(arrn) multiply fft charge with fft of kernel(i.e field associated with 1 charge)
@@ -495,7 +495,7 @@ int calcEBV(fields *fi, par *par)
 //                  cout << "E done\n";
 #ifdef Bon_
     {
-        res = clEnqueueWriteBuffer(vkGPU.commandQueue, jc_buffer, CL_TRUE, 0, sizeof(float) * n_cells * 3, fi->jc, 0, NULL, NULL);
+     //   res = clEnqueueWriteBuffer(vkGPU.commandQueue, jc_buffer, CL_TRUE, 0, sizeof(float) * n_cells * 3, fi->jc, 0, NULL, NULL);
         res = clEnqueueNDRangeKernel(vkGPU.commandQueue, copy3Data_kernel, 1, NULL, &n_cells8, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
         res = clFinish(vkGPU.commandQueue);
 

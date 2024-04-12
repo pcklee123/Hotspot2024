@@ -20,8 +20,8 @@ void tnp(fields *fi, particles *pt, par *par)
    // Assume buffers A, B, I, J (Ea, Ba, ci, cf) will always be the same. Then we save a bit of time.
    static cl::Buffer buff_E(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_ONLY, n_cellsf * 3, fastIO ? fi->Ea : NULL);
    static cl::Buffer buff_B(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_ONLY, n_cellsf * 3, fastIO ? fi->Ba : NULL);
-   par->buff_E = buff_E();
-   par->buff_B = buff_B();
+   fi->buff_E = buff_E();
+   fi->buff_B = buff_B();
    static cl::Buffer buff_Ea(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, sizeof(float) * nc, fastIO ? fi->Ea : NULL);
    static cl::Buffer buff_Ba(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, sizeof(float) * nc, fastIO ? fi->Ba : NULL);
    static cl::Buffer buff_np_e(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cellsf, fastIO ? fi->np[0] : NULL);
@@ -32,9 +32,10 @@ void tnp(fields *fi, particles *pt, par *par)
    static cl::Buffer buff_npi(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cellsi, fastIO ? fi->npi : NULL);
    static cl::Buffer buff_cji(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cellsi * 3, fastIO ? fi->cji : NULL);
 
-   // static cl::Buffer buff_np_centeri(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cellsi * 3, fastIO ? fi->np_centeri : NULL);
-   // static cl::Buffer buff_cj_centeri(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cellsi * 3 * 3, fastIO ? fi->cj_centeri : NULL);
-
+   static cl::Buffer buff_npt(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cellsi, fastIO ? fi->npt : NULL);
+   static cl::Buffer buff_jc(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cellsi * 3, fastIO ? fi->jc : NULL);
+   fi->buff_npt = buff_npt();
+   fi->buff_jc = buff_jc();
    static cl::Buffer buff_x0_e(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n4, fastIO ? pt->pos0x[0] : NULL); // x0
    static cl::Buffer buff_y0_e(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n4, fastIO ? pt->pos0y[0] : NULL); // y0
    static cl::Buffer buff_z0_e(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n4, fastIO ? pt->pos0z[0] : NULL); // z0
@@ -55,9 +56,9 @@ void tnp(fields *fi, particles *pt, par *par)
                                                                                                                                 // */
    // cout << "command q" << endl; //  create queue to which we will push commands for the device.
    static cl::CommandQueue queue(context_g, default_device_g);
-  // static auto *mapped_buff_x0_e = (float *)queue.enqueueMapBuffer(buff_x0_e, CL_TRUE, CL_MAP_WRITE, 0, sizeof(float) * n);
-  //    static auto *mapped_buff_x0_e = (float *)queue.enqueueMapBuffer(buff_x0_e, CL_TRUE, CL_MAP_WRITE, 0, sizeof(float) * n);
-    //     static auto *mapped_buff_x0_e = (float *)queue.enqueueMapBuffer(buff_x0_e, CL_TRUE, CL_MAP_WRITE, 0, sizeof(float) * n);
+   // static auto *mapped_buff_x0_e = (float *)queue.enqueueMapBuffer(buff_x0_e, CL_TRUE, CL_MAP_WRITE, 0, sizeof(float) * n);
+   //    static auto *mapped_buff_x0_e = (float *)queue.enqueueMapBuffer(buff_x0_e, CL_TRUE, CL_MAP_WRITE, 0, sizeof(float) * n);
+   //     static auto *mapped_buff_x0_e = (float *)queue.enqueueMapBuffer(buff_x0_e, CL_TRUE, CL_MAP_WRITE, 0, sizeof(float) * n);
 #if defined(sphere)
 #if defined(octant)
    cl::Kernel kernel_tnp = cl::Kernel(program_g, "tnp_k_implicito"); // select the kernel program to run
@@ -72,8 +73,9 @@ void tnp(fields *fi, particles *pt, par *par)
    cl::Kernel kernel_trilin = cl::Kernel(program_g, "trilin_k"); // select the kernel program to run
    cl::Kernel kernel_density = cl::Kernel(program_g, "density"); // select the kernel program to run
    cl::Kernel kernel_df = cl::Kernel(program_g, "df");           // select the kernel program to run
-                                                                 // ncalc_e = par->ncalcp[0];
-                                                                 // ncalc_i = par->ncalcp[1];
+   // ncalc_e = par->ncalcp[0];
+   // ncalc_i = par->ncalcp[1];
+   cl::Kernel kernel_dtotal = cl::Kernel(program_g, "dtotal");
 #ifdef BFon_
    // check minus sign
    par->Bcoef[0] = -(float)qs[0] * e_charge_mass / (float)mp[0] * par->dt[0] * 0.5f;
@@ -97,7 +99,7 @@ void tnp(fields *fi, particles *pt, par *par)
       if (temp == true)
       { // is mapping required? // Yes we might need to map because OpenCL does not guarantee that the data will be shared, alternatively use SVM
          info_file << "Using unified memory: " << temp << " ";
-      //   queue.enqueueUnmapMemObject(buff_x0_e, mapped_buff_x0_e);
+         //   queue.enqueueUnmapMemObject(buff_x0_e, mapped_buff_x0_e);
       }
       else
       {
@@ -178,11 +180,11 @@ void tnp(fields *fi, particles *pt, par *par)
       kernel_density.setArg(3, buff_x1_e);                 // x1
       kernel_density.setArg(4, buff_y1_e);                 // y1
       kernel_density.setArg(5, buff_z1_e);                 // z1
-      kernel_density.setArg(6, buff_npi);                  // np integer temp
-      kernel_density.setArg(7, buff_cji);                  // current
+      kernel_density.setArg(6, buff_npi);                  // np integer indices temp
+      kernel_density.setArg(7, buff_cji);                  // current integer indices temp
       kernel_density.setArg(8, buff_q_e);                  // q
       kernel_density.setArg(9, sizeof(float), &par->a0_f); // scale factor
-      //queue.finish();
+      // queue.finish();
 
       //      cout << "\nelectron tnp " << timer.elapsed() << "s, \n";
       // wait for the end of the tnp electron to finish before starting density electron
@@ -190,11 +192,12 @@ void tnp(fields *fi, particles *pt, par *par)
       //  timer.mark();
       queue.enqueueNDRangeKernel(kernel_density, cl::NullRange, cl::NDRange(n0), cl::NullRange);
       queue.finish();
-      
-      kernel_df.setArg(0, buff_np_e);                 // np
-      kernel_df.setArg(1, buff_npi);                  // npt
-      kernel_df.setArg(2, buff_currentj_e);           // current
-      kernel_df.setArg(3, buff_cji);                  // current
+
+      kernel_df.setArg(0, buff_np_e);       // np
+      kernel_df.setArg(1, buff_npi);        // indices
+      kernel_df.setArg(2, buff_currentj_e); // electron current
+      kernel_df.setArg(3, buff_cji);        // current indices
+
       kernel_df.setArg(4, sizeof(float), &par->a0_f); // scale factor
 
       queue.enqueueNDRangeKernel(kernel_df, cl::NullRange, cl::NDRange(n_cells), cl::NullRange);
@@ -232,8 +235,8 @@ void tnp(fields *fi, particles *pt, par *par)
       kernel_density.setArg(3, buff_x1_i);                 // x1
       kernel_density.setArg(4, buff_y1_i);                 // y1
       kernel_density.setArg(5, buff_z1_i);                 // z1
-      kernel_density.setArg(6, buff_npi);                  // np temp integer
-      kernel_density.setArg(7, buff_cji);                  // current
+      kernel_density.setArg(6, buff_npi);                  // np temp integer indices
+      kernel_density.setArg(7, buff_cji);                  // current indices
       kernel_density.setArg(8, buff_q_i);                  // q
       kernel_density.setArg(9, sizeof(float), &par->a0_f); // scale factor
 
@@ -242,9 +245,9 @@ void tnp(fields *fi, particles *pt, par *par)
       queue.enqueueNDRangeKernel(kernel_density, cl::NullRange, cl::NDRange(n0), cl::NullRange);
       queue.finish();
       kernel_df.setArg(0, buff_np_i);                 // np ion
-      kernel_df.setArg(1, buff_npi);                  // np ion temp integer
+      kernel_df.setArg(1, buff_npi);                  // np ion temp integer indices
       kernel_df.setArg(2, buff_currentj_i);           // current
-      kernel_df.setArg(3, buff_cji);                  // current
+      kernel_df.setArg(3, buff_cji);                  // current indices
       kernel_df.setArg(4, sizeof(float), &par->a0_f); // scale factor
       queue.enqueueNDRangeKernel(kernel_df, cl::NullRange, cl::NDRange(n_cells), cl::NullRange);
       queue.finish();
@@ -252,8 +255,8 @@ void tnp(fields *fi, particles *pt, par *par)
       // read result arrays from the device to main memory
       if (fastIO)
       { // is mapping required?
-     //    mapped_buff_x0_e = (float *)queue.enqueueMapBuffer(buff_x0_e, CL_TRUE, CL_MAP_READ, 0, sizeof(float) * n);
-      //   queue.enqueueUnmapMemObject(buff_x0_e, mapped_buff_x0_e);
+        //    mapped_buff_x0_e = (float *)queue.enqueueMapBuffer(buff_x0_e, CL_TRUE, CL_MAP_READ, 0, sizeof(float) * n);
+        //   queue.enqueueUnmapMemObject(buff_x0_e, mapped_buff_x0_e);
       }
       else
       {
@@ -267,13 +270,17 @@ void tnp(fields *fi, particles *pt, par *par)
          queue.enqueueReadBuffer(buff_currentj_i, CL_TRUE, 0, n_cellsf * 3, fi->currentj[1]);
       }
       //  cout << "\neions  " << timer.elapsed() << "s, \n";
-#pragma omp parallel for simd num_threads(nthreads)
-      for (unsigned int i = 0; i < n_cells; i++)
-         (reinterpret_cast<float *>(fi->npt))[i] = (reinterpret_cast<float *>(fi->np[0]))[i] + (reinterpret_cast<float *>(fi->np[1]))[i];
 
-#pragma omp parallel for simd num_threads(nthreads)
-      for (unsigned int i = 0; i < n_cells * 3; i++)
-         (reinterpret_cast<float *>(fi->jc))[i] = (reinterpret_cast<float *>(fi->currentj[0]))[i] / par->dt[0] + (reinterpret_cast<float *>(fi->currentj[1]))[i] / par->dt[1];
+      // sum total electron and ion densitiies and current densities for E B calculations
+      kernel_dtotal.setArg(0, buff_np_e);       // np ion
+      kernel_dtotal.setArg(1, buff_np_i);       // np ion
+      kernel_dtotal.setArg(2, buff_currentj_e); // current
+      kernel_dtotal.setArg(3, buff_currentj_i); // current
+      kernel_dtotal.setArg(4, buff_npt);        // total particles density
+      kernel_dtotal.setArg(5, buff_jc);         // total current density
+      queue.enqueueNDRangeKernel(kernel_dtotal, cl::NullRange, cl::NDRange(n_cells / 16), cl::NullRange);
+      queue.finish();
+
       // #pragma omp barrier
 
       // timer.mark();
@@ -283,8 +290,8 @@ void tnp(fields *fi, particles *pt, par *par)
       // cout << "\nEBV: " << timer.elapsed() << "s, \n";
       if (fastIO)
       { // is mapping required?
-    //     mapped_buff_x0_e = (float *)queue.enqueueMapBuffer(buff_x0_e, CL_TRUE, CL_MAP_READ, 0, sizeof(float) * n);
-    //     queue.enqueueUnmapMemObject(buff_x0_e, mapped_buff_x0_e);
+        //     mapped_buff_x0_e = (float *)queue.enqueueMapBuffer(buff_x0_e, CL_TRUE, CL_MAP_READ, 0, sizeof(float) * n);
+        //     queue.enqueueUnmapMemObject(buff_x0_e, mapped_buff_x0_e);
       }
       else
       {
@@ -292,11 +299,19 @@ void tnp(fields *fi, particles *pt, par *par)
          queue.enqueueWriteBuffer(buff_B, CL_TRUE, 0, n_cellsf * 3, fi->B);
       }
    }
+      /*
+      #pragma omp parallel for simd num_threads(nthreads)
+            for (unsigned int i = 0; i < n_cells; i++)
+               (reinterpret_cast<float *>(fi->npt))[i] = (reinterpret_cast<float *>(fi->np[0]))[i] + (reinterpret_cast<float *>(fi->np[1]))[i];
 
+      #pragma omp parallel for simd num_threads(nthreads)
+            for (unsigned int i = 0; i < n_cells * 3; i++)
+               (reinterpret_cast<float *>(fi->jc))[i] = (reinterpret_cast<float *>(fi->currentj[0]))[i] / par->dt[0] + (reinterpret_cast<float *>(fi->currentj[1]))[i] / par->dt[1];
+               */
    if (fastIO)
    { // is mapping required?
-  //    mapped_buff_x0_e = (float *)queue.enqueueMapBuffer(buff_x0_e, CL_TRUE, CL_MAP_READ, 0, sizeof(float) * n);
-  //    queue.enqueueUnmapMemObject(buff_x0_e, mapped_buff_x0_e);
+     //    mapped_buff_x0_e = (float *)queue.enqueueMapBuffer(buff_x0_e, CL_TRUE, CL_MAP_READ, 0, sizeof(float) * n);
+     //    queue.enqueueUnmapMemObject(buff_x0_e, mapped_buff_x0_e);
    }
    else
    {

@@ -1,6 +1,6 @@
 #define RamDisk // whether to use RamDisk if no ramdisk files will be in temp directory
 #define maxcells 32
-#define cldevice 1 // 0 usually means integrated GPU
+#define cldevice 0 // 0 usually means integrated GPU
 #define sphere     // do hot spot  problem
 #define octant     // do hot spot  problem 1/8 sphere
 // #define cylinder //do hot rod problem
@@ -33,8 +33,8 @@ constexpr float v0_r = 0;          // initial directed radial velocity outwards 
 
 // The maximum expected E and B fields. If fields go beyond this, the the time step, cell size etc will be wrong. Should adjust and recalculate.
 //  maximum expected magnetic field
-constexpr float Bmax0 = Bz0 + Btheta0+0.0001; // in T earth's magnetic field is of the order of ~ 1e-4 T DPF ~ 100T
-constexpr float Emax0 = Ez0 + 1;       // 1e11V/m is approximately interatomic E field -extremely large fields implies poor numerical stability
+constexpr float Bmax0 = Bz0 + Btheta0 + 0.0001; // in T earth's magnetic field is of the order of ~ 1e-4 T DPF ~ 100T
+constexpr float Emax0 = Ez0 + 1;                // 1e11V/m is approximately interatomic E field -extremely large fields implies poor numerical stability
 
 // technical parameters
 
@@ -144,8 +144,6 @@ struct par // useful parameters
     unsigned int cl_align = 4096;
     std::string outpath;
     float a0_f = 1.0; // factor to scale cell size
-    cl_mem buff_E = 0;
-    cl_mem buff_B = 0;
 };
 
 struct particles // particles
@@ -185,4 +183,8 @@ struct fields                                                      // particles
 #ifdef Uon_
     float *precalc_r2; // similar arrays for U, but kept separately in one ifdef
 #endif
+    cl_mem buff_E = 0;
+    cl_mem buff_B = 0;
+    cl_mem buff_npt = 0;
+    cl_mem buff_jc = 0;
 };

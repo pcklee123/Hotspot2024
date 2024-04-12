@@ -158,7 +158,8 @@ void kernel jcxPrecalc(global const float2 *r3, global float2 *ptr) {
   t3 = (ptr[i].s0 * r3[j1].s0 - ptr[i].s1 * r3[j1].s1,
         ptr[i].s0 * r3[j1].s1 + ptr[i].s1 * r3[j1].s0) -
        (ptr[j].s0 * r3[i1].s0 - ptr[j].s1 * r3[i1].s1,
-        ptr[j].s0 * r3[i1].s1 + ptr[j].s1 * r3[i1].s0); // ptr[i] * r3[j1] - ptr[j] * r3[i1];
+        ptr[j].s0 * r3[i1].s1 +
+            ptr[j].s1 * r3[i1].s0); // ptr[i] * r3[j1] - ptr[j] * r3[i1];
   ptr[i] = t1;
   ptr[j] = t2;
   ptr[k] = t3;
@@ -672,6 +673,17 @@ void kernel df(global float *np, global const int *npi, global float *currentj,
   currentj[idx02] = dz * cji[idx02];
 }
 
+void kernel dtotal(global const float16 *ne, global const float16 *ni,
+                          global const float16 *je, global const float16 *ji,
+                          global float16 *nt, global float16 *jt,
+                          const uint n) {
+  const uint 2n = n + n;
+  const int i = get_global_id(0); // Get index of current element processed
+  nt[i] = ne[i] + ni[i];          // Do the operation
+  jt[i] = je[i] + ji[i];
+  jt[n + i] = je[n + i] + ji[n + i];
+  jt[2n + i] = je[2n + i] + ji[2n + i];
+}
 void kernel trilin_k(
     global float8 *Ea, // E, B coeff Ea[k][j][i][3][8] according to tnp_k
     global const float *E_flat, // E or B 3 components per cell E[3][k][j][i]

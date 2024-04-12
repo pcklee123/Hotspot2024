@@ -40,6 +40,9 @@ void get_densityfields(fields *fi, particles *pt, par *par)
    static cl::Buffer buff_npi(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cellsi, fastIO ? fi->npi : NULL);
    static cl::Buffer buff_cji(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cellsi * 3, fastIO ? fi->cji : NULL);
 
+   static cl::Buffer buff_npt(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cellsi, fastIO ? fi->npt : NULL);
+   static cl::Buffer buff_jc(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cellsi * 3, fastIO ? fi->jc : NULL);
+
    //  cout << "buffers " << endl;
    static cl::Buffer buff_x0_e(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n4, fastIO ? pt->pos0x[0] : NULL); // x0
    static cl::Buffer buff_y0_e(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n4, fastIO ? pt->pos0y[0] : NULL); // y0
@@ -64,7 +67,8 @@ void get_densityfields(fields *fi, particles *pt, par *par)
    static cl::CommandQueue queue(context_g, default_device_g);
    cl::Kernel kernel_density = cl::Kernel(program_g, "density"); // select the kernel program to run
    cl::Kernel kernel_df = cl::Kernel(program_g, "df");           // select the kernel program to run
-   // write input arrays to the device
+                                                                 // write input arrays to the device
+   cl::Kernel kernel_dtotal = cl::Kernel(program_g, "dtotal");
    if (fastIO)
    { // is mapping required? // Yes we might need to map because OpenCL does not guarantee that the data will be shared, alternatively use SVM
      // auto * mapped_buff_x0_e = (float *)queue.enqueueMapBuffer(buff_x0_e, CL_TRUE, CL_MAP_WRITE, 0, sizeof(float) * n); queue.enqueueUnmapMemObject(buff_x0_e, mapped_buff_x0_e);
@@ -152,6 +156,15 @@ void get_densityfields(fields *fi, particles *pt, par *par)
    kernel_df.setArg(3, buff_cji);                  // current
    kernel_df.setArg(4, sizeof(float), &par->a0_f); // scale factor
    queue.enqueueNDRangeKernel(kernel_df, cl::NullRange, cl::NDRange(n_cells), cl::NullRange);
+   queue.finish();
+
+   kernel_dtotal.setArg(0, buff_np_e);       // np ion
+   kernel_dtotal.setArg(1, buff_np_i);       // np ion
+   kernel_dtotal.setArg(2, buff_currentj_e); // current
+   kernel_dtotal.setArg(3, buff_currentj_i); // current
+   kernel_dtotal.setArg(4, buff_npt);        // total particles density
+   kernel_dtotal.setArg(5, buff_jc);         // total current density
+   queue.enqueueNDRangeKernel(kernel_dtotal, cl::NullRange, cl::NDRange(n_cells / 16), cl::NullRange);
    queue.finish();
    // read result arrays from the device to main memory
    if (fastIO)
