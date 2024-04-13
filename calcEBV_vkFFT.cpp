@@ -106,10 +106,8 @@ int calcEBV(fields *fi, par *par)
     { // allocate and initialize to 0
         int dims[3] = {N0, N1, N2};
         auto precalc_r3_base = new float[2][3][N2][N1][N0];
-        // fi->precalc_r3 = (reinterpret_cast<float *>(precalc_r3));
 #ifdef Uon_ // similar arrays for U, but kept separately in one ifdef
         auto precalc_r2_base = new float[N2][N1][N0];
-        // fi->precalc_r2 = (reinterpret_cast<float *>(precalc_r2));
 #endif
 
         vkGPU.device = default_device_g();
@@ -134,9 +132,7 @@ int calcEBV(fields *fi, par *par)
         fi->r3_buffer = r3_buffer;
         fi->r2_buffer = r2_buffer;
         // Create memory buffers on the device for each vector
-        // cl::Buffer npt_buffer (context_g, CL_MEM_READ_WRITE, sizeof(float) * n_cells);
-        // npt_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, sizeof(float) * n_cells, 0, &res);
-        // jc_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, sizeof(float) * n_cells * 3, 0, &res);
+
         VkFFTConfiguration configuration = {};
         VkFFTApplication appfor_k = {};
 
@@ -328,20 +324,17 @@ int calcEBV(fields *fi, par *par)
         resFFT = VkFFTAppend(&appfor_k, -1, &launchParams); //   cout << "forward transform precalc_r3" << endl;
         res = clFinish(vkGPU.commandQueue);
         deleteVkFFT(&appfor_k);
-        // resFFT = transferDataToCPU(&vkGPU, precalc_r3, &r3_buffer, bufferSize_C6);
         clReleaseMemObject(r3_base_buffer);
         delete[] precalc_r3_base;
-        // _aligned_free(precalc_r3);
+
 
 #ifdef Uon_
         resFFT = transferDataFromCPU(&vkGPU, precalc_r2_base, &r2_base_buffer, bufferSize_R);
         resFFT = VkFFTAppend(&appfor_k2, -1, &launchParams);
         res = clFinish(vkGPU.commandQueue);
         deleteVkFFT(&appfor_k2);
-        // resFFT = transferDataToCPU(&vkGPU, precalc_r2, &r2_buffer, bufferSize_C);
         clReleaseMemObject(r2_base_buffer);
         delete[] precalc_r2_base;
-        //    _aligned_free(precalc_r2);
 #endif
 
         //      cout << "filter" << endl; // filter
@@ -396,7 +389,7 @@ int calcEBV(fields *fi, par *par)
         clSetKernelArg(jcxPrecalc_kernel, 1, sizeof(cl_mem), &fft_complex_buffer);
 
         first = 0; //
-        cout << "precalc done\n";
+      //  cout << "precalc done\n";
     }
 
 #ifdef Eon_

@@ -304,15 +304,7 @@ void tnp(fields *fi, particles *pt, par *par)
    }
    queue.enqueueReadBuffer(buff_npt, CL_TRUE, 0, n_cellsf, fi->npt);
    queue.enqueueReadBuffer(buff_jc, CL_TRUE, 0, n_cellsf * 3, fi->jc);
-   /*
-   #pragma omp parallel for simd num_threads(nthreads)
-         for (unsigned int i = 0; i < n_cells; i++)
-            (reinterpret_cast<float *>(fi->npt))[i] = (reinterpret_cast<float *>(fi->np[0]))[i] + (reinterpret_cast<float *>(fi->np[1]))[i];
 
-   #pragma omp parallel for simd num_threads(nthreads)
-         for (unsigned int i = 0; i < n_cells * 3; i++)
-            (reinterpret_cast<float *>(fi->jc))[i] = (reinterpret_cast<float *>(fi->currentj[0]))[i] / par->dt[0] + (reinterpret_cast<float *>(fi->currentj[1]))[i] / par->dt[1];
-            */
    if (fastIO)
    { // is mapping required?
      //    mapped_buff_x0_e = (float *)queue.enqueueMapBuffer(buff_x0_e, CL_TRUE, CL_MAP_READ, 0, sizeof(float) * n);
