@@ -72,9 +72,7 @@ void kernel vector_muls(global float *A, global const float *B) {
   A[i] = Bb * A[i];         // Do the operation
 }
 
-
-void kernel buffer_muls(global float *A,  const float Bb) {
-  //float Bb = B[0];
+void kernel buffer_muls(global float *A, const float Bb) {
   int i = get_global_id(0); // Get index of current element processed
   A[i] = Bb * A[i];         // Do the operation
 }
@@ -178,6 +176,64 @@ void kernel NxPrecalcr2(global const float2 *r2, global float2 *fft_complex) {
   float2 b = fft_complex[i], c = r2[i];
   fft_complex[i] =
       (float2)(b.s0 * c.s0 - b.s1 * c.s1, b.s0 * c.s1 + b.s1 * c.s0);
+}
+
+void kernel sumFftFieldo(global const float *fft_real, global const float *Fe,
+                         global float *F) {
+  const size_t N0 = NX * 2;
+  const size_t N1 = NY * 2;
+  const size_t N2 = NZ * 2;
+  const size_t NXNY = NX * NY;
+  const size_t NXNYNZ = NXNY * NZ;
+  const size_t N0N1 = N0 * N1;
+  const size_t N0N1N2 = N0N1 * N2;
+  const float s000[3] = {+1, +1, +1}; // c=0 is x,c=1 is y,c=2 is z
+  const float s001[3] = {-1, +1, +1};
+  const float s010[3] = {+1, -1, +1};
+  const float s011[3] = {-1, -1, +1};
+  const float s100[3] = {+1, +1, -1};
+  const float s101[3] = {-1, +1, -1};
+  const float s110[3] = {+1, -1, -1};
+  const float s111[3] = {-1, -1, -1};
+
+  // get global indices
+  size_t idx = get_global_id(0);
+  // Compute 3D index for dest array
+  size_t i = idx % NX;
+  size_t j = (idx / NX) % NY;
+  size_t k = (idx / NXNY) % NZ;
+
+  size_t cdx = 0, cdx8 = 0;
+
+  int idx000 = k * N0N1 + j * N0 + i; // idx_kji
+  int idx001 = k * N0N1 + j * N0;
+  int idx010 = k * N0N1 + i;
+  int idx011 = k * N0N1;
+  int idx100 = j * N0 + i;
+  int idx101 = j * N0;
+  int idx110 = i;
+  int idx111 = 0;
+
+  int odx000 = 0;                          // odx_kji
+  int odx001 = i == 0 ? 0 : N0 - i;        // iskip
+  int odx010 = j == 0 ? 0 : N0 * (N1 - j); // jskip
+  int odx011 = odx001 + odx010;
+  int odx100 = k == 0 ? 0 : N0 * N1 * (N2 - k); // kskip
+  int odx101 = odx100 + odx001;
+  int odx110 = odx100 + odx010;
+  int odx111 = odx100 + odx011;
+  for (int c = 0; c < 3; ++c, cdx += NXNYNZ, cdx8 += N0N1N2) {
+    F[cdx + idx] = Fe[cdx + idx];
+    F[cdx + idx] += s000[c] * fft_real[cdx8 + odx000 + idx000]; // main octant
+    // add minor effects from other octants
+    F[cdx + idx] += s001[c] * fft_real[cdx8 + odx001 + idx001];
+    F[cdx + idx] += s010[c] * fft_real[cdx8 + odx010 + idx010];
+    F[cdx + idx] += s011[c] * fft_real[cdx8 + odx011 + idx011];
+    F[cdx + idx] += s100[c] * fft_real[cdx8 + odx100 + idx100];
+    F[cdx + idx] += s101[c] * fft_real[cdx8 + odx101 + idx101];
+    F[cdx + idx] += s110[c] * fft_real[cdx8 + odx110 + idx110];
+    F[cdx + idx] += s111[c] * fft_real[cdx8 + odx111 + idx111];
+  }
 }
 
 void kernel tnp_k_implicit(global const float8 *a1,

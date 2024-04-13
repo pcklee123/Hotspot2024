@@ -40,7 +40,7 @@ int main()
     omp_set_nested(true);
     nthreads = omp_get_max_threads(); // omp_set_num_threads(nthreads);
     cl_set_build_options(par);
-    cl_start(par);
+    cl_start(fi, par);
 
     try
     {

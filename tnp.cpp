@@ -6,8 +6,8 @@ void tnp(fields *fi, particles *pt, par *par)
    unsigned int n4 = n0 * sizeof(float);   // number of particles * sizeof(float)
    unsigned int n8 = n * sizeof(float);    // number of particles * sizeof(float)
    unsigned int nc = n_cells * ncoeff * 3; // trilin constatnts have 8 coefficients 3 components
-   unsigned int n_cellsi = n_cells * sizeof(int);
-   unsigned int n_cellsf = n_cells * sizeof(float);
+   //unsigned int n_cellsi = n_cells * sizeof(int);
+   //unsigned int n_cellsf = n_cells * sizeof(float);
    static bool fastIO;
    static bool first = true;
    //  static int ncalc_e = 0, ncalc_i = 0;
@@ -18,8 +18,10 @@ void tnp(fields *fi, particles *pt, par *par)
    // Note that special alignment has been given to Ea, Ba, y0, z0, x0, x1, y1 in order to actually do this properly
 
    // Assume buffers A, B, I, J (Ea, Ba, ci, cf) will always be the same. Then we save a bit of time.
-   static cl::Buffer buff_E(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_ONLY, n_cellsf * 3, fastIO ? fi->Ea : NULL);
-   static cl::Buffer buff_B(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_ONLY, n_cellsf * 3, fastIO ? fi->Ba : NULL);
+   cl::Buffer buff_E = fi->buff_E;
+   cl::Buffer buff_B = fi->buff_B;
+   cl::Buffer buff_Ee = fi->buff_Ee;
+   cl::Buffer buff_Be = fi->buff_Be;
 
    static cl::Buffer buff_Ea(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, sizeof(float) * nc, fastIO ? fi->Ea : NULL);
    static cl::Buffer buff_Ba(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, sizeof(float) * nc, fastIO ? fi->Ba : NULL);
@@ -34,8 +36,6 @@ void tnp(fields *fi, particles *pt, par *par)
    // static cl::Buffer buff_npt(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cellsi, fastIO ? fi->npt : NULL);
    // static cl::Buffer buff_jc(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cellsi * 3, fastIO ? fi->jc : NULL);
 
-   fi->buff_E = buff_E;
-   fi->buff_B = buff_B;
    static cl::Buffer buff_npt = fi->buff_npt;
    static cl::Buffer buff_jc = fi->buff_jc;
    static cl::Buffer buff_x0_e(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n4, fastIO ? pt->pos0x[0] : NULL); // x0

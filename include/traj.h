@@ -107,7 +107,7 @@ void log_headers();
 // void save_vtp(string filename, int i, uint64_t num, int ncomponents, double t, const char *data, const char *points);
 // void save_vtp(string filename, int i, uint64_t num, double t, float data[n_output_part], float points[n_output_part][3],par * par);
 // void set_initial_pos_vel(int n_part_types, int n_particles, float *pos0, float *pos1, float *sigma, int *q, int *m, int *nt);
-void cl_start(par *par);
+void cl_start(fields *fi, par *par);
 void cl_set_build_options(par *par);
 
 void tnp(fields *fi, particles *pt, par *par);

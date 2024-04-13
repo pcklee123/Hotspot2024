@@ -78,8 +78,10 @@ constexpr int n_space_divz = n_space;
 constexpr int n_space_divx2 = n_space_divx * 2;
 constexpr int n_space_divy2 = n_space_divy * 2;
 constexpr int n_space_divz2 = n_space_divz * 2;
-constexpr int n_cells = n_space_divx * n_space_divy * n_space_divz;
+constexpr size_t n_cells = n_space_divx * n_space_divy * n_space_divz;
 constexpr size_t n_cells8 = n_cells * 8;
+constexpr size_t n_cellsf = n_cells * sizeof(float);
+constexpr size_t n_cellsi = n_cells * sizeof(int);
 constexpr size_t N0 = n_space_divx2, N1 = n_space_divy2, N2 = n_space_divz2,
                  N0N1 = N0 * N1, N0N1_2 = N0N1 / 2, N0N1N2 = N0 * N1 * N2,
                  N0_c = N0 / 2 + 1,
@@ -179,14 +181,16 @@ struct fields                                                      // particles
     int (*cj_centeri)[3][n_space_divz][n_space_divy][n_space_divx];
     float (*jc)[n_space_divz][n_space_divy][n_space_divx];
 
-       float *precalc_r3; //  pre-calculate 1/ r3 to make it faster to calculate electric and magnetic fields
+    float *precalc_r3; //  pre-calculate 1/ r3 to make it faster to calculate electric and magnetic fields
 #ifdef Uon_
-       float *precalc_r2; // similar arrays for U, but kept separately in one ifdef
+    float *precalc_r2; // similar arrays for U, but kept separately in one ifdef
 #endif
     cl_mem r3_buffer = 0;
     cl_mem r2_buffer = 0;
     cl::Buffer buff_E;
     cl::Buffer buff_B;
+    cl::Buffer buff_Ee;
+    cl::Buffer buff_Be;
 
     cl::Buffer buff_npt;
     cl::Buffer buff_jc;

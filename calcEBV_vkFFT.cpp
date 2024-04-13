@@ -55,6 +55,7 @@ int calcEBV(fields *fi, par *par)
     static cl_kernel NxPrecalc_kernel;
     static cl_kernel NxPrecalcr2_kernel;
     static cl_kernel jcxPrecalc_kernel;
+    static cl_kernel sumFftFieldo_kernel;
 
     static VkFFTApplication app1 = {};
     static VkFFTApplication app3 = {};
@@ -80,6 +81,8 @@ int calcEBV(fields *fi, par *par)
     static cl_mem jc_buffer = fi->buff_jc();
     static cl_mem buff_E = fi->buff_E();
     static cl_mem buff_B = fi->buff_B();
+    static cl_mem buff_Ee = fi->buff_Ee();
+    static cl_mem buff_Be = fi->buff_Be();
 
     static VkGPU vkGPU = {};
     // vkGPU.device_id = 0; // 0 = use iGPU for FFT
@@ -121,6 +124,7 @@ int calcEBV(fields *fi, par *par)
         NxPrecalc_kernel = clCreateKernel(program_g(), "NxPrecalc", NULL);
         NxPrecalcr2_kernel = clCreateKernel(program_g(), "NxPrecalcr2", NULL);
         jcxPrecalc_kernel = clCreateKernel(program_g(), "jcxPrecalc", NULL);
+        sumFftFieldo_kernel = clCreateKernel(program_g(), "sumFftFieldo", NULL);
 
         fft_real_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_R4, 0, &res);
         fft_complex_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_C4, 0, &res);
@@ -327,7 +331,6 @@ int calcEBV(fields *fi, par *par)
         clReleaseMemObject(r3_base_buffer);
         delete[] precalc_r3_base;
 
-
 #ifdef Uon_
         resFFT = transferDataFromCPU(&vkGPU, precalc_r2_base, &r2_base_buffer, bufferSize_R);
         resFFT = VkFFTAppend(&appfor_k2, -1, &launchParams);
@@ -389,7 +392,7 @@ int calcEBV(fields *fi, par *par)
         clSetKernelArg(jcxPrecalc_kernel, 1, sizeof(cl_mem), &fft_complex_buffer);
 
         first = 0; //
-      //  cout << "precalc done\n";
+                   //  cout << "precalc done\n";
     }
 
 #ifdef Eon_
@@ -427,11 +430,18 @@ int calcEBV(fields *fi, par *par)
             launchParams.inputBufferOffset = 0;
 #endif
 
+#ifdef octant
+            clSetKernelArg(sumFftFieldo_kernel, 0, sizeof(cl_mem), &fft_real_buffer);
+            clSetKernelArg(sumFftFieldo_kernel, 1, sizeof(cl_mem), &buff_Ee);
+            clSetKernelArg(sumFftFieldo_kernel, 2, sizeof(cl_mem), &buff_E);
+            res = clEnqueueNDRangeKernel(vkGPU.commandQueue, sumFftFieldo_kernel, 1, NULL, &n_cells, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
+            res = clFinish(vkGPU.commandQueue);
+#else
+#pragma omp parallel for simd num_threads(nthreads)
             for (int c = 0; c < 3; c++)
             { // 3 axis
                 const float *fft_real_c = fft_real[c + 1];
                 //               cout << "c " << c << ", thread " << omp_get_thread_num() << ", jj " << jj << endl;
-#pragma omp parallel for simd num_threads(nthreads)
                 for (k = 0; k < n_space_divz; ++k)
                 {
                     for (j = 0; j < n_space_divy; ++j)
@@ -439,42 +449,12 @@ int calcEBV(fields *fi, par *par)
 
                         for (i = 0; i < n_space_divx; ++i)
                         {
-#ifdef octant
-                            {
-                                int idx000 = k * N0N1 + j * N0 + i; // idx_kji
-                                int idx001 = k * N0N1 + j * N0;
-                                int idx010 = k * N0N1 + i;
-                                int idx011 = k * N0N1;
-                                int idx100 = j * N0 + i;
-                                int idx101 = j * N0;
-                                int idx110 = i;
-                                int idx111 = 0;
-
-                                int odx000 = 0;                          // odx_kji
-                                int odx001 = i == 0 ? 0 : N0 - i;        // iskip
-                                int odx010 = j == 0 ? 0 : N0 * (N1 - j); // jskip
-                                int odx011 = odx001 + odx010;
-                                int odx100 = k == 0 ? 0 : N0 * N1 * (N2 - k); // kskip
-                                int odx101 = odx100 + odx001;
-                                int odx110 = odx100 + odx010;
-                                int odx111 = odx100 + odx011;
-                                fi->E[c][k][j][i] = fi->Ee[c][k][j][i];
-                                fi->E[c][k][j][i] += s000[c] * fft_real_c[odx000 + idx000]; // main octant
-                                fi->E[c][k][j][i] += s001[c] * fft_real_c[odx001 + idx001]; // add minor effects from other octants
-                                fi->E[c][k][j][i] += s010[c] * fft_real_c[odx010 + idx010];
-                                fi->E[c][k][j][i] += s011[c] * fft_real_c[odx011 + idx011];
-                                fi->E[c][k][j][i] += s100[c] * fft_real_c[odx100 + idx100];
-                                fi->E[c][k][j][i] += s101[c] * fft_real_c[odx101 + idx101];
-                                fi->E[c][k][j][i] += s110[c] * fft_real_c[odx110 + idx110];
-                                fi->E[c][k][j][i] += s111[c] * fft_real_c[odx111 + idx111];
-                            }
-#else
                             fi->E[c][k][j][i] = fft_real_c[k * N0N1 + j * N0 + i] + fi->Ee[c][k][j][i];
-#endif
                         }
                     }
                 }
             }
+#endif
 #ifdef Uon_
             jj = 0;
 

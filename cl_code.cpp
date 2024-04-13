@@ -35,7 +35,7 @@ void cl_set_build_options(par *par)
     // add_build_option("NC", n_cells);
 }
 
-void cl_start(par *par)
+void cl_start(fields *fi, par *par)
 {
     int AA[1] = {-1};
 #pragma omp target
@@ -129,5 +129,19 @@ void cl_start(par *par)
     program_g = program;
     device_id_g = device_id;
 
-    
+    bool fastIO = false;
+    cl::Buffer buff_E(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_ONLY, n_cellsf * 3, fastIO ? fi->E : NULL);
+    cl::Buffer buff_B(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_ONLY, n_cellsf * 3, fastIO ? fi->B : NULL);
+    fi->buff_E = buff_E;
+    fi->buff_B = buff_B;
+
+    cl::Buffer buff_Ee(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_ONLY, n_cellsf * 3, fastIO ? fi->Ee : NULL);
+    cl::Buffer buff_Be(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_ONLY, n_cellsf * 3, fastIO ? fi->Be : NULL);
+    fi->buff_Ee = buff_Ee;
+    fi->buff_Be = buff_Be;
+
+    cl::Buffer buff_npt(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cellsi, fastIO ? fi->npt : NULL); // cannot be static?
+    cl::Buffer buff_jc(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cellsi * 3, fastIO ? fi->jc : NULL);
+    fi->buff_npt = buff_npt;
+    fi->buff_jc = buff_jc;
 }
