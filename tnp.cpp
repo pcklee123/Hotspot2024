@@ -114,6 +114,9 @@ void tnp(fields *fi, particles *pt, par *par)
       queue.enqueueWriteBuffer(buff_E, CL_TRUE, 0, n_cellsf * 3, fi->E);
       queue.enqueueWriteBuffer(buff_B, CL_TRUE, 0, n_cellsf * 3, fi->B);
 
+      queue.enqueueWriteBuffer(buff_Ee, CL_TRUE, 0, n_cellsf * 3, fi->Ee);
+      queue.enqueueWriteBuffer(buff_Be, CL_TRUE, 0, n_cellsf * 3, fi->Be);
+
       queue.enqueueWriteBuffer(buff_x0_e, CL_TRUE, 0, n4, pt->pos0x[0]);
       queue.enqueueWriteBuffer(buff_y0_e, CL_TRUE, 0, n4, pt->pos0y[0]);
       queue.enqueueWriteBuffer(buff_z0_e, CL_TRUE, 0, n4, pt->pos0z[0]);
@@ -290,21 +293,11 @@ void tnp(fields *fi, particles *pt, par *par)
       // timer.mark();
       // set externally applied fields this is inside time loop so we can set time varying E and B field
       // calcEeBe(Ee,Be,t); // find E field must work out every i,j,k depends on charge in every other cell
+      // queue.enqueueReadBuffer(buff_Ee, CL_TRUE, 0, n_cellsf * 3, fi->Ee);
+      // queue.enqueueReadBuffer(buff_Be, CL_TRUE, 0, n_cellsf * 3, fi->Be);
       cdt = calcEBV(fi, par);
       // cout << "\nEBV: " << timer.elapsed() << "s, \n";
-      if (fastIO)
-      { // is mapping required?
-        //     mapped_buff_x0_e = (float *)queue.enqueueMapBuffer(buff_x0_e, CL_TRUE, CL_MAP_READ, 0, sizeof(float) * n);
-        //     queue.enqueueUnmapMemObject(buff_x0_e, mapped_buff_x0_e);
-      }
-      else
-      {
-         queue.enqueueWriteBuffer(buff_E, CL_TRUE, 0, n_cellsf * 3, fi->E);
-         queue.enqueueWriteBuffer(buff_B, CL_TRUE, 0, n_cellsf * 3, fi->B);
-      }
    }
-   queue.enqueueReadBuffer(buff_npt, CL_TRUE, 0, n_cellsf, fi->npt);
-   queue.enqueueReadBuffer(buff_jc, CL_TRUE, 0, n_cellsf * 3, fi->jc);
 
    if (fastIO)
    { // is mapping required?
@@ -313,6 +306,11 @@ void tnp(fields *fi, particles *pt, par *par)
    }
    else
    {
+      queue.enqueueReadBuffer(buff_npt, CL_TRUE, 0, n_cellsf, fi->npt);
+      queue.enqueueReadBuffer(buff_jc, CL_TRUE, 0, n_cellsf * 3, fi->jc);
+      queue.enqueueReadBuffer(buff_E, CL_TRUE, 0, n_cellsf * 3, fi->E);
+      queue.enqueueReadBuffer(buff_B, CL_TRUE, 0, n_cellsf * 3, fi->B);
+
       queue.enqueueReadBuffer(buff_x0_e, CL_TRUE, 0, n4, pt->pos0x[0]);
       queue.enqueueReadBuffer(buff_y0_e, CL_TRUE, 0, n4, pt->pos0y[0]);
       queue.enqueueReadBuffer(buff_z0_e, CL_TRUE, 0, n4, pt->pos0z[0]);

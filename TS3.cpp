@@ -3,19 +3,13 @@ This contains the main loop for the program. Most of the initialization occurs h
 For settings (as to what to calculate, eg. E / B field, E / B force) go to the defines in include/traj.h
 */
 #include "include/traj.h"
-// sphere
-// 0,number of "super" electrons, electron +deuteriom ions, total
-unsigned int n_space_div[3] = {n_space_divx, n_space_divy, n_space_divz};
-unsigned int n_space_div2[3] = {n_space_divx2, n_space_divy2, n_space_divz2};
-par par1;
-par *par = &par1;
-float nt0prev;
-// particles particl1;
-// particles *pt = &particl1; //= alloc_particles( par);
-//  string outpath;
 ofstream info_file;
 int main()
 {
+    par par1;
+    par *par = &par1;
+    float nt0prev;
+
     timer.mark(); // Yes, 3 time marks. The first is for the overall program dt
     timer.mark(); // The second is for compute_d_time
     timer.mark(); // The third is for start up dt

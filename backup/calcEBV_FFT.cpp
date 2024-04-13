@@ -43,7 +43,6 @@ auto *precalc_r2 = reinterpret_cast<fftwf_complex (&)[N2_c][N1][N0]>(*fftwf_allo
 #endif
 
 int calcEBV(fields *fi, par *par)
-// float precalc_r3[3][n_space_divz2][n_space_divy2][n_space_divx2],  float Aconst, float Vconst,
 {
     static int first = 1;
     static fftwf_plan planforE, planforB, planbacE, planbacB;
@@ -64,10 +63,10 @@ int calcEBV(fields *fi, par *par)
 
         int dims[3] = {N0, N1, N2};
         auto precalc_r3_base = new float[2][3][N2][N1][N0];
-        fi->precalc_r3 = (reinterpret_cast<float *>(precalc_r3));
+    //    fi->precalc_r3 = (reinterpret_cast<float *>(precalc_r3));
 #ifdef Uon_ // similar arrays for U, but kept separately in one ifdef
         auto precalc_r2_base = new float[N2][N1][N0];
-        fi->precalc_r2 = (reinterpret_cast<float *>(precalc_r2));
+  //      fi->precalc_r2 = (reinterpret_cast<float *>(precalc_r2));
 #endif
         // Create fftw plans not thread safe
         fftwf_init_threads();
@@ -141,7 +140,7 @@ int calcEBV(fields *fi, par *par)
 #ifdef Uon_
 #pragma omp parallel for simd num_threads(nthreads)
         for (size_t i = 0; i < n_cells8; i++)
-            (reinterpret_cast<float *>(fi->precalc_r2))[i] *= Vconst; // vector_muls(reinterpret_cast<float *>(precalc_r2_base), Vconst, n_cells8);
+            (reinterpret_cast<float *>(precalc_r2_base))[i] *= Vconst; // vector_muls(reinterpret_cast<float *>(precalc_r2_base), Vconst, n_cells8);
         fftwf_execute(planfor_k2);
         fftwf_destroy_plan(planfor_k2);
 #endif
