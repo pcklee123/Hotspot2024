@@ -6,8 +6,8 @@ void tnp(fields *fi, particles *pt, par *par)
    unsigned int n4 = n0 * sizeof(float);   // number of particles * sizeof(float)
    unsigned int n8 = n * sizeof(float);    // number of particles * sizeof(float)
    unsigned int nc = n_cells * ncoeff * 3; // trilin constatnts have 8 coefficients 3 components
-   //unsigned int n_cellsi = n_cells * sizeof(int);
-   //unsigned int n_cellsf = n_cells * sizeof(float);
+   // unsigned int n_cellsi = n_cells * sizeof(int);
+   // unsigned int n_cellsf = n_cells * sizeof(float);
    static bool fastIO;
    static bool first = true;
    //  static int ncalc_e = 0, ncalc_i = 0;
@@ -23,6 +23,9 @@ void tnp(fields *fi, particles *pt, par *par)
    cl::Buffer buff_Ee = fi->buff_Ee;
    cl::Buffer buff_Be = fi->buff_Be;
 
+   static cl::Buffer buff_npt = fi->buff_npt;
+   static cl::Buffer buff_jc = fi->buff_jc;
+
    static cl::Buffer buff_Ea(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, sizeof(float) * nc, fastIO ? fi->Ea : NULL);
    static cl::Buffer buff_Ba(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, sizeof(float) * nc, fastIO ? fi->Ba : NULL);
    static cl::Buffer buff_np_e(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cellsf, fastIO ? fi->np[0] : NULL);
@@ -36,8 +39,6 @@ void tnp(fields *fi, particles *pt, par *par)
    // static cl::Buffer buff_npt(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cellsi, fastIO ? fi->npt : NULL);
    // static cl::Buffer buff_jc(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cellsi * 3, fastIO ? fi->jc : NULL);
 
-   static cl::Buffer buff_npt = fi->buff_npt;
-   static cl::Buffer buff_jc = fi->buff_jc;
    static cl::Buffer buff_x0_e(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n4, fastIO ? pt->pos0x[0] : NULL); // x0
    static cl::Buffer buff_y0_e(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n4, fastIO ? pt->pos0y[0] : NULL); // y0
    static cl::Buffer buff_z0_e(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n4, fastIO ? pt->pos0z[0] : NULL); // z0
