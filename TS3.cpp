@@ -56,7 +56,7 @@ int main()
     fi->buff_jc = &buff_jc;
 
     fi->E_buffer = fi->buff_E[0](); // buff_E();
-    cout << buff_E() << ", " << fi->buff_E[0]() << endl;
+    cout << fi->E_buffer << ", " << buff_E() << ", " << fi->buff_E[0]() << endl;
     fi->B_buffer = buff_B();
     fi->Ee_buffer = buff_Ee();
     fi->Be_buffer = buff_Be();
