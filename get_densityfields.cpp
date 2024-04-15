@@ -2,22 +2,16 @@
 void get_densityfields(fields *fi, particles *pt, par *par)
 {
    unsigned int n0 = n_partd; // number of particles ci[0];
-   // unsigned int n = n_partd * 2;              // both electron and ion
    unsigned int n4 = n_partd * sizeof(float); // number of particles * sizeof(float)
-   // unsigned int n8 = n * sizeof(float);       // number of particles * sizeof(float)
-   unsigned int nc = n_cells * ncoeff * 3; // trilin constatnts have 8 coefficients 3 components
-   unsigned int n_cellsi = n_cells * sizeof(int);
-   unsigned int n_cellsf = n_cells * sizeof(float);
+
    static bool fastIO;
    static bool first = true;
-   static int ncalc_e = 0, ncalc_i = 0;
+   //static int ncalc_e = 0, ncalc_i = 0;
 
-   // cout << "command q" << endl; //  create queue to which we will push commands for the device.
-   // cl::CommandQueue queue(context_g, default_device_g);
    cl::CommandQueue queue = commandQueue_g;
    cl::Kernel kernel_density = cl::Kernel(program_g, "density"); // select the kernel program to run
    cl::Kernel kernel_df = cl::Kernel(program_g, "df");           // select the kernel program to run
-                                                                 // write input arrays to the device
+                                                            
    cl::Kernel kernel_dtotal = cl::Kernel(program_g, "dtotal");
    if (first)
       if (fastIO)
@@ -25,7 +19,7 @@ void get_densityfields(fields *fi, particles *pt, par *par)
         // auto * mapped_pt->buff_x0_e = (float *)queue.enqueueMapBuffer(pt->buff_x0_e, CL_TRUE, CL_MAP_WRITE, 0, sizeof(float) * n); queue.enqueueUnmapMemObject(pt->buff_x0_e, mapped_pt->buff_x0_e[0]);
       }
       else
-      {
+      {     // write input arrays to the device
          queue.enqueueWriteBuffer(pt->buff_x0_e[0], CL_TRUE, 0, n4, pt->pos0x[0]);
          queue.enqueueWriteBuffer(pt->buff_y0_e[0], CL_TRUE, 0, n4, pt->pos0y[0]);
          queue.enqueueWriteBuffer(pt->buff_z0_e[0], CL_TRUE, 0, n4, pt->pos0z[0]);

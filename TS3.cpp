@@ -1,6 +1,6 @@
 /* TS3.cpp
 This contains the main loop for the program. Most of the initialization occurs here, and time steps are iterated through.
-For settings (as to what to calculate, eg. E / B field, E / B force) go to the defines in include/traj.h
+For settings (as to what to calculate, eg. E / B field, E / B force) go to the defines in include/trajphysics.h
 */
 #include "include/traj.h"
 ofstream info_file;
@@ -92,20 +92,19 @@ int main()
     // cout << "get_densityfields: ";
     timer.mark();
     cl_int res = 0;
-    get_densityfields(fi, pt, par);
+    get_densityfields(fi, pt, par); // density this is incorporated into tnp which also moves particles, but need to work out here to get good estimate of dt
     res = clEnqueueReadBuffer(commandQueue_g(), fi->buff_np_e[0](), CL_TRUE, 0, n_cellsf, fi->np[0], 0, NULL, NULL);
 
-    //   cout << "dt = " << par->dt[0] << ", " << par->dt[1] << endl;
-    //   float max_jc = maxvalf((reinterpret_cast<float *>(fi->jc)), n_cells * 3);
-    //  cout << "max current density  = " << max_jc << endl;
-    cout << timer.elapsed() << "s\n "; // density this is incorporated into tnp which also moves particles, but need to work out here to get good estimate of dt
-                                       // cout << "calcEBV: ";
+    // cout << "dt = " << par->dt[0] << ", " << par->dt[1] << endl;
+    // float max_jc = maxvalf((reinterpret_cast<float *>(fi->jc)), n_cells * 3);
+    // cout << "max current density  = " << max_jc << endl;
+    cout << timer.elapsed() << "s\n ";
+    // cout << "calcEBV: ";
     timer.mark();
     int cdt = calcEBV(fi, par); // electric and magnetic fields this is incorporated into tnp which also moves particles. Need here just to estimate dt
 
-    cl_command_queue commandQueue = clCreateCommandQueue(context_g(), default_device_g(), 0, &res);
-    res = clEnqueueReadBuffer(commandQueue, fi->E_buffer, CL_TRUE, 0, n_cellsf * 3, fi->E, 0, NULL, NULL);
-    res = clEnqueueReadBuffer(commandQueue, fi->B_buffer, CL_TRUE, 0, n_cellsf * 3, fi->B, 0, NULL, NULL);
+    res = clEnqueueReadBuffer(commandQueue_g(), fi->E_buffer, CL_TRUE, 0, n_cellsf * 3, fi->E, 0, NULL, NULL);
+    res = clEnqueueReadBuffer(commandQueue_g(), fi->B_buffer, CL_TRUE, 0, n_cellsf * 3, fi->B, 0, NULL, NULL);
     cout << timer.elapsed() << "s\n ";
     // int cdt=0;
     // changedt(pt, cdt, par); /* change time step if E or B too big*/
@@ -113,11 +112,11 @@ int main()
     float max_ne = maxvalf((reinterpret_cast<float *>(fi->np[0])), n_cells);
     float Density_e = max_ne * r_part_spart / powf(a0, 3);
     // float max_ni = maxvalf((reinterpret_cast<float *>(fi->np[1])), n_cells);
-    //     max_jc = maxvalf((reinterpret_cast<float *>(fi->jc)), n_cells * 3);
-    //    cout << "max current density  = " << max_jc << endl;
-    //  cout << "max density electron = " << max_ne << ", " << max_ne * r_part_spart / powf(a0, 3) << "m-3, ion = " << max_ni << ", " << max_ni * r_part_spart / powf(a0, 3) << endl;
-    //    cout << "Emax = " << par->Emax << ", " << "Bmax = " << par->Bmax << endl;
-    //  calculated plasma parameters
+    // max_jc = maxvalf((reinterpret_cast<float *>(fi->jc)), n_cells * 3);
+    // cout << "max current density  = " << max_jc << endl;
+    // cout << "max density electron = " << max_ne << ", " << max_ne * r_part_spart / powf(a0, 3) << "m-3, ion = " << max_ni << ", " << max_ni * r_part_spart / powf(a0, 3) << endl;
+    // cout << "Emax = " << par->Emax << ", " << "Bmax = " << par->Bmax << endl;
+    // calculated plasma parameters
     float Density_e1 = nback * r_part_spart / (powf(n_space * a0, 3));
 
     info_file << "initial density = " << Density_e << "/m^3,  background density = " << Density_e1 << "/m^3 \n";
@@ -158,7 +157,7 @@ int main()
     info(par); // printout initial info.csv file re do this with updated info
     save_files(i_time, t, fi, pt, par);
 
-    //    cout << "logentry" << endl;
+    // cout << "logentry" << endl;
     log_headers();                             // log file start with headers
     log_entry(0, 0, cdt, total_ncalc, t, par); // Write everything to log
     nt0prev = par->nt[0];
@@ -191,12 +190,12 @@ int main()
 
 #ifdef Uon_
         // cout << "calculate the total potential energy U\n";
-        //  timer.mark();// calculate the total potential energy U
+        // timer.mark();// calculate the total potential energy U
         calcU(fi, pt, par);
         // cout << "calculate the total potential energy U done\n";
-        //  cout << "U: " << timer.elapsed() << "s, ";
+        // cout << "U: " << timer.elapsed() << "s, ";
 #endif
-        //        cout << "logentry" << endl;
+        // cout << "logentry" << endl;
         log_entry(i_time, 0, cdt, total_ncalc, t, par); // cout<<"log entry done"<<endl;
         cout << "print data: " << timer.elapsed() << "s (no. of electron time steps calculated: " << total_ncalc[0] << ")\n";
     }
