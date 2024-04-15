@@ -1,7 +1,6 @@
 #ifndef TRAJ_H_INCLUDED
 #define TRAJ_H_INCLUDED
 
-
 #include <immintrin.h>
 #include <iostream>
 #include <fstream>
@@ -38,10 +37,10 @@
 #include <vtk/vtkImageData.h>
 #include <vtk/vtkPointData.h>
 #include <complex>
-// #include <infft.h>
+//#include <infft.h>
 
-// #include <nfft3.h>
-//  #include "nfft3mp.h"
+//#include <nfft3.h>
+//#include "nfft3mp.h"
 //#include <fftw3_threads.h>
 #include <fftw3.h>
 
@@ -101,23 +100,15 @@ static Log logger;
 extern ofstream info_file;
 void log_entry(int i_time, int ntime, int cdt, int total_ncalc[2], double t, par *par);
 void log_headers();
-// void save_vti_c2(string filename, int i, int ncomponents, double t,float data1[3][n_space_divz2][n_space_divy2][n_space_divz2], par *par);
-// void save_vti_c(string filename, int i, int ncomponents, double t, float data1[][n_space_divz][n_space_divy][n_space_divz], par *par);
-// void save_vti(string filename, int i, unsigned int n_space_div[3], float posl[3], float dd[3], uint64_t num, int ncomponents, double t, float data[n_space_divz][n_space_divy][n_space_divz], string typeofdata, int sizeofdata);
-// void save_pvd(string filename, int ndatapoints);
-// void save_vtp(string filename, int i, uint64_t num, int ncomponents, double t, const char *data, const char *points);
-// void save_vtp(string filename, int i, uint64_t num, double t, float data[n_output_part], float points[n_output_part][3],par * par);
-// void set_initial_pos_vel(int n_part_types, int n_particles, float *pos0, float *pos1, float *sigma, int *q, int *m, int *nt);
-//void cl_start(fields *fi, par *par);
+
 void cl_start(fields *fi, particles *pt ,par *par);
 void cl_set_build_options(par *par);
 
 void tnp(fields *fi, particles *pt, par *par);
-// void get_precalc_r3(float precalc_r3[3][n_space_divz2][n_space_divy2][n_space_divx2], float dd[3]);
+
 int calcEBV(fields *fi, par *par);
 
 void save_files(int i_time, double t, fields *fi, particles *pt, par *par);
-// void sel_part_print(particles *pt, float posp[2][n_output_part][3], float KE[2][n_output_part], par *par);
 
 void get_densityfields(fields *fi, particles *pt, par *par);
 void calc_trilin_constants(fields *fi, par *par);

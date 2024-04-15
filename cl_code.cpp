@@ -205,8 +205,8 @@ void cl_start(fields *fi, particles *pt, par *par)
     fi->buff_npi = &buff_npi;
     fi->buff_cji = &buff_cji;
 
-    fi->buff_q_e = &buff_q_e;
-    fi->buff_q_i = &buff_q_i;
+    pt->buff_q_e = &buff_q_e;
+    pt->buff_q_i = &buff_q_i;
 
     pt->buff_x0_e = &buff_x0_e;
     pt->buff_y0_e = &buff_y0_e;

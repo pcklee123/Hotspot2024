@@ -33,7 +33,7 @@ void get_densityfields(fields *fi, particles *pt, par *par)
          queue.enqueueWriteBuffer(pt->buff_y1_e[0], CL_TRUE, 0, n4, pt->pos1y[0]);
          queue.enqueueWriteBuffer(pt->buff_z1_e[0], CL_TRUE, 0, n4, pt->pos1z[0]);
 
-         queue.enqueueWriteBuffer(fi->buff_q_e[0], CL_TRUE, 0, n4, pt->q[0]);
+         queue.enqueueWriteBuffer(pt->buff_q_e[0], CL_TRUE, 0, n4, pt->q[0]);
          //  ions next
 
          queue.enqueueWriteBuffer(pt->buff_x0_i[0], CL_TRUE, 0, n4, pt->pos0x[1]);
@@ -43,7 +43,7 @@ void get_densityfields(fields *fi, particles *pt, par *par)
          queue.enqueueWriteBuffer(pt->buff_y1_i[0], CL_TRUE, 0, n4, pt->pos1y[1]);
          queue.enqueueWriteBuffer(pt->buff_z1_i[0], CL_TRUE, 0, n4, pt->pos1z[1]);
 
-         queue.enqueueWriteBuffer(fi->buff_q_i[0], CL_TRUE, 0, n4, pt->q[1]);
+         queue.enqueueWriteBuffer(pt->buff_q_i[0], CL_TRUE, 0, n4, pt->q[1]);
       }
 
    queue.enqueueFillBuffer(fi->buff_npi[0], 0, 0, n_cellsi);
@@ -60,7 +60,7 @@ void get_densityfields(fields *fi, particles *pt, par *par)
    kernel_density.setArg(5, pt->buff_z1_e[0]);          // z1
    kernel_density.setArg(6, fi->buff_npi[0]);           // npt
    kernel_density.setArg(7, fi->buff_cji[0]);           // current
-   kernel_density.setArg(8, fi->buff_q_e[0]);           // q
+   kernel_density.setArg(8, pt->buff_q_e[0]);           // q
    kernel_density.setArg(9, sizeof(float), &par->a0_f); // scale factor
                                                         // kernel_density.setArg(14, sizeof(int), n_cells);          // ncells
                                                         // cout << "run kernel for electron" << endl;
@@ -91,7 +91,7 @@ void get_densityfields(fields *fi, particles *pt, par *par)
    kernel_density.setArg(5, pt->buff_z1_i[0]);          // z1
    kernel_density.setArg(6, fi->buff_npi[0]);           // npt
    kernel_density.setArg(7, fi->buff_cji[0]);           // current
-   kernel_density.setArg(8, fi->buff_q_i[0]);           // q
+   kernel_density.setArg(8, pt->buff_q_i[0]);           // q
    kernel_density.setArg(9, sizeof(float), &par->a0_f); // scale factor
                                                         // kernel_density.setArg(14, sizeof(int), &n_cells);          // ncells
                                                         // cout << "run kernel for ions" << endl;
@@ -123,8 +123,8 @@ void get_densityfields(fields *fi, particles *pt, par *par)
       }
       else
       {
-         queue.enqueueReadBuffer(fi->buff_q_e[0], CL_TRUE, 0, n4, pt->q[0]);
-         queue.enqueueReadBuffer(fi->buff_q_i[0], CL_TRUE, 0, n4, pt->q[1]);
+         queue.enqueueReadBuffer(pt->buff_q_e[0], CL_TRUE, 0, n4, pt->q[0]);
+         queue.enqueueReadBuffer(pt->buff_q_i[0], CL_TRUE, 0, n4, pt->q[1]);
 
          queue.enqueueReadBuffer(fi->buff_np_e[0], CL_TRUE, 0, n_cellsf, fi->np[0]);
          queue.enqueueReadBuffer(fi->buff_np_i[0], CL_TRUE, 0, n_cellsf, fi->np[1]);
