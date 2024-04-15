@@ -12,36 +12,14 @@ void get_densityfields(fields *fi, particles *pt, par *par)
    static bool first = true;
    static int ncalc_e = 0, ncalc_i = 0;
    // cout << "check for unified memory " << endl;
-   if (first)
-   { // get whether or not we are on an iGPU/similar, and can use certain memmory optimizations
-      bool temp;
-      default_device_g.getInfo(CL_DEVICE_HOST_UNIFIED_MEMORY, &temp);
-      if (temp == true)
-         info_file << "Using unified memory: " << temp << " \n";
-      else
-         info_file << "No unified memory: " << temp << " \n";
-      fastIO = temp;
-      fastIO = false;
-   }
-
    //  create buffers on the device
    /** IMPORTANT: do not use CL_MEM_USE_HOST_PTR if on dGPU **/
    /** HOST_PTR is only used so that memory is not copied, but instead shared between CPU and iGPU in RAM**/
    // Note that special alignment has been given to Ea, Ba, y0, z0, x0, x1, y1 in order to actually do this properly
-
    // Assume buffers A, B, I, J (Ea, Ba, ci, cf) will always be the same. Then we save a bit of time.
 
-   static cl::Buffer buff_np_e(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cellsf, fastIO ? fi->np[0] : NULL);
-   static cl::Buffer buff_np_i(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cellsf, fastIO ? fi->np[1] : NULL);
-
-   static cl::Buffer buff_currentj_e(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cellsf * 3, fastIO ? fi->currentj[0] : NULL);
-   static cl::Buffer buff_currentj_i(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cellsf * 3, fastIO ? fi->currentj[1] : NULL);
-
-   static cl::Buffer buff_npi(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cellsi, fastIO ? fi->npi : NULL);
-   static cl::Buffer buff_cji(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cellsi * 3, fastIO ? fi->cji : NULL);
-
-   cl::Buffer buff_npt = fi->buff_npt[0];
-   cl::Buffer buff_jc = fi->buff_jc[0];
+  // cl::Buffer buff_npt = fi->buff_npt[0];
+  // cl::Buffer buff_jc = fi->buff_jc[0];
 
    //  cout << "buffers " << endl;
    static cl::Buffer buff_x0_e(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n4, fastIO ? pt->pos0x[0] : NULL); // x0
@@ -51,7 +29,7 @@ void get_densityfields(fields *fi, particles *pt, par *par)
    static cl::Buffer buff_y1_e(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n4, fastIO ? pt->pos1y[0] : NULL); // y1
    static cl::Buffer buff_z1_e(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n4, fastIO ? pt->pos1z[0] : NULL); // z1
                                                                                                                                      //  cout << "buffers " << endl;
-   static cl::Buffer buff_q_e(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n4, fastIO ? pt->q[0] : NULL);      // q
+
 
    static cl::Buffer buff_x0_i(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n4, fastIO ? pt->pos0x[1] : NULL); // x0
    static cl::Buffer buff_y0_i(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n4, fastIO ? pt->pos0y[1] : NULL); // y0
@@ -60,7 +38,7 @@ void get_densityfields(fields *fi, particles *pt, par *par)
    static cl::Buffer buff_y1_i(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n4, fastIO ? pt->pos1y[1] : NULL); // y1
    static cl::Buffer buff_z1_i(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n4, fastIO ? pt->pos1z[1] : NULL); // z1
 
-   static cl::Buffer buff_q_i(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n4, fastIO ? pt->q[1] : NULL); // q
+
 
    // cout << "command q" << endl; //  create queue to which we will push commands for the device.
 
@@ -82,7 +60,7 @@ void get_densityfields(fields *fi, particles *pt, par *par)
       queue.enqueueWriteBuffer(buff_y1_e, CL_TRUE, 0, n4, pt->pos1y[0]);
       queue.enqueueWriteBuffer(buff_z1_e, CL_TRUE, 0, n4, pt->pos1z[0]);
 
-      queue.enqueueWriteBuffer(buff_q_e, CL_TRUE, 0, n4, pt->q[0]);
+      queue.enqueueWriteBuffer(fi->buff_q_e[0], CL_TRUE, 0, n4, pt->q[0]);
 
       // queue.enqueueReadBuffer(buff_np_e, CL_TRUE, 0, n_cellsf, fi->np[0]);
       // queue.enqueueReadBuffer(buff_currentj_e, CL_TRUE, 0, n_cellsf * 3, fi->currentj[0]);
@@ -95,11 +73,11 @@ void get_densityfields(fields *fi, particles *pt, par *par)
       queue.enqueueWriteBuffer(buff_y1_i, CL_TRUE, 0, n4, pt->pos1y[1]);
       queue.enqueueWriteBuffer(buff_z1_i, CL_TRUE, 0, n4, pt->pos1z[1]);
 
-      queue.enqueueWriteBuffer(buff_q_i, CL_TRUE, 0, n4, pt->q[1]);
+      queue.enqueueWriteBuffer(fi->buff_q_i[0], CL_TRUE, 0, n4, pt->q[1]);
    }
 
-   queue.enqueueFillBuffer(buff_npi, 0, 0, n_cellsi);
-   queue.enqueueFillBuffer(buff_cji, 0, 0, n_cellsi * 3);
+   queue.enqueueFillBuffer(fi->buff_npi[0], 0, 0, n_cellsi);
+   queue.enqueueFillBuffer(fi->buff_cji[0], 0, 0, n_cellsi * 3);
 
    //  set arguments to be fed into the kernel program
    // cout << "kernel arguments for electron" << endl;
@@ -110,9 +88,9 @@ void get_densityfields(fields *fi, particles *pt, par *par)
    kernel_density.setArg(3, buff_x1_e);                 // x1
    kernel_density.setArg(4, buff_y1_e);                 // y1
    kernel_density.setArg(5, buff_z1_e);                 // z1
-   kernel_density.setArg(6, buff_npi);                  // npt
-   kernel_density.setArg(7, buff_cji);                  // current
-   kernel_density.setArg(8, buff_q_e);                  // q
+   kernel_density.setArg(6, fi->buff_npi[0]);                  // npt
+   kernel_density.setArg(7, fi->buff_cji[0]);                  // current
+   kernel_density.setArg(8, fi->buff_q_e[0]);                  // q
    kernel_density.setArg(9, sizeof(float), &par->a0_f); // scale factor
                                                         // kernel_density.setArg(14, sizeof(int), n_cells);          // ncells
                                                         // cout << "run kernel for electron" << endl;
@@ -122,18 +100,18 @@ void get_densityfields(fields *fi, particles *pt, par *par)
    // cout << "run kernel for electron done" << endl;
    queue.finish();
 
-   kernel_df.setArg(0, buff_np_e);                 // np ion
-   kernel_df.setArg(1, buff_npi);                  // np ion temp integer
-   kernel_df.setArg(2, buff_currentj_e);           // current
-   kernel_df.setArg(3, buff_cji);                  // current
+   kernel_df.setArg(0, fi->buff_np_e[0]);                 // np ion
+   kernel_df.setArg(1, fi->buff_npi[0]);                  // np ion temp integer
+   kernel_df.setArg(2, fi->buff_currentj_e[0]);           // current
+   kernel_df.setArg(3, fi->buff_cji[0]);                  // current
    kernel_df.setArg(4, sizeof(float), &par->a0_f); // scale factor
 
    queue.enqueueNDRangeKernel(kernel_df, cl::NullRange, cl::NDRange(n_cells), cl::NullRange);
    queue.finish();
    // cout << "read electron density" << endl;
 
-   queue.enqueueFillBuffer(buff_npi, 0, 0, n_cellsi);
-   queue.enqueueFillBuffer(buff_cji, 0, 0, n_cellsi * 3);
+   queue.enqueueFillBuffer(fi->buff_npi[0], 0, 0, n_cellsi);
+   queue.enqueueFillBuffer(fi->buff_cji[0], 0, 0, n_cellsi * 3);
    //  set arguments to be fed into the kernel program
    kernel_density.setArg(0, buff_x0_i);                 // x0
    kernel_density.setArg(1, buff_y0_i);                 // y0
@@ -141,29 +119,29 @@ void get_densityfields(fields *fi, particles *pt, par *par)
    kernel_density.setArg(3, buff_x1_i);                 // x1
    kernel_density.setArg(4, buff_y1_i);                 // y1
    kernel_density.setArg(5, buff_z1_i);                 // z1
-   kernel_density.setArg(6, buff_npi);                  // npt
-   kernel_density.setArg(7, buff_cji);                  // current
-   kernel_density.setArg(8, buff_q_i);                  // q
+   kernel_density.setArg(6, fi->buff_npi[0]);                  // npt
+   kernel_density.setArg(7, fi->buff_cji[0]);                  // current
+   kernel_density.setArg(8, fi->buff_q_i[0]);                  // q
    kernel_density.setArg(9, sizeof(float), &par->a0_f); // scale factor
                                                         // kernel_density.setArg(14, sizeof(int), &n_cells);          // ncells
                                                         // cout << "run kernel for ions" << endl;
    //  run the kernel
    queue.enqueueNDRangeKernel(kernel_density, cl::NullRange, cl::NDRange(n0), cl::NullRange);
    queue.finish();                                 // wait for the end of the kernel program
-   kernel_df.setArg(0, buff_np_i);                 // np ion
-   kernel_df.setArg(1, buff_npi);                  // np ion temp integer
-   kernel_df.setArg(2, buff_currentj_i);           // current
-   kernel_df.setArg(3, buff_cji);                  // current
+   kernel_df.setArg(0, fi->buff_np_i[0]);                 // np ion
+   kernel_df.setArg(1, fi->buff_npi[0]);                  // np ion temp integer
+   kernel_df.setArg(2, fi->buff_currentj_i[0]);           // current
+   kernel_df.setArg(3, fi->buff_cji[0]);                  // current
    kernel_df.setArg(4, sizeof(float), &par->a0_f); // scale factor
    queue.enqueueNDRangeKernel(kernel_df, cl::NullRange, cl::NDRange(n_cells), cl::NullRange);
    queue.finish();
 
-   kernel_dtotal.setArg(0, buff_np_e);       // np ion
-   kernel_dtotal.setArg(1, buff_np_i);       // np ion
-   kernel_dtotal.setArg(2, buff_currentj_e); // current
-   kernel_dtotal.setArg(3, buff_currentj_i); // current
-   kernel_dtotal.setArg(4, buff_npt);        // total particles density
-   kernel_dtotal.setArg(5, buff_jc);         // total current density
+   kernel_dtotal.setArg(0, fi->buff_np_e[0]);       // np ion
+   kernel_dtotal.setArg(1, fi->buff_np_i[0]);       // np ion
+   kernel_dtotal.setArg(2, fi->buff_currentj_e[0]); // current
+   kernel_dtotal.setArg(3, fi->buff_currentj_i[0]); // current
+   kernel_dtotal.setArg(4, fi->buff_npt[0]);        // total particles density
+   kernel_dtotal.setArg(5, fi->buff_jc[0]);         // total current density
    kernel_dtotal.setArg(6, sizeof(size_t), &n_cells);
    queue.enqueueNDRangeKernel(kernel_dtotal, cl::NullRange, cl::NDRange(n_cells / 16), cl::NullRange);
    queue.finish();
@@ -174,17 +152,17 @@ void get_densityfields(fields *fi, particles *pt, par *par)
    }
    else
    {
-      queue.enqueueReadBuffer(buff_q_e, CL_TRUE, 0, n4, pt->q[0]);
-      queue.enqueueReadBuffer(buff_q_i, CL_TRUE, 0, n4, pt->q[1]);
+      queue.enqueueReadBuffer(fi->buff_q_e[0], CL_TRUE, 0, n4, pt->q[0]);
+      queue.enqueueReadBuffer(fi->buff_q_i[0], CL_TRUE, 0, n4, pt->q[1]);
 
-      queue.enqueueReadBuffer(buff_np_e, CL_TRUE, 0, n_cellsf, fi->np[0]);
-      queue.enqueueReadBuffer(buff_np_i, CL_TRUE, 0, n_cellsf, fi->np[1]);
+      queue.enqueueReadBuffer(fi->buff_np_e[0], CL_TRUE, 0, n_cellsf, fi->np[0]);
+      queue.enqueueReadBuffer(fi->buff_np_i[0], CL_TRUE, 0, n_cellsf, fi->np[1]);
 
-      queue.enqueueReadBuffer(buff_currentj_e, CL_TRUE, 0, n_cellsf * 3, fi->currentj[0]);
-      queue.enqueueReadBuffer(buff_currentj_i, CL_TRUE, 0, n_cellsf * 3, fi->currentj[1]);
+      queue.enqueueReadBuffer(fi->buff_currentj_e[0], CL_TRUE, 0, n_cellsf * 3, fi->currentj[0]);
+      queue.enqueueReadBuffer(fi->buff_currentj_i[0], CL_TRUE, 0, n_cellsf * 3, fi->currentj[1]);
 
-      queue.enqueueReadBuffer(buff_npt, CL_TRUE, 0, n_cellsf, fi->npt);
-      queue.enqueueReadBuffer(buff_jc, CL_TRUE, 0, n_cellsf * 3, fi->jc);
+      queue.enqueueReadBuffer(fi->buff_npt[0], CL_TRUE, 0, n_cellsf, fi->npt);
+      queue.enqueueReadBuffer(fi->buff_jc[0], CL_TRUE, 0, n_cellsf * 3, fi->jc);
    }
 
    first = false;

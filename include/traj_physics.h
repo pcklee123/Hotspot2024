@@ -195,7 +195,7 @@ struct fields                                                      // particles
     cl_mem B_buffer = 0;
     cl_mem Ee_buffer = 0;
     cl_mem Be_buffer = 0;
-    cl_mem npt_buffer =0;
+    cl_mem npt_buffer = 0;
     cl_mem jc_buffer = 0;
     cl::Buffer *buff_E;
     cl::Buffer *buff_B;
@@ -204,4 +204,15 @@ struct fields                                                      // particles
 
     cl::Buffer *buff_npt;
     cl::Buffer *buff_jc;
+
+    cl::Buffer *buff_q_e;
+    cl::Buffer *buff_q_i;
+
+    cl::Buffer *buff_np_e;
+    cl::Buffer *buff_np_i;
+    cl::Buffer *buff_currentj_e;
+    cl::Buffer *buff_currentj_i;
+
+    cl::Buffer *buff_npi;
+    cl::Buffer *buff_cji;
 };

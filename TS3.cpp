@@ -36,8 +36,6 @@ int main()
     cl_set_build_options(par);
     cl_start(fi, par);
 
-    
-
     try
     {
         if (!std::filesystem::create_directory(outpath1))
@@ -93,8 +91,10 @@ int main()
     int i_time = 0;
     // cout << "get_densityfields: ";
     timer.mark();
-
+    cl_int res = 0;
     get_densityfields(fi, pt, par);
+    res = clEnqueueReadBuffer(commandQueue_g(), fi->buff_np_e[0](), CL_TRUE, 0, n_cellsf, fi->np[0], 0, NULL, NULL);
+
     //   cout << "dt = " << par->dt[0] << ", " << par->dt[1] << endl;
     //   float max_jc = maxvalf((reinterpret_cast<float *>(fi->jc)), n_cells * 3);
     //  cout << "max current density  = " << max_jc << endl;
@@ -102,7 +102,7 @@ int main()
                                        // cout << "calcEBV: ";
     timer.mark();
     int cdt = calcEBV(fi, par); // electric and magnetic fields this is incorporated into tnp which also moves particles. Need here just to estimate dt
-    cl_int res = 0;
+
     cl_command_queue commandQueue = clCreateCommandQueue(context_g(), default_device_g(), 0, &res);
     res = clEnqueueReadBuffer(commandQueue, fi->E_buffer, CL_TRUE, 0, n_cellsf * 3, fi->E, 0, NULL, NULL);
     res = clEnqueueReadBuffer(commandQueue, fi->B_buffer, CL_TRUE, 0, n_cellsf * 3, fi->B, 0, NULL, NULL);
@@ -112,12 +112,12 @@ int main()
 
     float max_ne = maxvalf((reinterpret_cast<float *>(fi->np[0])), n_cells);
     float Density_e = max_ne * r_part_spart / powf(a0, 3);
-    float max_ni = maxvalf((reinterpret_cast<float *>(fi->np[1])), n_cells);
-    //    max_jc = maxvalf((reinterpret_cast<float *>(fi->jc)), n_cells * 3);
-    //   cout << "max current density  = " << max_jc << endl;
-    // cout << "max density electron = " << max_ne << ", " << max_ne * r_part_spart / powf(a0, 3) << "m-3, ion = " << max_ni << ", " << max_ni * r_part_spart / powf(a0, 3) << endl;
-    //   cout << "Emax = " << par->Emax << ", " << "Bmax = " << par->Bmax << endl;
-    // calculated plasma parameters
+    // float max_ni = maxvalf((reinterpret_cast<float *>(fi->np[1])), n_cells);
+    //     max_jc = maxvalf((reinterpret_cast<float *>(fi->jc)), n_cells * 3);
+    //    cout << "max current density  = " << max_jc << endl;
+    //  cout << "max density electron = " << max_ne << ", " << max_ne * r_part_spart / powf(a0, 3) << "m-3, ion = " << max_ni << ", " << max_ni * r_part_spart / powf(a0, 3) << endl;
+    //    cout << "Emax = " << par->Emax << ", " << "Bmax = " << par->Bmax << endl;
+    //  calculated plasma parameters
     float Density_e1 = nback * r_part_spart / (powf(n_space * a0, 3));
 
     info_file << "initial density = " << Density_e << "/m^3,  background density = " << Density_e1 << "/m^3 \n";
