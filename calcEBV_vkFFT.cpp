@@ -402,12 +402,12 @@ int calcEBV(fields *fi, par *par)
         clSetKernelArg(jcxPrecalc_kernel, 1, sizeof(cl_mem), &fft_complex_buffer);
 
         first = 0; //
-//cout << "precalc done\n";
+                   // cout << "precalc done\n";
     }
 
 #ifdef Eon_
     // #pragma omp parallel sections
-    //size_t i, j, k, jj;
+    // size_t i, j, k, jj;
 
     // res = clEnqueueWriteBuffer(vkGPU.commandQueue, npt_buffer, CL_TRUE, 0, sizeof(float) * n_cells, fi->npt, 0, NULL, NULL);
     res = clEnqueueNDRangeKernel(vkGPU.commandQueue, copyData_kernel, 1, NULL, &n_cells8, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
@@ -435,7 +435,7 @@ int calcEBV(fields *fi, par *par)
 #else
     // cout << "inverse transform to get convolution" << endl;
     launchParams.inputBufferOffset = n_cells4 * sizeof(complex<flost>);
-    resFFT = VkFFTAppend(&appbac3, 1, &launchParams); // 1 = inverse FFT//if (resFFT)                cout << "execute plan bac E resFFT = " << resFFT << endl;
+    resFFT = VkFFTAppend(&appbac3, 1, &launchParams); // 1 = inverse FFT//if (resFFT) //cout << "execute plan bac E resFFT = " << resFFT << endl;
     res = clFinish(vkGPU.commandQueue);               // cout << "execute plan bac E ,clFinish res = " << res << endl;
     resFFT = transferDataToCPU(&vkGPU, fft_real[0], &fft_real_buffer, bufferSize_R3);
     launchParams.inputBufferOffset = 0;
@@ -460,10 +460,10 @@ int calcEBV(fields *fi, par *par)
     res = clEnqueueNDRangeKernel(vkGPU.commandQueue, copyextField_kernel, 1, NULL, &n_cells * 3, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
     res = clFinish(vkGPU.commandQueue);
 #endif
-//cout << "E done\n";
+// cout << "E done\n";
 #ifdef Bon_
 
-    //res = clEnqueueWriteBuffer(vkGPU.commandQueue, jc_buffer, CL_TRUE, 0, sizeof(float) * n_cells * 3, fi->jc, 0, NULL, NULL);
+    // res = clEnqueueWriteBuffer(vkGPU.commandQueue, jc_buffer, CL_TRUE, 0, sizeof(float) * n_cells * 3, fi->jc, 0, NULL, NULL);
     res = clEnqueueNDRangeKernel(vkGPU.commandQueue, copy3Data_kernel, 1, NULL, &n_cells8, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
     res = clFinish(vkGPU.commandQueue);
 
@@ -498,7 +498,7 @@ int calcEBV(fields *fi, par *par)
 
 #endif
 
-//cout << "B done\n";
+// cout << "B done\n";
 #ifdef Uon_
 #ifdef Eon_ // if both Uon and Eon are defined
     {
