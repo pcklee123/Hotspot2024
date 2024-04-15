@@ -152,19 +152,19 @@ void kernel jcxPrecalc(global const float2 *r3, global float2 *ptr) {
   const size_t n = 4 * NZ * NY * (NX + 1);
   size_t i = get_global_id(0), j = i + n, k = j + n, i1 = k + n, j1 = i1 + n,
          k1 = j1 + n;
-  t1 = (ptr[j].s0 * r3[k1].s0 - ptr[j].s1 * r3[k1].s1,
-        ptr[j].s0 * r3[k1].s1 + ptr[j].s1 * r3[k1].s0) -
-       (ptr[k].s0 * r3[j1].s0 - ptr[k].s1 * r3[j1].s1,
-        ptr[k].s0 * r3[j1].s1 + ptr[k].s1 * r3[j1].s0);
-  t2 = (ptr[k].s0 * r3[i1].s0 - ptr[i].s1 * r3[k1].s1,
-        ptr[k].s0 * r3[i1].s1 + ptr[i].s1 * r3[k1].s0) -
-       (ptr[i].s0 * r3[k1].s0 - ptr[k].s1 * r3[i1].s1,
-        ptr[i].s0 * r3[k1].s1 + ptr[k].s1 * r3[i1].s0);
-  t3 = (ptr[i].s0 * r3[j1].s0 - ptr[i].s1 * r3[j1].s1,
-        ptr[i].s0 * r3[j1].s1 + ptr[i].s1 * r3[j1].s0) -
-       (ptr[j].s0 * r3[i1].s0 - ptr[j].s1 * r3[i1].s1,
-        ptr[j].s0 * r3[i1].s1 +
-            ptr[j].s1 * r3[i1].s0); // ptr[i] * r3[j1] - ptr[j] * r3[i1];
+  t1 = (float2)(ptr[j].s0 * r3[k1].s0 - ptr[j].s1 * r3[k1].s1,
+                ptr[j].s0 * r3[k1].s1 + ptr[j].s1 * r3[k1].s0) -
+       (float2)(ptr[k].s0 * r3[j1].s0 - ptr[k].s1 * r3[j1].s1,
+                ptr[k].s0 * r3[j1].s1 + ptr[k].s1 * r3[j1].s0);
+  t2 = (float2)(ptr[k].s0 * r3[i1].s0 - ptr[i].s1 * r3[k1].s1,
+                ptr[k].s0 * r3[i1].s1 + ptr[i].s1 * r3[k1].s0) -
+       (float2)(ptr[i].s0 * r3[k1].s0 - ptr[k].s1 * r3[i1].s1,
+                ptr[i].s0 * r3[k1].s1 + ptr[k].s1 * r3[i1].s0);
+  t3 = (float2)(ptr[i].s0 * r3[j1].s0 - ptr[i].s1 * r3[j1].s1,
+                ptr[i].s0 * r3[j1].s1 + ptr[i].s1 * r3[j1].s0) -
+       (float2)(ptr[j].s0 * r3[i1].s0 - ptr[j].s1 * r3[i1].s1,
+                ptr[j].s0 * r3[i1].s1 + ptr[j].s1 * r3[i1].s0);
+  // ptr[i] * r3[j1] - ptr[j] * r3[i1];
   ptr[i] = t1;
   ptr[j] = t2;
   ptr[k] = t3;
