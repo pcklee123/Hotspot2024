@@ -100,6 +100,7 @@ int main()
                                        // cout << "calcEBV: ";
     timer.mark();
     int cdt = calcEBV(fi, par); // electric and magnetic fields this is incorporated into tnp which also moves particles. Need here just to estimate dt
+    
     cout << timer.elapsed() << "s\n ";
     // int cdt=0;
     // changedt(pt, cdt, par); /* change time step if E or B too big*/

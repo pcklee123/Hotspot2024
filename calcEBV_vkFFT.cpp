@@ -66,14 +66,7 @@ int calcEBV(fields *fi, par *par)
     static VkFFTApplication appbac4 = {};
     static VkFFTApplication appfor_k = {};
     static VkFFTApplication appfor_k2 = {};
-    float s000[3] = {+1, +1, +1}; // c=0 is x,c=1 is y,c=2 is z
-    float s001[3] = {-1, +1, +1};
-    float s010[3] = {+1, -1, +1};
-    float s011[3] = {-1, -1, +1};
-    float s100[3] = {+1, +1, -1};
-    float s101[3] = {-1, +1, -1};
-    float s110[3] = {+1, -1, -1};
-    float s111[3] = {-1, -1, -1};
+
     static cl_mem r3_buffer = 0;
     static cl_mem r2_buffer = 0;
     static cl_mem fft_real_buffer = 0;
@@ -433,10 +426,12 @@ int calcEBV(fields *fi, par *par)
     resFFT = VkFFTAppend(&appbac4, 1, &launchParams); // 1 = inverse FFT//if (resFFT)                cout << "execute plan bac E resFFT = " << resFFT << endl;
     res = clFinish(vkGPU.commandQueue);               // cout << "execute plan bac E ,clFinish res = " << res << endl;
                                                       // resFFT = transferDataToCPU(&vkGPU, fft_real[0], &fft_real_buffer, bufferSize_R4);
-    clSetKernelArg(sumFftSField_kernel, 0, sizeof(cl_mem), &fft_real_buffer1);
+    clSetKernelArg(sumFftSField_kernel, 0, sizeof(cl_mem), &fft_real_buffer);
     clSetKernelArg(sumFftSField_kernel, 1, sizeof(cl_mem), &V_buffer);
     res = clEnqueueNDRangeKernel(vkGPU.commandQueue, sumFftSField_kernel, 1, NULL, &n_cells, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
     res = clFinish(vkGPU.commandQueue);
+
+    res = clEnqueueReadBuffer(vkGPU.commandQueue, V_buffer, CL_TRUE, 0, sizeof(float) * n_cells, fi->V, 0, NULL, NULL);
 #else
     // cout << "inverse transform to get convolution" << endl;
     launchParams.inputBufferOffset = n_cells4 * sizeof(complex<flost>);
@@ -506,7 +501,6 @@ int calcEBV(fields *fi, par *par)
 //                     cout << "B done\n";
 #ifdef Uon_
 #ifdef Eon_ // if both Uon and Eon are defined
-/*
     {
         // Perform estimate of electric potential energy
         size_t i, j, k, jj = 0;
@@ -520,7 +514,6 @@ int calcEBV(fields *fi, par *par)
         EUtot *= 0.5f; // * e_charge / ev_to_j; <- this is just 1
         cout << "Eele (estimate): " << EUtot << ", ";
     }
-    */
 #endif
 #endif
 

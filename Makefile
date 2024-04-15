@@ -13,7 +13,8 @@ CFLAGS= -g -I$(IDIR) -I /ucrt64/include/vtk -L /ucrt64/lib/vtk -fopenmp -fopenmp
 CFLAGS+= -Ofast -ftree-parallelize-loops=8 
 CFLAGS+= -mavx -mavx2 -mfma -ffast-math -ftree-vectorize -fomit-frame-pointer
 
-LIBS= -lm -lgsl -lOpenCL  -lgomp  -lfftw3f -lfftw3f_omp
+LIBS= -lm -lgsl -lOpenCL.dll  -lgomp.dll  
+#-lfftw3f -lfftw3f_omp
 LIBS+= -lvtkCommonCore.dll  -lvtksys.dll -lvtkIOXML.dll -lvtkCommonDataModel.dll -lvtkIOCore.dll
 
 
