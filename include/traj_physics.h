@@ -161,6 +161,20 @@ struct particles // particles
     float (*pos1z)[n_partd];
     int (*q)[n_partd];
     int (*m)[n_partd];
+    
+    cl::Buffer *buff_x0_e;
+    cl::Buffer *buff_y0_e;
+    cl::Buffer *buff_z0_e;
+    cl::Buffer *buff_x1_e;
+    cl::Buffer *buff_y1_e;
+    cl::Buffer *buff_z1_e;
+
+    cl::Buffer *buff_x0_i;
+    cl::Buffer *buff_y0_i;
+    cl::Buffer *buff_z0_i;
+    cl::Buffer *buff_x1_i;
+    cl::Buffer *buff_y1_i;
+    cl::Buffer *buff_z1_i;
 };
 
 struct fields                                                      // particles

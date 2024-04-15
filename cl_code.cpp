@@ -36,7 +36,7 @@ void cl_set_build_options(par *par)
     // add_build_option("NC", n_cells);
 }
 
-void cl_start(fields *fi, par *par)
+void cl_start(fields *fi, particles *pt, par *par)
 {
     int AA[1] = {-1};
     cl_int cl_err;
@@ -135,6 +135,13 @@ void cl_start(fields *fi, par *par)
 
     cout << "allocating buffers\n";
     bool fastIO;
+
+       // cout << "check for unified memory " << endl;
+   //  create buffers on the device
+   /** IMPORTANT: do not use CL_MEM_USE_HOST_PTR if on dGPU **/
+   /** HOST_PTR is only used so that memory is not copied, but instead shared between CPU and iGPU in RAM**/
+   // Note that special alignment has been given to Ea, Ba, y0, z0, x0, x1, y1 in order to actually do this properly
+   // Assume buffers A, B, I, J (Ea, Ba, ci, cf) will always be the same. Then we save a bit of time.
     // get whether or not we are on an iGPU/similar, and can use certain memmory optimizations
     bool temp;
     default_device_g.getInfo(CL_DEVICE_HOST_UNIFIED_MEMORY, &temp);
@@ -161,9 +168,25 @@ void cl_start(fields *fi, par *par)
     static cl::Buffer buff_npi(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cellsi, fastIO ? fi->npi : NULL);
     static cl::Buffer buff_cji(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cellsi * 3, fastIO ? fi->cji : NULL);
 
+    unsigned int n4 = n_partd * sizeof(float);                                                                                   // number of particles * sizeof(float)
     static cl::Buffer buff_q_e(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n4, fastIO ? pt->q[0] : NULL); // q
     static cl::Buffer buff_q_i(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n4, fastIO ? pt->q[1] : NULL); // q
 
+    //  cout << "buffers " << endl;
+    static cl::Buffer buff_x0_e(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n4, fastIO ? pt->pos0x[0] : NULL); // x0
+    static cl::Buffer buff_y0_e(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n4, fastIO ? pt->pos0y[0] : NULL); // y0
+    static cl::Buffer buff_z0_e(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n4, fastIO ? pt->pos0z[0] : NULL); // z0
+    static cl::Buffer buff_x1_e(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n4, fastIO ? pt->pos1x[0] : NULL); // x1
+    static cl::Buffer buff_y1_e(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n4, fastIO ? pt->pos1y[0] : NULL); // y1
+    static cl::Buffer buff_z1_e(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n4, fastIO ? pt->pos1z[0] : NULL); // z1
+                                                                                                                                      //  cout << "buffers " << endl;
+
+    static cl::Buffer buff_x0_i(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n4, fastIO ? pt->pos0x[1] : NULL); // x0
+    static cl::Buffer buff_y0_i(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n4, fastIO ? pt->pos0y[1] : NULL); // y0
+    static cl::Buffer buff_z0_i(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n4, fastIO ? pt->pos0z[1] : NULL); // z0
+    static cl::Buffer buff_x1_i(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n4, fastIO ? pt->pos1x[1] : NULL); // x1
+    static cl::Buffer buff_y1_i(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n4, fastIO ? pt->pos1y[1] : NULL); // y1
+    static cl::Buffer buff_z1_i(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n4, fastIO ? pt->pos1z[1] : NULL); // z1
     if (cl_err)
         cout << cl_err << endl;
 
@@ -184,6 +207,20 @@ void cl_start(fields *fi, par *par)
 
     fi->buff_q_e = &buff_q_e;
     fi->buff_q_i = &buff_q_i;
+
+    pt->buff_x0_e = &buff_x0_e;
+    pt->buff_y0_e = &buff_y0_e;
+    pt->buff_z0_e = &buff_z0_e;
+    pt->buff_x1_e = &buff_x1_e;
+    pt->buff_y1_e = &buff_y1_e;
+    pt->buff_z1_e = &buff_z1_e;
+
+    pt->buff_x0_i = &buff_x0_i;
+    pt->buff_y0_i = &buff_y0_i;
+    pt->buff_z0_i = &buff_z0_i;
+    pt->buff_x1_i = &buff_x1_i;
+    pt->buff_y1_i = &buff_y1_i;
+    pt->buff_z1_i = &buff_z1_i;
 
     fi->E_buffer = fi->buff_E[0](); // buff_E();
                                     // cout << fi->E_buffer << ", " << buff_E() << ", " << fi->buff_E[0]() << endl;
