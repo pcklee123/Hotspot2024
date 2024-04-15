@@ -36,6 +36,32 @@ int main()
     cl_set_build_options(par);
     cl_start(fi, par);
 
+    cout << "allocating buffers\n";
+    bool fastIO = false;
+    cl::Buffer buff_E(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_ONLY, n_cellsf * 3, fastIO ? fi->E : NULL, &cl_err);
+    cl::Buffer buff_B(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_ONLY, n_cellsf * 3, fastIO ? fi->B : NULL, &cl_err);
+    cl::Buffer buff_Ee(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_ONLY, n_cellsf * 3, fastIO ? fi->Ee : NULL, &cl_err);
+    cl::Buffer buff_Be(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_ONLY, n_cellsf * 3, fastIO ? fi->Be : NULL, &cl_err);
+    cl::Buffer buff_npt(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cellsf, fastIO ? fi->npt : NULL, &cl_err); // cannot be static?
+    cl::Buffer buff_jc(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cellsf * 3, fastIO ? fi->jc : NULL, &cl_err);
+    if (cl_err)
+        cout << cl_err << endl;
+
+    fi->buff_E = &buff_E;
+
+    fi->buff_B = &buff_B;
+    fi->buff_Ee = &buff_Ee;
+    fi->buff_Be = &buff_Be;
+    fi->buff_npt = &buff_npt;
+    fi->buff_jc = &buff_jc;
+
+    fi->E_buffer = fi->buff_E[0](); // buff_E();
+    cout << buff_E() << ", " << fi->buff_E[0]() << endl;
+    fi->B_buffer = buff_B();
+    fi->Ee_buffer = buff_Ee();
+    fi->Be_buffer = buff_Be();
+    fi->npt_buffer = buff_npt();
+    fi->jc_buffer = buff_jc();
 
     try
     {
