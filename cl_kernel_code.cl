@@ -236,6 +236,38 @@ void kernel sumFftFieldo(global const float *fft_real, global const float *Fe,
   }
 }
 
+void kernel sumFftField(global const float *fft_real, global const float *Fe,
+                        global float *F) {
+  const size_t N0 = NX * 2;
+  const size_t N1 = NY * 2;
+  const size_t N2 = NZ * 2;
+  const size_t NXNY = NX * NY;
+  const size_t NXNYNZ = NXNY * NZ;
+  const size_t N0N1 = N0 * N1;
+  const size_t N0N1N2 = N0N1 * N2;
+
+  // get global indices
+  size_t idx = get_global_id(0);
+  // Compute 3D index for dest array
+  size_t i = idx % NX;
+  size_t j = (idx / NX) % NY;
+  size_t k = (idx / NXNY) % NZ;
+
+  size_t cdx = 0, cdx8 = 0;
+
+  int idx000 = k * N0N1 + j * N0 + i; // idx_kji
+
+  for (int c = 0; c < 3; ++c, cdx += NXNYNZ, cdx8 += N0N1N2) {
+    F[cdx + idx] = Fe[cdx + idx] + fft_real[cdx8 + idx000];
+  }
+}
+
+void kernel copyextField(global const float *Fe, global float *F) {
+  // get global indices
+  size_t idx = get_global_id(0);
+  F[idx] = Fe[idx];
+}
+
 void kernel tnp_k_implicit(global const float8 *a1,
                            global const float8 *a2, // E, B coeff
                            global float *x0, global float *y0,

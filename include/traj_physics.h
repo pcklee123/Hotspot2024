@@ -178,7 +178,7 @@ struct fields                                                      // particles
     int (*npi)[n_space_divy][n_space_divx];
     int (*np_centeri)[n_space_divz][n_space_divy][n_space_divx];
     float (*npt)[n_space_divy][n_space_divx];
-    
+
     float (*currentj)[3][n_space_divz][n_space_divy][n_space_divx];
     int (*cji)[n_space_divz][n_space_divy][n_space_divx]; //[3][z][y][x]
     int (*cj_centeri)[3][n_space_divz][n_space_divy][n_space_divx];
@@ -190,6 +190,7 @@ struct fields                                                      // particles
 #endif
     cl_mem r3_buffer = 0;
     cl_mem r2_buffer = 0;
+    cl_mem V_buffer;
     cl::Buffer buff_E;
     cl::Buffer buff_B;
     cl::Buffer buff_Ee;
