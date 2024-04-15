@@ -171,11 +171,14 @@ struct fields                                                      // particles
     float (*B)[n_space_divz][n_space_divy][n_space_divx];
     float (*Be)[n_space_divz][n_space_divy][n_space_divx];
     float (*Ba)[n_space_divz][n_space_divy][n_space_divx][ncoeff]; // coefficients for Trilinear interpolation Magnetic field
-    float (*V)[n_space_divz][n_space_divy][n_space_divx];
+                                                                   // float (*V)[n_space_divz][n_space_divy][n_space_divx];
+    float (*V)[n_space_divy][n_space_divx];
+
     float (*np)[n_space_divz][n_space_divy][n_space_divx];
     int (*npi)[n_space_divy][n_space_divx];
     int (*np_centeri)[n_space_divz][n_space_divy][n_space_divx];
     float (*npt)[n_space_divy][n_space_divx];
+    
     float (*currentj)[3][n_space_divz][n_space_divy][n_space_divx];
     int (*cji)[n_space_divz][n_space_divy][n_space_divx]; //[3][z][y][x]
     int (*cj_centeri)[3][n_space_divz][n_space_divy][n_space_divx];

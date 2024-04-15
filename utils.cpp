@@ -175,16 +175,21 @@ fields *alloc_fields(par *par)
 {
     auto *f = (fields *)malloc(sizeof(fields));
     /** CL: Ensure that Ea/Ba contain multiple of 64 bytes, ie. multiple of 16 floats **/
+    // f->E = reinterpret_cast<float(&)[3][n_space_divz][n_space_divy][n_space_divx]>(*fftwf_alloc_real(3 * n_cells));
+    // f->Ee = new float[3][n_space_divz][n_space_divy][n_space_divx];                                                                                        // External E field
 
-    f->E = reinterpret_cast<float(&)[3][n_space_divz][n_space_divy][n_space_divx]>(*fftwf_alloc_real(3 * n_cells));                                        // selfgenerated E field
-    f->Ee = new float[3][n_space_divz][n_space_divy][n_space_divx];                                                                                        // External E field
+    f->E = static_cast<float(*)[n_space_divz][n_space_divy][n_space_divx]>(_aligned_malloc(sizeof(float) * n_cells * 3, par->cl_align));                   // selfgenerated E field
+    f->Ee = static_cast<float(*)[n_space_divz][n_space_divy][n_space_divx]>(_aligned_malloc(sizeof(float) * n_cells * 3, par->cl_align));                  // External E field
     f->Ea = static_cast<float(*)[n_space_divz][n_space_divy][n_space_divx][ncoeff]>(_aligned_malloc(sizeof(float) * n_cells * 3 * ncoeff, par->cl_align)); // coefficients for Trilinear interpolation Electric field
 
-    f->B = reinterpret_cast<float(&)[3][n_space_divz][n_space_divy][n_space_divx]>(*fftwf_alloc_real(3 * n_cells)); // new float[3][n_space_divz][n_space_divy][n_space_divx];
-    f->Be = new float[3][n_space_divz][n_space_divy][n_space_divx];
+    // f->B = reinterpret_cast<float(&)[3][n_space_divz][n_space_divy][n_space_divx]>(*fftwf_alloc_real(3 * n_cells)); // new float[3][n_space_divz][n_space_divy][n_space_divx];
+    // f->Be = new float[3][n_space_divz][n_space_divy][n_space_divx];
+    f->B = static_cast<float(*)[n_space_divz][n_space_divy][n_space_divx]>(_aligned_malloc(sizeof(float) * n_cells * 3, par->cl_align));  // selfgenerated E field
+    f->Be = static_cast<float(*)[n_space_divz][n_space_divy][n_space_divx]>(_aligned_malloc(sizeof(float) * n_cells * 3, par->cl_align)); // External E field
     f->Ba = static_cast<float(*)[n_space_divz][n_space_divy][n_space_divx][ncoeff]>(_aligned_malloc(sizeof(float) * n_cells * 3 * ncoeff, par->cl_align)); // coefficients for Trilinear interpolation Magnetic field
 
-    f->V = reinterpret_cast<float(&)[1][n_space_divz][n_space_divy][n_space_divx]>(*fftwf_alloc_real(n_cells));
+//    f->V = reinterpret_cast<float(&)[1][n_space_divz][n_space_divy][n_space_divx]>(*fftwf_alloc_real(n_cells));
+    f->V = static_cast<float(*)[n_space_divz][n_space_divy][n_space_divx]>(_aligned_malloc(sizeof(float) * n_cells, par->cl_align));
 
     f->np = static_cast<float(*)[n_space_divz][n_space_divy][n_space_divx]>(_aligned_malloc(2 * n_cells * sizeof(float), alignment));
     f->npi = static_cast<int(*)[n_space_divy][n_space_divx]>(_aligned_malloc(n_cells * sizeof(int), alignment));
@@ -195,10 +200,11 @@ fields *alloc_fields(par *par)
     f->cj_centeri = static_cast<int(*)[3][n_space_divz][n_space_divy][n_space_divx]>(_aligned_malloc(n_cells * sizeof(int) * 3 * 3, alignment));
     f->jc = static_cast<float(*)[n_space_divz][n_space_divy][n_space_divx]>(_aligned_malloc(3 * n_cells * sizeof(float), alignment));
     // float *precalc_r3; //  pre-calculate 1/ r3 to make it faster to calculate electric and magnetic fields
-  //  f->precalc_r3 =static_cast<float(*)>(_aligned_malloc(2 * 3 * n_cells4 * sizeof(complex<float>), alignment));
+    //  f->precalc_r3 =static_cast<float(*)>(_aligned_malloc(2 * 3 * n_cells4 * sizeof(complex<float>), alignment));
 #ifdef Uon_
-  //  f->precalc_r2 = static_cast<float(*)>(_aligned_malloc(n_cells4 * sizeof(complex<float>), alignment));// similar arrays for U, but kept separately in one ifdef
+    //  f->precalc_r2 = static_cast<float(*)>(_aligned_malloc(n_cells4 * sizeof(complex<float>), alignment));// similar arrays for U, but kept separately in one ifdef
 #endif
+
     return f;
 }
 

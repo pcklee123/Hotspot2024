@@ -38,6 +38,7 @@ void cl_set_build_options(par *par)
 void cl_start(fields *fi, par *par)
 {
     int AA[1] = {-1};
+    cl_int cl_err;
 #pragma omp target
     AA[0] = omp_is_initial_device();
     if (!AA[0])
@@ -113,7 +114,7 @@ void cl_start(fields *fi, par *par)
 
     cl::Program program(context, sources);
 
-    cl_int cl_err = program.build({default_device}, cl_build_options.str().c_str());
+    cl_err = program.build({default_device}, cl_build_options.str().c_str());
     info_file << "building: " << program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(default_device) << "\n";
     if (cl_err != CL_SUCCESS)
     {
@@ -128,20 +129,20 @@ void cl_start(fields *fi, par *par)
     default_device_g = default_device;
     program_g = program;
     device_id_g = device_id;
-
+    cout << "allocating buffers";
     bool fastIO = false;
-    cl::Buffer buff_E(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_ONLY, n_cellsf * 3, fastIO ? fi->E : NULL);
-    cl::Buffer buff_B(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_ONLY, n_cellsf * 3, fastIO ? fi->B : NULL);
+    cl::Buffer buff_E(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_ONLY, n_cellsf * 3, fastIO ? fi->E : NULL, &cl_err);
+    cl::Buffer buff_B(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_ONLY, n_cellsf * 3, fastIO ? fi->B : NULL, &cl_err);
     fi->buff_E = buff_E;
     fi->buff_B = buff_B;
 
-    cl::Buffer buff_Ee(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_ONLY, n_cellsf * 3, fastIO ? fi->Ee : NULL);
-    cl::Buffer buff_Be(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_ONLY, n_cellsf * 3, fastIO ? fi->Be : NULL);
+    cl::Buffer buff_Ee(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_ONLY, n_cellsf * 3, fastIO ? fi->Ee : NULL, &cl_err);
+    cl::Buffer buff_Be(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_ONLY, n_cellsf * 3, fastIO ? fi->Be : NULL, &cl_err);
     fi->buff_Ee = buff_Ee;
     fi->buff_Be = buff_Be;
 
-    cl::Buffer buff_npt(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cellsi, fastIO ? fi->npt : NULL); // cannot be static?
-    cl::Buffer buff_jc(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cellsi * 3, fastIO ? fi->jc : NULL);
+    cl::Buffer buff_npt(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cellsi, fastIO ? fi->npt : NULL, &cl_err); // cannot be static?
+    cl::Buffer buff_jc(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cellsi * 3, fastIO ? fi->jc : NULL, &cl_err);
     fi->buff_npt = buff_npt;
     fi->buff_jc = buff_jc;
 }
