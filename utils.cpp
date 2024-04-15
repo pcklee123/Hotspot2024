@@ -189,7 +189,7 @@ fields *alloc_fields(par *par)
     f->Ba = static_cast<float(*)[n_space_divz][n_space_divy][n_space_divx][ncoeff]>(_aligned_malloc(sizeof(float) * n_cells * 3 * ncoeff, par->cl_align)); // coefficients for Trilinear interpolation Magnetic field
 
 //    f->V = reinterpret_cast<float(&)[1][n_space_divz][n_space_divy][n_space_divx]>(*fftwf_alloc_real(n_cells));
-    f->V = static_cast<float(*)[n_space_divz][n_space_divy][n_space_divx]>(_aligned_malloc(sizeof(float) * n_cells, par->cl_align));
+    f->V = static_cast<float(*)[n_space_divy][n_space_divx]>(_aligned_malloc(sizeof(float) * n_cells, par->cl_align));
 
     f->np = static_cast<float(*)[n_space_divz][n_space_divy][n_space_divx]>(_aligned_malloc(2 * n_cells * sizeof(float), alignment));
     f->npi = static_cast<int(*)[n_space_divy][n_space_divx]>(_aligned_malloc(n_cells * sizeof(int), alignment));

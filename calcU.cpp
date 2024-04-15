@@ -40,10 +40,10 @@ void calcU(fields *fi, particles *pt, par *par)
                      //   dz = (dz < 0) ? 0 : dz;
             // Perform trilinear interpolation
             float dx1 = 1 - dx;
-            float c00 = fi->V[0][k][j][i] * dx1 + fi->V[0][k][j][i + 1] * dx;
-            float c01 = fi->V[0][k + 1][j][i] * dx1 + fi->V[0][k + 1][j][i + 1] * dx;
-            float c10 = fi->V[0][k][j + 1][i] * dx1 + fi->V[0][k][j + 1][i + 1] * dx;
-            float c11 = fi->V[0][k + 1][j + 1][i] * dx1 + fi->V[0][k + 1][j + 1][i + 1] * dx;
+            float c00 = fi->V[k][j][i] * dx1 + fi->V[k][j][i + 1] * dx;
+            float c01 = fi->V[k + 1][j][i] * dx1 + fi->V[k + 1][j][i + 1] * dx;
+            float c10 = fi->V[k][j + 1][i] * dx1 + fi->V[k][j + 1][i + 1] * dx;
+            float c11 = fi->V[k + 1][j + 1][i] * dx1 + fi->V[k + 1][j + 1][i + 1] * dx;
             float c = (c00 * (1 - dy) + c10 * dy) * (1 - dz) + (c01 * (1 - dy) + c11 * dy) * dz;
             EUtot += c * pt->q[p][n];
         }

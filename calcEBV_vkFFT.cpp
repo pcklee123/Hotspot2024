@@ -74,6 +74,7 @@ int calcEBV(fields *fi, par *par)
     static cl_mem r3_buffer = 0;
     static cl_mem r2_buffer = 0;
     static cl_mem fft_real_buffer = 0;
+    static cl_mem fft_real_buffer1 = 0;
     static cl_mem fft_complex_buffer = 0;
     static cl_mem fft_p_buffer = 0;
 
@@ -127,6 +128,11 @@ int calcEBV(fields *fi, par *par)
         sumFftFieldo_kernel = clCreateKernel(program_g(), "sumFftFieldo", NULL);
 
         fft_real_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_R4, 0, &res);
+        cl_buffer_region region;
+        region.origin = bufferSize_R;
+        region.size = bufferSize_R3;
+        fft_real_buffer1 = clCreateSubBuffer(fft_real_buffer, CL_MEM_READ_WRITE, CL_BUFFER_CREATE_TYPE_REGION, &region, &res);
+
         fft_complex_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_C4, 0, &res);
         fft_p_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_P4, 0, &res);
         cl_mem r3_base_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_R6, 0, &res);
@@ -419,7 +425,7 @@ int calcEBV(fields *fi, par *par)
             // cout << "inverse transform to get convolution" << endl;
             resFFT = VkFFTAppend(&appbac4, 1, &launchParams); // 1 = inverse FFT//if (resFFT)                cout << "execute plan bac E resFFT = " << resFFT << endl;
             res = clFinish(vkGPU.commandQueue);               // cout << "execute plan bac E ,clFinish res = " << res << endl;
-            resFFT = transferDataToCPU(&vkGPU, fft_real[0], &fft_real_buffer, bufferSize_R4);
+           // resFFT = transferDataToCPU(&vkGPU, fft_real[0], &fft_real_buffer, bufferSize_R4);
 
 #else
             // cout << "inverse transform to get convolution" << endl;
@@ -431,7 +437,7 @@ int calcEBV(fields *fi, par *par)
 #endif
 
 #ifdef octant
-            clSetKernelArg(sumFftFieldo_kernel, 0, sizeof(cl_mem), &fft_real_buffer);
+            clSetKernelArg(sumFftFieldo_kernel, 0, sizeof(cl_mem), &fft_real_buffer1);
             clSetKernelArg(sumFftFieldo_kernel, 1, sizeof(cl_mem), &buff_Ee);
             clSetKernelArg(sumFftFieldo_kernel, 2, sizeof(cl_mem), &buff_E);
             res = clEnqueueNDRangeKernel(vkGPU.commandQueue, sumFftFieldo_kernel, 1, NULL, &n_cells, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
@@ -462,7 +468,7 @@ int calcEBV(fields *fi, par *par)
             {
                 // #pragma omp parallel for simd num_threads(nthreads)
                 for (j = 0; j < n_space_divy; ++j)
-                    memcpy(fi->V[0][k][j], &fft_real[0][jj += N0], sizeof(float) * n_space_divx);
+                    memcpy(fi->V[k][j], &fft_real[0][jj += N0], sizeof(float) * n_space_divx);
                 jj += N0N1_2;
             }
 #endif
