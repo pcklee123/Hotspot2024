@@ -40,8 +40,8 @@ void get_densityfields(fields *fi, particles *pt, par *par)
    static cl::Buffer buff_npi(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cellsi, fastIO ? fi->npi : NULL);
    static cl::Buffer buff_cji(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cellsi * 3, fastIO ? fi->cji : NULL);
 
-   cl::Buffer buff_npt = fi->buff_npt;
-   cl::Buffer buff_jc = fi->buff_jc;
+   cl::Buffer buff_npt = fi->buff_npt[0];
+   cl::Buffer buff_jc = fi->buff_jc[0];
 
    //  cout << "buffers " << endl;
    static cl::Buffer buff_x0_e(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n4, fastIO ? pt->pos0x[0] : NULL); // x0

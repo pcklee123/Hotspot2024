@@ -190,12 +190,18 @@ struct fields                                                      // particles
 #endif
     cl_mem r3_buffer = 0;
     cl_mem r2_buffer = 0;
-    cl_mem V_buffer;
-    cl::Buffer buff_E;
-    cl::Buffer buff_B;
-    cl::Buffer buff_Ee;
-    cl::Buffer buff_Be;
+    cl_mem V_buffer = 0;
+    cl_mem E_buffer = 0;
+    cl_mem B_buffer = 0;
+    cl_mem Ee_buffer = 0;
+    cl_mem Be_buffer = 0;
+    cl_mem npt_buffer =0;
+    cl_mem jc_buffer = 0;
+    cl::Buffer *buff_E;
+    cl::Buffer *buff_B;
+    cl::Buffer *buff_Ee;
+    cl::Buffer *buff_Be;
 
-    cl::Buffer buff_npt;
-    cl::Buffer buff_jc;
+    cl::Buffer *buff_npt;
+    cl::Buffer *buff_jc;
 };

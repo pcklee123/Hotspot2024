@@ -75,13 +75,13 @@ int calcEBV(fields *fi, par *par)
     static cl_mem fft_p_buffer = 0;
     cl_mem V_buffer = 0;
 
-    cl_mem npt_buffer = fi->buff_npt();
-    cl_mem jc_buffer = fi->buff_jc();
+    cl_mem npt_buffer = fi->npt_buffer;
+    cl_mem jc_buffer = fi->jc_buffer;
 
-    cl_mem buff_E = fi->buff_E();
-    cl_mem buff_B = fi->buff_B();
-    cl_mem buff_Ee = fi->buff_Ee();
-    cl_mem buff_Be = fi->buff_Be();
+    cl_mem buff_E = fi->E_buffer;
+    cl_mem buff_B = fi->B_buffer;
+    cl_mem buff_Ee = fi->Ee_buffer;
+    cl_mem buff_Be = fi->Be_buffer;
 
     static VkGPU vkGPU = {};
     // vkGPU.device_id = 0; // 0 = use iGPU for FFT
