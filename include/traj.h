@@ -51,6 +51,7 @@ using namespace std;
 extern cl::Context context_g;
 extern cl::Device default_device_g;
 extern cl::Program program_g;
+extern cl::CommandQueue commandQueue_g;
 extern int device_id_g;
 extern string outpath;
 // #ifdef RamDisk // save file info - initialize filepath

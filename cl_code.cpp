@@ -5,6 +5,7 @@
 cl::Context context_g;
 cl::Device default_device_g;
 cl::Program program_g;
+cl::CommandQueue commandQueue_g;
 int device_id_g;
 
 stringstream cl_build_options;
@@ -49,8 +50,8 @@ void cl_start(fields *fi, par *par)
     cl::vector<cl::Platform> platforms;
     cl::Platform::get(&platforms);
     cl::vector<cl::Device> devices;
-    int platform_id = 0;
-    int device_id;
+    cl_int platform_id = 0;
+    cl_int device_id;
 
     info_file << "Number of Platforms: " << platforms.size() << std::endl;
 
@@ -129,35 +130,7 @@ void cl_start(fields *fi, par *par)
     default_device_g = default_device;
     program_g = program;
     device_id_g = device_id;
-    cout << "allocating buffers\n";
-    bool fastIO = false;
-    cl::Buffer buff_E(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_ONLY, n_cellsf * 3, fastIO ? fi->E : NULL, &cl_err);
-    if (cl_err)
-        cout << cl_err << endl;
-    fi->buff_E = buff_E;
-
-    cl::Buffer buff_B(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_ONLY, n_cellsf * 3, fastIO ? fi->B : NULL, &cl_err);
-    if (cl_err)
-        cout << cl_err << endl;
-    fi->buff_B = buff_B;
-
-    cl::Buffer buff_Ee(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_ONLY, n_cellsf * 3, fastIO ? fi->Ee : NULL, &cl_err);
-    if (cl_err)
-        cout << cl_err << endl;
-    fi->buff_Ee = buff_Ee;
-
-    cl::Buffer buff_Be(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_ONLY, n_cellsf * 3, fastIO ? fi->Be : NULL, &cl_err);
-    if (cl_err)
-        cout << cl_err << endl;
-    fi->buff_Be = buff_Be;
-
-    cl::Buffer buff_npt(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cellsf, fastIO ? fi->npt : NULL, &cl_err); // cannot be static?
-    if (cl_err)
-        cout << cl_err << endl;
-    fi->buff_npt = buff_npt;
-
-    cl::Buffer buff_jc(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cellsf * 3, fastIO ? fi->jc : NULL, &cl_err);
-    if (cl_err)
-        cout << cl_err << endl;
-    fi->buff_jc = buff_jc;
+    cl::CommandQueue queue(context_g, default_device_g);
+    commandQueue_g = queue;
+ 
 }

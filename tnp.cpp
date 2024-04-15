@@ -58,16 +58,16 @@ void tnp(fields *fi, particles *pt, par *par)
    static cl::Buffer buff_q_i(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n4, fastIO ? pt->q[1] : NULL); // q
                                                                                                                                 // */
    // cout << "command q" << endl; //  create queue to which we will push commands for the device.
-   static cl::CommandQueue queue(context_g, default_device_g);
+   cl::CommandQueue queue = commandQueue_g;
    // static auto *mapped_buff_x0_e = (float *)queue.enqueueMapBuffer(buff_x0_e, CL_TRUE, CL_MAP_WRITE, 0, sizeof(float) * n);
    //    static auto *mapped_buff_x0_e = (float *)queue.enqueueMapBuffer(buff_x0_e, CL_TRUE, CL_MAP_WRITE, 0, sizeof(float) * n);
    //     static auto *mapped_buff_x0_e = (float *)queue.enqueueMapBuffer(buff_x0_e, CL_TRUE, CL_MAP_WRITE, 0, sizeof(float) * n);
 #if defined(sphere)
 #if defined(octant)
-   cl::Kernel kernel_tnp = cl::Kernel(program_g, "tnp_k_implicito"); // select the kernel program to run
+       cl::Kernel kernel_tnp = cl::Kernel(program_g, "tnp_k_implicito"); // select the kernel program to run
 #endif
 #else
-   cl::Kernel kernel_tnp = cl::Kernel(program_g, "tnp_k_implicit"); // select the kernel program to run
+       cl::Kernel kernel_tnp = cl::Kernel(program_g, "tnp_k_implicit"); // select the kernel program to run
 #endif
 
 #ifdef cylinder

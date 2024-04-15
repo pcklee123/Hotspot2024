@@ -9,7 +9,7 @@ int main()
     par par1;
     par *par = &par1;
     float nt0prev;
-
+    cl_int cl_err;
     timer.mark(); // Yes, 3 time marks. The first is for the overall program dt
     timer.mark(); // The second is for compute_d_time
     timer.mark(); // The third is for start up dt
@@ -35,6 +35,38 @@ int main()
     nthreads = omp_get_max_threads(); // omp_set_num_threads(nthreads);
     cl_set_build_options(par);
     cl_start(fi, par);
+
+    cout << "allocating buffers\n";
+    bool fastIO = false;
+    cl::Buffer buff_E(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_ONLY, n_cellsf * 3, fastIO ? fi->E : NULL, &cl_err);
+    if (cl_err)
+        cout << cl_err << endl;
+    fi->buff_E = buff_E;
+
+    cl::Buffer buff_B(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_ONLY, n_cellsf * 3, fastIO ? fi->B : NULL, &cl_err);
+    if (cl_err)
+        cout << cl_err << endl;
+    fi->buff_B = buff_B;
+
+    cl::Buffer buff_Ee(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_ONLY, n_cellsf * 3, fastIO ? fi->Ee : NULL, &cl_err);
+    if (cl_err)
+        cout << cl_err << endl;
+    fi->buff_Ee = buff_Ee;
+
+    cl::Buffer buff_Be(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_ONLY, n_cellsf * 3, fastIO ? fi->Be : NULL, &cl_err);
+    if (cl_err)
+        cout << cl_err << endl;
+    fi->buff_Be = buff_Be;
+
+    cl::Buffer buff_npt(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cellsf, fastIO ? fi->npt : NULL, &cl_err); // cannot be static?
+    if (cl_err)
+        cout << cl_err << endl;
+    fi->buff_npt = buff_npt;
+
+    cl::Buffer buff_jc(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cellsf * 3, fastIO ? fi->jc : NULL, &cl_err);
+    if (cl_err)
+        cout << cl_err << endl;
+    fi->buff_jc = buff_jc;
 
     try
     {
@@ -100,7 +132,10 @@ int main()
                                        // cout << "calcEBV: ";
     timer.mark();
     int cdt = calcEBV(fi, par); // electric and magnetic fields this is incorporated into tnp which also moves particles. Need here just to estimate dt
-    
+    cl_int res = 0;
+    cl_command_queue commandQueue = clCreateCommandQueue(context_g(), default_device_g(), 0, &res);
+    res = clEnqueueReadBuffer(commandQueue, fi->buff_E(), CL_TRUE, 0, n_cellsf * 3, fi->E, 0, NULL, NULL);
+    res = clEnqueueReadBuffer(commandQueue, fi->buff_B(), CL_TRUE, 0, n_cellsf * 3, fi->B, 0, NULL, NULL);
     cout << timer.elapsed() << "s\n ";
     // int cdt=0;
     // changedt(pt, cdt, par); /* change time step if E or B too big*/
