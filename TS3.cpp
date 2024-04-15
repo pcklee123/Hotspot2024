@@ -35,7 +35,8 @@ int main()
     nthreads = omp_get_max_threads(); // omp_set_num_threads(nthreads);
     cl_set_build_options(par);
     cl_start(fi, par);
-
+    cl::CommandQueue queue(context_g, default_device_g);
+    commandQueue_g = queue;
     cout << "allocating buffers\n";
     bool fastIO = false;
     cl::Buffer buff_E(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_ONLY, n_cellsf * 3, fastIO ? fi->E : NULL, &cl_err);

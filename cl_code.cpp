@@ -130,7 +130,4 @@ void cl_start(fields *fi, par *par)
     default_device_g = default_device;
     program_g = program;
     device_id_g = device_id;
-    cl::CommandQueue queue(context_g, default_device_g);
-    commandQueue_g = queue;
- 
 }

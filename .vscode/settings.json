@@ -13,6 +13,7 @@
         "format": "cpp",
         "initializer_list": "cpp",
         "span": "cpp",
-        "charconv": "cpp"
+        "charconv": "cpp",
+        "sstream": "cpp"
     }
 }
