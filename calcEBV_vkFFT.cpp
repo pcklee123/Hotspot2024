@@ -505,11 +505,11 @@ int calcEBV(fields *fi, par *par)
     cout << res << endl;
     res = clFinish(vkGPU.commandQueue);
     res = clEnqueueReadBuffer(vkGPU.commandQueue, EUtot_buffer, CL_TRUE, 0, sizeof(float) * n_4, EUtot, 0, NULL, NULL);
-    // #pragma omp parallel for simd reduction(+:EUtot1)
+#pragma omp parallel for simd reduction(+ : EUtot1)
     for (int i = 0; i < n_4; ++i)
     {
         EUtot1 += EUtot[i];
-        cout << EUtot[i] << ", ";
+        //  cout << EUtot[i] << ", ";
     }
 
     /*
