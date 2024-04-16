@@ -502,7 +502,7 @@ int calcEBV(fields *fi, par *par)
     clSetKernelArg(EUEst_kernel, 1, sizeof(cl_mem), &npt_buffer);
     clSetKernelArg(EUEst_kernel, 2, sizeof(cl_mem), &EUtot_buffer);
     res = clEnqueueNDRangeKernel(vkGPU.commandQueue, EUEst_kernel, 1, NULL, &n_4, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
-    cout << res << endl;
+    //if (res) cout << res << endl;
     res = clFinish(vkGPU.commandQueue);
     res = clEnqueueReadBuffer(vkGPU.commandQueue, EUtot_buffer, CL_TRUE, 0, sizeof(float) * n_4, EUtot, 0, NULL, NULL);
 #pragma omp parallel for simd reduction(+ : EUtot1)
