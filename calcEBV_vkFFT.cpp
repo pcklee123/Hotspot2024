@@ -523,7 +523,7 @@ int calcEBV(fields *fi, par *par)
     res = clFinish(vkGPU.commandQueue);
     res = clEnqueueReadBuffer(vkGPU.commandQueue, EUtot_buffer, CL_TRUE, 0, sizeof(float) * n_4, EUtot, 0, NULL, NULL);
     if (res)
-        cout  << "clEnqueueReadBuffer res: "<< res << endl;
+        cout << "clEnqueueReadBuffer res: " << res << endl;
     res = clEnqueueReadBuffer(vkGPU.commandQueue, npt_buffer, CL_TRUE, 0, sizeof(float) * n_cells, fi->npt, 0, NULL, NULL);
     res = clEnqueueReadBuffer(vkGPU.commandQueue, V_buffer, CL_TRUE, 0, sizeof(float) * n_cells, fi->V, 0, NULL, NULL);
 
@@ -538,13 +538,13 @@ int calcEBV(fields *fi, par *par)
         EUtot1 += EUtot[i];
         // cout << EUtot[i] << ", ";
         // cout << fi->npt[i] << ", ";
-        //cout << V_1d[i] << ", ";
+        // cout << V_1d[i] << ", ";
     }
     // Perform estimate of electric potential energy
-    //for (int i = 0; i < n_cells; ++i)
-       // EUtot2 += V_1d[i] * npt_1d[i];
+    // for (int i = 0; i < n_cells; ++i)
+    // EUtot2 += V_1d[i] * npt_1d[i];
     EUtot1 *= 0.5f; // * e_charge / ev_to_j; <- this is just 1
-    //cout << "Eele (estimate): " << EUtot1 << ", " << EUtot2 * 0.5 << endl;
+    // cout << "Eele (estimate): " << EUtot1 << ", " << EUtot2 * 0.5 << endl;
 #endif
 #endif
 
