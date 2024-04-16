@@ -279,8 +279,8 @@ void kernel sumFftSField(global const float *fft_real, global float *V) {
   size_t k = (idx / NXNY) % NZ;
 
   int idx000 = k * N0N1 + j * N0 + i; // idx_kji
-//  V[idx] = fft_real[idx000];
-  V[idx] = 5.0;
+  V[idx] = fft_real[idx000];
+  // V[idx] = 5.0;
 }
 
 void kernel copyextField(global const float *Fe, global float *F) {
@@ -804,7 +804,7 @@ void kernel EUEst(global const float4 *V, global const float4 *n,
                   global float *EUtot) {
   int i = get_global_id(0);
   // Compute dot product for the given gid
-  EUtot[i] = 5.0;//dot(V[i], n[i]);
+  EUtot[i] =  dot(V[i], n[i]);
 }
 
 void kernel trilin_k(
