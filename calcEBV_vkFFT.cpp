@@ -68,6 +68,7 @@ int calcEBV(fields *fi, par *par)
     static cl_mem fft_complex_buffer = 0;
     static cl_mem fft_p_buffer = 0;
     static cl_mem V_buffer = 0;
+    static cl_mem EUtot_buffer = 0;
 
     cl_mem npt_buffer = fi->npt_buffer;
     cl_mem jc_buffer = fi->jc_buffer;
@@ -83,9 +84,6 @@ int calcEBV(fields *fi, par *par)
     VkFFTResult resFFT = VKFFT_SUCCESS;
     cl_int res = CL_SUCCESS;
 
-    size_t n_4 = n_cells / 4;
-    static cl_mem EUtot_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, n_4 * sizeof(float), 0, &res);
-
     static uint64_t bufferSize_R = (uint64_t)sizeof(float) * n_cells8;          // buffer size per batch Real
     static uint64_t bufferSize_C = (uint64_t)sizeof(complex<float>) * n_cells4; // buffer size per batch Complex
     static uint64_t bufferSize_P = (uint64_t)sizeof(float) * n_cells4 * 2;      // buffer size per batch Complex
@@ -99,7 +97,7 @@ int calcEBV(fields *fi, par *par)
     // static uint64_t bufferSize_P6 = bufferSize_P * 6;
     static uint64_t bufferSize_C6 = bufferSize_C * 6;
     static VkFFTLaunchParams launchParams = {};
-
+    size_t n_4 = n_cells / 4;
     int Nbatch;
     if (first)
     { // allocate and initialize to 0
@@ -144,6 +142,10 @@ int calcEBV(fields *fi, par *par)
 
         V_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_R, 0, &res);
         fi->V_buffer = V_buffer;
+
+        EUtot_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, n_4 * sizeof(float), 0, &res);
+        if (res)
+            cout << "res: " << res << endl;
         // Create memory buffers on the device for each vector
 
         VkFFTConfiguration configuration = {};
@@ -497,33 +499,35 @@ int calcEBV(fields *fi, par *par)
 #ifdef Eon_ // if both Uon and Eon are defined
     // float EUtot[n_4];
     auto EUtot = new float[n_4];
-    float EUtot1 = 0;
+    float EUtot1 = 0.0;
+    float EUtot2 = 0.f;
     clSetKernelArg(EUEst_kernel, 0, sizeof(cl_mem), &V_buffer);
     clSetKernelArg(EUEst_kernel, 1, sizeof(cl_mem), &npt_buffer);
     clSetKernelArg(EUEst_kernel, 2, sizeof(cl_mem), &EUtot_buffer);
     res = clEnqueueNDRangeKernel(vkGPU.commandQueue, EUEst_kernel, 1, NULL, &n_4, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
-    //if (res) cout << res << endl;
+    // if (res) cout << res << endl;
     res = clFinish(vkGPU.commandQueue);
     res = clEnqueueReadBuffer(vkGPU.commandQueue, EUtot_buffer, CL_TRUE, 0, sizeof(float) * n_4, EUtot, 0, NULL, NULL);
+    res = clEnqueueReadBuffer(vkGPU.commandQueue, npt_buffer, CL_TRUE, 0, sizeof(float) * n_cells, fi->npt, 0, NULL, NULL);
+    res = clEnqueueReadBuffer(vkGPU.commandQueue, V_buffer, CL_TRUE, 0, sizeof(float) * n_cells, fi->V, 0, NULL, NULL);
 #pragma omp parallel for simd reduction(+ : EUtot1)
     for (int i = 0; i < n_4; ++i)
     {
         EUtot1 += EUtot[i];
-        //  cout << EUtot[i] << ", ";
+        cout << EUtot[i] << ", ";
     }
 
-    /*
     {
         // Perform estimate of electric potential energy
-        float EUtot = 0.f;
+
         const float *V_1d = reinterpret_cast<float *>(fi->V);
         const float *npt_1d = reinterpret_cast<float *>(fi->npt);
         for (int i = 0; i < n_cells; ++i)
-            EUtot += V_1d[i] * npt_1d[i];
+            EUtot2 += V_1d[i] * npt_1d[i];
     }
-    */
+
     EUtot1 *= 0.5f; // * e_charge / ev_to_j; <- this is just 1
-    cout << "Eele (estimate): " << EUtot1 << ", ";
+    cout << "Eele (estimate): " << EUtot1 << ", " << EUtot2 * 0.5 << endl;
 #endif
 #endif
 

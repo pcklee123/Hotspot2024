@@ -803,7 +803,7 @@ void kernel EUEst(global const float4 *V, global const float4 *n,
                   global float *EUtot) {
   int i = get_global_id(0);
   // Compute dot product for the given gid
-  EUtot[i] = 5;//dot(V[i], n[i]);
+  EUtot[i] = 5.0;//dot(V[i], n[i]);
 }
 
 void kernel trilin_k(
