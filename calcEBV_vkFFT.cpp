@@ -114,9 +114,9 @@ int calcEBV(fields *fi, par *par)
 
         vkGPU.device = default_device_g();
         vkGPU.context = context_g();
-        // vkGPU. = program_g();
         vkGPU.commandQueue = clCreateCommandQueue(vkGPU.context, vkGPU.device, 0, &res);
         launchParams.commandQueue = &vkGPU.commandQueue;
+
         // Create the OpenCL kernel
         copyData_kernel = clCreateKernel(program_g(), "copyData", NULL);
         copy3Data_kernel = clCreateKernel(program_g(), "copy3Data", NULL);
@@ -406,10 +406,6 @@ int calcEBV(fields *fi, par *par)
     }
 
 #ifdef Eon_
-    // #pragma omp parallel sections
-    // size_t i, j, k, jj;
-
-    // res = clEnqueueWriteBuffer(vkGPU.commandQueue, npt_buffer, CL_TRUE, 0, sizeof(float) * n_cells, fi->npt, 0, NULL, NULL);
     res = clEnqueueNDRangeKernel(vkGPU.commandQueue, copyData_kernel, 1, NULL, &n_cells8, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
     res = clFinish(vkGPU.commandQueue);
     //  only density arrn1 = fft(arrn) multiply fft charge with fft of kernel(i.e field associated with 1 charge)
