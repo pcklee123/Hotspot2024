@@ -2,8 +2,9 @@
 #define maxcells 32
 #define cldevice 0 // 0 usually means integrated GPU
 #define sphere     // do hot spot  problem
-#define octant     // do hot spot  problem 1/8 sphere
+ #define octant // do hot spot  problem 1/8 sphere not valid with B fields
 // #define cylinder //do hot rod problem
+// #define quadrant //do hotspot 1/4 sphere or hotrod 1/4 cylinder
 #define Weibull
 constexpr double weibullb = 4; // b factor for weibull. larger means closer to a shell. ~1 means filled more at the center.
 #define Temp_e 1e7             // in Kelvin 1e7 ~1keV
@@ -82,7 +83,7 @@ constexpr size_t n_cells = n_space_divx * n_space_divy * n_space_divz;
 constexpr size_t n_cells8 = n_cells * 8;
 constexpr size_t n_cellsf = n_cells * sizeof(float);
 constexpr size_t n_cellsi = n_cells * sizeof(int);
-constexpr int n4 = n_partd * sizeof(float); // number of particles * sizeof(float)
+constexpr size_t n4 = n_partd * sizeof(float); // number of particles * sizeof(float)
 constexpr size_t N0 = n_space_divx2, N1 = n_space_divy2, N2 = n_space_divz2,
                  N0N1 = N0 * N1, N0N1_2 = N0N1 / 2, N0N1N2 = N0 * N1 * N2,
                  N0_c = N0 / 2 + 1,

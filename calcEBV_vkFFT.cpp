@@ -98,6 +98,7 @@ int calcEBV(fields *fi, par *par)
     static uint64_t bufferSize_C6 = bufferSize_C * 6;
     static VkFFTLaunchParams launchParams = {};
     size_t n_4 = n_cells / 4;
+    static auto EUtot = new float[n_4];
     int Nbatch;
     if (first)
     { // allocate and initialize to 0
@@ -461,9 +462,10 @@ int calcEBV(fields *fi, par *par)
     res = clFinish(vkGPU.commandQueue);
 #endif
 #else
+    size_t nc3_16 = n_cells * 3 / 16;
     clSetKernelArg(copyextField_kernel, 1, sizeof(cl_mem), &buff_Ee);
     clSetKernelArg(copyextField_kernel, 2, sizeof(cl_mem), &buff_E);
-    res = clEnqueueNDRangeKernel(vkGPU.commandQueue, copyextField_kernel, 1, NULL, &n_cells * 3, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
+    res = clEnqueueNDRangeKernel(vkGPU.commandQueue, copyextField_kernel, 1, NULL, &nc3_16, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
     res = clFinish(vkGPU.commandQueue);
 #endif
 // cout << "E done\n";
@@ -503,7 +505,7 @@ int calcEBV(fields *fi, par *par)
 #else
     clSetKernelArg(copyextField_kernel, 1, sizeof(cl_mem), &buff_Be);
     clSetKernelArg(copyextField_kernel, 2, sizeof(cl_mem), &buff_B);
-    res = clEnqueueNDRangeKernel(vkGPU.commandQueue, copyextField_kernel, 1, NULL, &n_cells * 3, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
+    res = clEnqueueNDRangeKernel(vkGPU.commandQueue, copyextField_kernel, 1, NULL, &nc3_16, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
     res = clFinish(vkGPU.commandQueue);
 
 #endif
@@ -511,7 +513,7 @@ int calcEBV(fields *fi, par *par)
 #ifdef Uon_
 #ifdef Eon_ // if both Uon and Eon are defined
     // float EUtot[n_4];
-    auto EUtot = new float[n_4];
+
     float EUtot1 = 0.0;
     float EUtot2 = 0.f;
     clSetKernelArg(EUEst_kernel, 0, sizeof(cl_mem), &V_buffer);

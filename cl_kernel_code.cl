@@ -283,7 +283,7 @@ void kernel sumFftSField(global const float *fft_real, global float *V) {
   // V[idx] = 5.0;
 }
 
-void kernel copyextField(global const float *Fe, global float *F) {
+void kernel copyextField(global const float16 *Fe, global float16 *F) {
   // get global indices
   size_t idx = get_global_id(0);
   F[idx] = Fe[idx];
@@ -733,8 +733,7 @@ void kernel density(global const float *x0, global const float *y0,
   atomic_add(&npi[idx00 + odx110], f.s6);
   atomic_add(&npi[idx00 + odx111], f.s7);
   /*
-
-    npi[idx00 + odx000] += f.s0;
+  npi[idx00 + odx000] += f.s0;
   npi[idx00 + odx001] += f.s1;
   npi[idx00 + odx010] += f.s2;
   npi[idx00 + odx011] += f.s3;

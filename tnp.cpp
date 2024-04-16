@@ -1,8 +1,8 @@
 #include "include/traj.h"
 void tnp(fields *fi, particles *pt, par *par)
 {
-   unsigned int n0 = par->n_part[1];       // number of deuteron particles ;
-   unsigned int n = par->n_part[2];        // both electron and ion
+   unsigned int n0 = par->n_part[1]; // number of deuteron particles ;
+   unsigned int n = par->n_part[2];  // both electron and ion
    unsigned int n4 = n0 * sizeof(float);   // number of particles * sizeof(float)
    unsigned int n8 = n * sizeof(float);    // number of particles * sizeof(float)
    unsigned int nc = n_cells * ncoeff * 3; // trilin constatnts have 8 coefficients 3 components
@@ -58,9 +58,9 @@ void tnp(fields *fi, particles *pt, par *par)
 #if defined(sphere)
 #if defined(octant)
    cl::Kernel kernel_tnp = cl::Kernel(program_g, "tnp_k_implicito"); // select the kernel program to run
-#endif
 #else
    cl::Kernel kernel_tnp = cl::Kernel(program_g, "tnp_k_implicit"); // select the kernel program to run
+#endif
 #endif
 
 #ifdef cylinder
@@ -273,16 +273,16 @@ void tnp(fields *fi, particles *pt, par *par)
       queue.enqueueWriteBuffer(buff_x0_e, CL_TRUE, 0, n4, pt->pos0x[0]);
       queue.enqueueWriteBuffer(buff_y0_e, CL_TRUE, 0, n4, pt->pos0y[0]);
       queue.enqueueWriteBuffer(buff_z0_e, CL_TRUE, 0, n4, pt->pos0z[0]);
-      // queue.enqueueWriteBuffer(buff_x1_e, CL_TRUE, 0, n4, pt->pos1x[0]);
-      // queue.enqueueWriteBuffer(buff_y1_e, CL_TRUE, 0, n4, pt->pos1y[0]);
-      // queue.enqueueWriteBuffer(buff_z1_e, CL_TRUE, 0, n4, pt->pos1z[0]);
+      queue.enqueueWriteBuffer(buff_x1_e, CL_TRUE, 0, n4, pt->pos1x[0]);
+      queue.enqueueWriteBuffer(buff_y1_e, CL_TRUE, 0, n4, pt->pos1y[0]);
+      queue.enqueueWriteBuffer(buff_z1_e, CL_TRUE, 0, n4, pt->pos1z[0]);
 
       queue.enqueueWriteBuffer(buff_x0_i, CL_TRUE, 0, n4, pt->pos0x[1]);
       queue.enqueueWriteBuffer(buff_y0_i, CL_TRUE, 0, n4, pt->pos0y[1]);
       queue.enqueueWriteBuffer(buff_z0_i, CL_TRUE, 0, n4, pt->pos0z[1]);
-      // queue.enqueueWriteBuffer(buff_x1_i, CL_TRUE, 0, n4, pt->pos1x[1]);
-      // queue.enqueueWriteBuffer(buff_y1_i, CL_TRUE, 0, n4, pt->pos1y[1]);
-      // queue.enqueueWriteBuffer(buff_z1_i, CL_TRUE, 0, n4, pt->pos1z[1]);
+      queue.enqueueWriteBuffer(buff_x1_i, CL_TRUE, 0, n4, pt->pos1x[1]);
+      queue.enqueueWriteBuffer(buff_y1_i, CL_TRUE, 0, n4, pt->pos1y[1]);
+      queue.enqueueWriteBuffer(buff_z1_i, CL_TRUE, 0, n4, pt->pos1z[1]);
       //  cout<<"change_dt done"<<endl;
    }
    first = false;

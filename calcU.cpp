@@ -126,7 +126,7 @@ void calcU(fields *fi, particles *pt, par *par)
             E2tot += e * e; // Why can we do this? Because E^2 = Ex^2 + Ey^2 + Ez^2
         }
         E2tot *= 0.5f * epsilon0 * (par->dd[0] * par->dd[1] * par->dd[2]); // dV
-                                                                           //       EUtot += E2tot;
+        EUtot += E2tot;
     }
 #endif
 
