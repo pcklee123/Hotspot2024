@@ -279,7 +279,8 @@ void kernel sumFftSField(global const float *fft_real, global float *V) {
   size_t k = (idx / NXNY) % NZ;
 
   int idx000 = k * N0N1 + j * N0 + i; // idx_kji
-  V[idx] = fft_real[idx000];
+//  V[idx] = fft_real[idx000];
+  V[idx] = 5.0;
 }
 
 void kernel copyextField(global const float *Fe, global float *F) {
