@@ -13,7 +13,7 @@ constexpr int f2 = f1 * 1.2;
 constexpr float incf = 1.2f;        // increment
 constexpr float decf = 1.0f / incf; // decrement factor
 
-constexpr int n_space = 256; // should be 2 to power of n for faster FFT 128^3 = 2M
+constexpr int n_space = 128; // should be 2 to power of n for faster FFT 128^3 = 2M
 
 constexpr size_t n_partd = 1 * 1024 * 1024; // n_space * n_space * n_space * 1 * 16; // must be 2 to power of n
 constexpr size_t n_parte = n_partd;
