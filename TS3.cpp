@@ -148,11 +148,12 @@ int main()
     res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_y0_i[0](), CL_TRUE, 0, n4, pt->pos0y[1], 0, NULL, NULL);
     res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_z0_i[0](), CL_TRUE, 0, n4, pt->pos0z[1], 0, NULL, NULL);
 
+#ifdef Uon_
     // cout << "calculate the total potential energy U\n";
     //                  timer.mark();
     calcU(fi, pt, par);
     // cout << "U: " << timer.elapsed() << "s, ";
-
+#endif
     // cout << "savefiles" << endl;
     info(par); // printout initial info.csv file re do this with updated info
     save_files(i_time, t, fi, pt, par);
