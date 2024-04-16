@@ -233,8 +233,8 @@ void tnp(fields *fi, particles *pt, par *par)
       // timer.mark();
       // set externally applied fields this is inside time loop so we can set time varying E and B field
       // calcEeBe(Ee,Be,t); // find E field must work out every i,j,k depends on charge in every other cell
-      // queue.enqueueReadBuffer(buff_Ee, CL_TRUE, 0, n_cellsf * 3, fi->Ee);
-      // queue.enqueueReadBuffer(buff_Be, CL_TRUE, 0, n_cellsf * 3, fi->Be);
+      // queue.enqueueWriteBuffer(buff_Ee, CL_TRUE, 0, n_cellsf * 3, fi->Ee);
+      // queue.enqueueWriteBuffer(buff_Be, CL_TRUE, 0, n_cellsf * 3, fi->Be);
       cdt = calcEBV(fi, par);
       // cout << "\nEBV: " << timer.elapsed() << "s, \n";
    }
@@ -245,7 +245,7 @@ void tnp(fields *fi, particles *pt, par *par)
      //    queue.enqueueUnmapMemObject(buff_x0_e, mapped_buff_x0_e);
    }
    else
-   { //read buffers to save to disk
+   { // read buffers to save to disk
       queue.enqueueReadBuffer(buff_npt, CL_TRUE, 0, n_cellsf, fi->npt);
       queue.enqueueReadBuffer(buff_jc, CL_TRUE, 0, n_cellsf * 3, fi->jc);
       queue.enqueueReadBuffer(buff_E, CL_TRUE, 0, n_cellsf * 3, fi->E);
@@ -267,25 +267,23 @@ void tnp(fields *fi, particles *pt, par *par)
 
       queue.enqueueReadBuffer(buff_q_e, CL_TRUE, 0, n4, pt->q[0]);
       queue.enqueueReadBuffer(buff_q_i, CL_TRUE, 0, n4, pt->q[1]);
-
-      if (changedt(pt, cdt, par))
-      {
-         queue.enqueueWriteBuffer(buff_x0_e, CL_TRUE, 0, n4, pt->pos0x[0]);
-         queue.enqueueWriteBuffer(buff_y0_e, CL_TRUE, 0, n4, pt->pos0y[0]);
-         queue.enqueueWriteBuffer(buff_z0_e, CL_TRUE, 0, n4, pt->pos0z[0]);
-         queue.enqueueWriteBuffer(buff_x1_e, CL_TRUE, 0, n4, pt->pos1x[0]);
-         queue.enqueueWriteBuffer(buff_y1_e, CL_TRUE, 0, n4, pt->pos1y[0]);
-         queue.enqueueWriteBuffer(buff_z1_e, CL_TRUE, 0, n4, pt->pos1z[0]);
-
-         queue.enqueueWriteBuffer(buff_x0_i, CL_TRUE, 0, n4, pt->pos0x[1]);
-         queue.enqueueWriteBuffer(buff_y0_i, CL_TRUE, 0, n4, pt->pos0y[1]);
-         queue.enqueueWriteBuffer(buff_z0_i, CL_TRUE, 0, n4, pt->pos0z[1]);
-         queue.enqueueWriteBuffer(buff_x1_i, CL_TRUE, 0, n4, pt->pos1x[1]);
-         queue.enqueueWriteBuffer(buff_y1_i, CL_TRUE, 0, n4, pt->pos1y[1]);
-         queue.enqueueWriteBuffer(buff_z1_i, CL_TRUE, 0, n4, pt->pos1z[1]);
-         // cout<<"change_dt done"<<endl;
-      };
    }
+   if (changedt(pt, cdt, par))
+   {
+      queue.enqueueWriteBuffer(buff_x0_e, CL_TRUE, 0, n4, pt->pos0x[0]);
+      queue.enqueueWriteBuffer(buff_y0_e, CL_TRUE, 0, n4, pt->pos0y[0]);
+      queue.enqueueWriteBuffer(buff_z0_e, CL_TRUE, 0, n4, pt->pos0z[0]);
+      // queue.enqueueWriteBuffer(buff_x1_e, CL_TRUE, 0, n4, pt->pos1x[0]);
+      // queue.enqueueWriteBuffer(buff_y1_e, CL_TRUE, 0, n4, pt->pos1y[0]);
+      // queue.enqueueWriteBuffer(buff_z1_e, CL_TRUE, 0, n4, pt->pos1z[0]);
 
+      queue.enqueueWriteBuffer(buff_x0_i, CL_TRUE, 0, n4, pt->pos0x[1]);
+      queue.enqueueWriteBuffer(buff_y0_i, CL_TRUE, 0, n4, pt->pos0y[1]);
+      queue.enqueueWriteBuffer(buff_z0_i, CL_TRUE, 0, n4, pt->pos0z[1]);
+      // queue.enqueueWriteBuffer(buff_x1_i, CL_TRUE, 0, n4, pt->pos1x[1]);
+      // queue.enqueueWriteBuffer(buff_y1_i, CL_TRUE, 0, n4, pt->pos1y[1]);
+      // queue.enqueueWriteBuffer(buff_z1_i, CL_TRUE, 0, n4, pt->pos1z[1]);
+      //  cout<<"change_dt done"<<endl;
+   }
    first = false;
 }

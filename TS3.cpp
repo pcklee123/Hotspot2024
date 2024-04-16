@@ -94,7 +94,11 @@ int main()
     cl_int res = 0;
     get_densityfields(fi, pt, par); // density this is incorporated into tnp which also moves particles, but need to work out here to get good estimate of dt
     res = clEnqueueReadBuffer(commandQueue_g(), fi->buff_np_e[0](), CL_TRUE, 0, n_cellsf, fi->np[0], 0, NULL, NULL);
-
+    float max_ne = maxvalf((reinterpret_cast<float *>(fi->np[0])), n_cells);
+    float Density_e = max_ne * r_part_spart / powf(a0, 3);
+    // cout << "max density electron = " << max_ne << ", " << max_ne * r_part_spart / powf(a0, 3) << "m-3, ion = " << max_ni << ", " << max_ni * r_part_spart / powf(a0, 3) << endl;
+    // float max_ni = maxvalf((reinterpret_cast<float *>(fi->np[1])), n_cells);
+    // max_jc = maxvalf((reinterpret_cast<float *>(fi->jc)), n_cells * 3);
     // cout << "dt = " << par->dt[0] << ", " << par->dt[1] << endl;
     // float max_jc = maxvalf((reinterpret_cast<float *>(fi->jc)), n_cells * 3);
     // cout << "max current density  = " << max_jc << endl;
@@ -106,19 +110,10 @@ int main()
     res = clEnqueueReadBuffer(commandQueue_g(), fi->E_buffer, CL_TRUE, 0, n_cellsf * 3, fi->E, 0, NULL, NULL);
     res = clEnqueueReadBuffer(commandQueue_g(), fi->B_buffer, CL_TRUE, 0, n_cellsf * 3, fi->B, 0, NULL, NULL);
     cout << timer.elapsed() << "s\n ";
-    // int cdt=0;
-    // changedt(pt, cdt, par); /* change time step if E or B too big*/
 
-    float max_ne = maxvalf((reinterpret_cast<float *>(fi->np[0])), n_cells);
-    float Density_e = max_ne * r_part_spart / powf(a0, 3);
-    // float max_ni = maxvalf((reinterpret_cast<float *>(fi->np[1])), n_cells);
-    // max_jc = maxvalf((reinterpret_cast<float *>(fi->jc)), n_cells * 3);
-    // cout << "max current density  = " << max_jc << endl;
-    // cout << "max density electron = " << max_ne << ", " << max_ne * r_part_spart / powf(a0, 3) << "m-3, ion = " << max_ni << ", " << max_ni * r_part_spart / powf(a0, 3) << endl;
     // cout << "Emax = " << par->Emax << ", " << "Bmax = " << par->Bmax << endl;
     // calculated plasma parameters
     float Density_e1 = nback * r_part_spart / (powf(n_space * a0, 3));
-
     info_file << "initial density = " << Density_e << "/m^3,  background density = " << Density_e1 << "/m^3 \n";
     float plasma_freq = sqrt(Density_e * e_charge * e_charge_mass / (mp[0] * epsilon0)) / (2 * pi);
     float plasma_period = 1 / plasma_freq;
@@ -145,14 +140,19 @@ int main()
 #pragma omp parallel for simd
     for (int n = 0; n < par->n_part[0] * 3 * 2; n++)
         pt->pos0[n] = pt->pos1[n] - (pt->pos1[n] - pt->pos0[n]) * inc;
-        //   cout << "dt changed" << endl;
+    //   cout << "dt changed" << endl;
+    res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_x0_e[0](), CL_TRUE, 0, n4, pt->pos0x[0], 0, NULL, NULL);
+    res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_y0_e[0](), CL_TRUE, 0, n4, pt->pos0y[0], 0, NULL, NULL);
+    res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_z0_e[0](), CL_TRUE, 0, n4, pt->pos0z[0], 0, NULL, NULL);
+    res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_x0_i[0](), CL_TRUE, 0, n4, pt->pos0x[1], 0, NULL, NULL);
+    res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_y0_i[0](), CL_TRUE, 0, n4, pt->pos0y[1], 0, NULL, NULL);
+    res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_z0_i[0](), CL_TRUE, 0, n4, pt->pos0z[1], 0, NULL, NULL);
 
-#ifdef Uon_
     // cout << "calculate the total potential energy U\n";
     //                  timer.mark();
     calcU(fi, pt, par);
-// cout << "U: " << timer.elapsed() << "s, ";
-#endif
+    // cout << "U: " << timer.elapsed() << "s, ";
+
     // cout << "savefiles" << endl;
     info(par); // printout initial info.csv file re do this with updated info
     save_files(i_time, t, fi, pt, par);
@@ -162,7 +162,6 @@ int main()
     log_entry(0, 0, cdt, total_ncalc, t, par); // Write everything to log
     nt0prev = par->nt[0];
     //  cout << par->nt[0] << " " << nt0prev << endl;
-#pragma omp barrier
 
     cout << "print data: " << timer.elapsed() << "s (no. of electron time steps calculated: " << 0 << ")\n";
 
