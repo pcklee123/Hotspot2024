@@ -41,13 +41,6 @@ int calcEBV(fields *fi, par *par)
 {
     // static fftwf_plan planforE, planforB, planbacE, planbacB;
     static int first = 1;
-    // static auto *fft_real = static_cast<float(*)[n_cells8]>(_aligned_malloc(sizeof(float) * n_cells8 * 4, 4096));                      // fft_real[4][n_cells8]
-    // static auto *fft_complex = static_cast<complex<float>(*)[n_cells4]>(_aligned_malloc(sizeof(complex<float>) * n_cells4 * 4, 4096)); // fft_complex[4][n_cells4]
-    //   pre-calculate 1/ r3 to make it faster to calculate electric and magnetic fields
-    //    static auto *precalc_r3 = static_cast<complex<float>(*)[3][n_cells4]>(_aligned_malloc(sizeof(complex<float>) * 2 * 3 * n_cells4, 4096)); // precalc_r3[2][3][n_cells4]
-#ifdef Uon_ // similar arrays for U, but kept separately in one ifdef
-            // static auto *precalc_r2 = static_cast<complex<float>(*)>(_aligned_malloc(sizeof(complex<float>) * n_cells4, 4096));                      // precalc_r3[n_cells4]
-#endif
 
     static float posL2[3];
     static cl_kernel copyData_kernel;
@@ -59,6 +52,7 @@ int calcEBV(fields *fi, par *par)
     static cl_kernel sumFftField_kernel;
     static cl_kernel sumFftSField_kernel;
     static cl_kernel copyextField_kernel;
+    static cl_kernel EUEst_kernel;
 
     static VkFFTApplication app1 = {};
     static VkFFTApplication app3 = {};
@@ -73,7 +67,7 @@ int calcEBV(fields *fi, par *par)
     static cl_mem fft_real_buffer1 = 0;
     static cl_mem fft_complex_buffer = 0;
     static cl_mem fft_p_buffer = 0;
-    cl_mem V_buffer = 0;
+    static cl_mem V_buffer = 0;
 
     cl_mem npt_buffer = fi->npt_buffer;
     cl_mem jc_buffer = fi->jc_buffer;
@@ -88,6 +82,9 @@ int calcEBV(fields *fi, par *par)
     vkGPU.device_id = device_id_g; // use same GPU as motion code
     VkFFTResult resFFT = VKFFT_SUCCESS;
     cl_int res = CL_SUCCESS;
+
+    size_t n_4 = n_cells / 4;
+    static cl_mem EUtot_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, n_4 * sizeof(float), 0, &res);
 
     static uint64_t bufferSize_R = (uint64_t)sizeof(float) * n_cells8;          // buffer size per batch Real
     static uint64_t bufferSize_C = (uint64_t)sizeof(complex<float>) * n_cells4; // buffer size per batch Complex
@@ -126,7 +123,8 @@ int calcEBV(fields *fi, par *par)
         sumFftFieldo_kernel = clCreateKernel(program_g(), "sumFftFieldo", NULL);
         sumFftField_kernel = clCreateKernel(program_g(), "sumFftField", NULL);
         sumFftSField_kernel = clCreateKernel(program_g(), "sumFftSField", NULL);
-        copyextField_kernel = clCreateKernel(program_g(), " copyextField", NULL);
+        copyextField_kernel = clCreateKernel(program_g(), "copyextField", NULL);
+        EUEst_kernel = clCreateKernel(program_g(), "EUEst", NULL);
 
         fft_real_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_R4, 0, &res);
         cl_buffer_region region;
@@ -138,6 +136,7 @@ int calcEBV(fields *fi, par *par)
         fft_p_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_P4, 0, &res);
         cl_mem r3_base_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_R6, 0, &res);
         cl_mem r2_base_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_R, 0, &res);
+
         r3_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_C6, 0, &res);
         r2_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_C, 0, &res);
         fi->r3_buffer = r3_buffer;
@@ -396,7 +395,7 @@ int calcEBV(fields *fi, par *par)
         clSetKernelArg(NxPrecalc_kernel, 1, sizeof(cl_mem), &fft_complex_buffer);
 
         clSetKernelArg(NxPrecalcr2_kernel, 0, sizeof(cl_mem), &r2_buffer);
-        res = clSetKernelArg(NxPrecalcr2_kernel, 1, sizeof(cl_mem), &fft_complex_buffer);
+        clSetKernelArg(NxPrecalcr2_kernel, 1, sizeof(cl_mem), &fft_complex_buffer);
 
         clSetKernelArg(jcxPrecalc_kernel, 0, sizeof(cl_mem), &r3_buffer);
         clSetKernelArg(jcxPrecalc_kernel, 1, sizeof(cl_mem), &fft_complex_buffer);
@@ -427,7 +426,7 @@ int calcEBV(fields *fi, par *par)
     res = clEnqueueNDRangeKernel(vkGPU.commandQueue, sumFftSField_kernel, 1, NULL, &n_cells, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
     res = clFinish(vkGPU.commandQueue);
 
-    res = clEnqueueReadBuffer(vkGPU.commandQueue, V_buffer, CL_TRUE, 0, sizeof(float) * n_cells, fi->V, 0, NULL, NULL);
+    //   res = clEnqueueReadBuffer(vkGPU.commandQueue, V_buffer, CL_TRUE, 0, sizeof(float) * n_cells, fi->V, 0, NULL, NULL);
 #else
     // cout << "inverse transform to get convolution" << endl;
     launchParams.inputBufferOffset = n_cells4 * sizeof(complex<flost>);
@@ -493,23 +492,38 @@ int calcEBV(fields *fi, par *par)
     res = clFinish(vkGPU.commandQueue);
 
 #endif
-
 // cout << "B done\n";
 #ifdef Uon_
 #ifdef Eon_ // if both Uon and Eon are defined
+    // float EUtot[n_4];
+    auto EUtot = new float[n_4];
+    float EUtot1 = 0;
+    clSetKernelArg(EUEst_kernel, 0, sizeof(cl_mem), &V_buffer);
+    clSetKernelArg(EUEst_kernel, 1, sizeof(cl_mem), &npt_buffer);
+    clSetKernelArg(EUEst_kernel, 2, sizeof(cl_mem), &EUtot_buffer);
+    res = clEnqueueNDRangeKernel(vkGPU.commandQueue, EUEst_kernel, 1, NULL, &n_4, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
+    cout << res << endl;
+    res = clFinish(vkGPU.commandQueue);
+    res = clEnqueueReadBuffer(vkGPU.commandQueue, EUtot_buffer, CL_TRUE, 0, sizeof(float) * n_4, EUtot, 0, NULL, NULL);
+    // #pragma omp parallel for simd reduction(+:EUtot1)
+    for (int i = 0; i < n_4; ++i)
+    {
+        EUtot1 += EUtot[i];
+        cout << EUtot[i] << ", ";
+    }
+
+    /*
     {
         // Perform estimate of electric potential energy
-        size_t i, j, k, jj = 0;
         float EUtot = 0.f;
         const float *V_1d = reinterpret_cast<float *>(fi->V);
         const float *npt_1d = reinterpret_cast<float *>(fi->npt);
         for (int i = 0; i < n_cells; ++i)
-        {
             EUtot += V_1d[i] * npt_1d[i];
-        }
-        EUtot *= 0.5f; // * e_charge / ev_to_j; <- this is just 1
-        cout << "Eele (estimate): " << EUtot << ", ";
     }
+    */
+    EUtot1 *= 0.5f; // * e_charge / ev_to_j; <- this is just 1
+    cout << "Eele (estimate): " << EUtot1 << ", ";
 #endif
 #endif
 

@@ -262,6 +262,26 @@ void kernel sumFftField(global const float *fft_real, global const float *Fe,
   }
 }
 
+void kernel sumFftSField(global const float *fft_real, global float *V) {
+  const size_t N0 = NX * 2;
+  const size_t N1 = NY * 2;
+  const size_t N2 = NZ * 2;
+  const size_t NXNY = NX * NY;
+  const size_t NXNYNZ = NXNY * NZ;
+  const size_t N0N1 = N0 * N1;
+  const size_t N0N1N2 = N0N1 * N2;
+
+  // get global indices
+  size_t idx = get_global_id(0);
+  // Compute 3D index for dest array
+  size_t i = idx % NX;
+  size_t j = (idx / NX) % NY;
+  size_t k = (idx / NXNY) % NZ;
+
+  int idx000 = k * N0N1 + j * N0 + i; // idx_kji
+  V[idx] = fft_real[idx000];
+}
+
 void kernel copyextField(global const float *Fe, global float *F) {
   // get global indices
   size_t idx = get_global_id(0);
@@ -778,6 +798,12 @@ void kernel dtotal(global const float16 *ne, global const float16 *ni,
   jt[i] = je[i] + ji[i];
   jt[n + i] = je[n + i] + ji[n + i];
   jt[n2 + i] = je[n2 + i] + ji[n2 + i];
+}
+void kernel EUEst(global const float4 *V, global const float4 *n,
+                  global float *EUtot) {
+  int i = get_global_id(0);
+  // Compute dot product for the given gid
+  EUtot[i] = 5;//dot(V[i], n[i]);
 }
 
 void kernel trilin_k(
