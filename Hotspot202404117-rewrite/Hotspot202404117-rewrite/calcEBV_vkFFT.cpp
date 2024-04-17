@@ -406,11 +406,6 @@ int calcEBV(fields *fi, par *par)
     }
 
 #ifdef Eon_
-    // #pragma omp parallel sections
-    {
-        {
-            size_t i, j, k, jj;
-
             res = clEnqueueWriteBuffer(vkGPU.commandQueue, fi->npt_buffer, CL_TRUE, 0, sizeof(float) * n_cells, fi->npt, 0, NULL, NULL);
             res = clEnqueueNDRangeKernel(vkGPU.commandQueue, copyData_kernel, 1, NULL, &n_cells8, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
             res = clFinish(vkGPU.commandQueue);
@@ -425,7 +420,7 @@ int calcEBV(fields *fi, par *par)
             // cout << "inverse transform to get convolution" << endl;
             resFFT = VkFFTAppend(&appbac4, 1, &launchParams); // 1 = inverse FFT//if (resFFT)                cout << "execute plan bac E resFFT = " << resFFT << endl;
             res = clFinish(vkGPU.commandQueue);               // cout << "execute plan bac E ,clFinish res = " << res << endl;
-            resFFT = transferDataToCPU(&vkGPU, fft_real[0], &fft_real_buffer, bufferSize_R4);
+          //  resFFT = transferDataToCPU(&vkGPU, fft_real[0], &fft_real_buffer, bufferSize_R4);
 
 #else
             res = clEnqueueNDRangeKernel(vkGPU.commandQueue, NxPrecalc_kernel, 1, NULL, &n_cells4, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
@@ -458,18 +453,8 @@ int calcEBV(fields *fi, par *par)
 #endif
            
 #ifdef Uon_
-            jj = 0;
 
-            for (k = 0; k < n_space_divz; ++k)
-            {
-                // #pragma omp parallel for simd num_threads(nthreads)
-                for (j = 0; j < n_space_divy; ++j)
-                    memcpy(fi->V[k][j], &fft_real[0][jj += N0], sizeof(float) * n_space_divx);
-                jj += N0N1_2;
-            }
 #endif
-        }
-    }
 #else
     memcpy(reinterpret_cast<float *>(E), reinterpret_cast<float *>(Ee), 3 * n_cells * sizeof(float));
 #endif
