@@ -95,8 +95,8 @@ void changedx(fields *fi, par *par)
                                                                                  
                                                                                  #endif
                                                                                  */
-    buffer_muls(fi->r3_buffer, 1 / (a0_ff * a0_ff), n_cells4 * 6);
-    buffer_muls(fi->r2_buffer, 1 / (a0_ff), n_cells4 * 2);
+    buffer_muls(fi->r3_buffer, 1 / (a0_ff * a0_ff), n_cells4 * 2 * 3 * 2);           // 2 floats per complex 3 axis, 2 types E and B
+    buffer_muls(fi->r2_buffer, 1 / (a0_ff), n_cells4 * 2);                           // 2 floats per complex
     //  cout << "make cells bigger " << par->nt[0] << " " << nt0prev << ",ao_f = " << par->a0_f << endl;
     generateField(fi, par);
 }
