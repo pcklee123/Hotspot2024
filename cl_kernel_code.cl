@@ -671,6 +671,142 @@ void kernel tnp_k_implicito(global const float8 *a1,
   z1[id] = z;
 }
 
+void kernel tnp_k_implicitqz(global const float8 *a1,
+                             global const float8 *a2, // E, B coeff
+                             global float *x0, global float *y0,
+                             global float *z0, // prev pos
+                             global float *x1, global float *y1,
+                             global float *z1, // current pos
+                             float Bcoef,
+                             float Ecoef, // Bcoeff, Ecoeff
+                             float a0_f, const unsigned int n,
+                             const unsigned int ncalc, // n, ncalc
+                             global int *q) {
+
+  uint id = get_global_id(0);
+  uint prev_idx = UINT_MAX;
+  float xprev = x0[id], yprev = y0[id], zprev = z0[id], x = x1[id], y = y1[id],
+        z = z1[id];
+  float8 temp, pos;
+  float r1 = 1.0f;
+  float r2 = r1 * r1;
+  float8 store0, store1, store2, store3, store4, store5;
+  const float Bcoeff = Bcoef / r1;
+  const float Ecoeff = Ecoef / r1;
+  const float DX = DXo * a0_f, DY = DYo * a0_f, DZ = DZo * a0_f;
+  const float XLOW = XLOWo * a0_f, YLOW = YLOWo * a0_f, ZLOW = ZLOWo * a0_f;
+  const float XHIGH = XHIGHo * a0_f, YHIGH = YHIGHo * a0_f,
+              ZHIGH = ZHIGHo * a0_f;
+  // const float XL = (XLOW + 1.5f * DX), YL = (YLOW + 1.5f * DY),
+  //             ZL = (ZLOW + 1.5f * DZ);
+  const float XL = (XLOW + 0.5f * DX), YL = (YLOW + 0.5f * DX),
+              ZL = (ZLOW + 0.5f * DX);
+  const float XH = (XHIGH - 1.5f * DX), YH = (YHIGH - 1.5f * DY),
+              ZH = (ZHIGH - 1.5f * DZ);
+  const float ZDZ = ZH - ZL - DZ / 10;
+  const float8 ones = (float8)(1, 1, 1, 1, 1, 1, 1, 1);
+  for (int t = 0; t < ncalc; t++) {
+    float xy = x * y, xz = x * z, yz = y * z, xyz = x * yz;
+    uint idx =
+        ((uint)((z - ZLOW) / DZ) * NZ + (uint)((y - YLOW) / DY)) * NY +
+        (uint)((x - XLOW) / DX); // round down the cells - this is intentional
+    idx *= 3;
+    pos = (float8)(1.f, x, y, z, xy, xz, yz, xyz);
+    // Is there no better way to do this? Why does float8 not have dot()?
+    if (prev_idx != idx) {
+      store0 = a1[idx]; // Ex
+      store1 = a1[idx + 1];
+      store2 = a1[idx + 2];
+      store3 = a2[idx]; // Bx
+      store4 = a2[idx + 1];
+      store5 = a2[idx + 2];
+      prev_idx = idx;
+    }
+    temp = store0 * pos;
+    float xE = temp.s0 + temp.s1 + temp.s2 + temp.s3 + temp.s4 + temp.s5 +
+               temp.s6 + temp.s7;
+    temp = store1 * pos;
+    float yE = temp.s0 + temp.s1 + temp.s2 + temp.s3 + temp.s4 + temp.s5 +
+               temp.s6 + temp.s7;
+    temp = store2 * pos;
+    float zE = temp.s0 + temp.s1 + temp.s2 + temp.s3 + temp.s4 + temp.s5 +
+               temp.s6 + temp.s7;
+    temp = store3 * pos;
+    float xP = temp.s0 + temp.s1 + temp.s2 + temp.s3 + temp.s4 + temp.s5 +
+               temp.s6 + temp.s7;
+    temp = store4 * pos;
+    float yP = temp.s0 + temp.s1 + temp.s2 + temp.s3 + temp.s4 + temp.s5 +
+               temp.s6 + temp.s7;
+    temp = store5 * pos;
+    float zP = temp.s0 + temp.s1 + temp.s2 + temp.s3 + temp.s4 + temp.s5 +
+               temp.s6 + temp.s7;
+
+    xP *= Bcoeff;
+    yP *= Bcoeff;
+    zP *= Bcoeff;
+    xE *= Ecoeff;
+    yE *= Ecoeff;
+    zE *= Ecoeff;
+
+    float xyP = xP * yP, yzP = yP * zP, xzP = xP * zP;
+    float xxP = xP * xP, yyP = yP * yP, zzP = zP * zP;
+    // float b_det = 1.f / (1.f + xxP + yyP + zzP);
+    float b_det = r2 / (r2 + xxP + yyP + zzP);
+
+    float vx = (x - xprev); // / dt -> cancels out in the end
+    float vy = (y - yprev);
+    float vz = (z - zprev);
+
+    xprev = x;
+    yprev = y;
+    zprev = z;
+
+    float vxxe = vx + xE, vyye = vy + yE, vzze = vz + zE;
+
+    x += fma(b_det,
+             fma(-vx, yyP + zzP,
+                 fma(vyye, zP + xyP, fma(vzze, xzP - yP, fma(xxP, xE, xE)))),
+             vx);
+    y += fma(b_det,
+             fma(vxxe, xyP - zP,
+                 fma(-vy, xxP + zzP, fma(vzze, xP + yzP, fma(yyP, yE, yE)))),
+             vy);
+    z += fma(b_det,
+             fma(vxxe, yP + xzP,
+                 fma(vyye, yzP - xP, fma(-vz, xxP + yyP, fma(zzP, zE, zE)))),
+             vz);
+  }
+  
+  float xt, yt;
+  xt = x > XL ? xprev : yprev;
+  yt = x > XL ? yprev : -xprev;
+  xprev = xt;
+  yprev = yt;
+  xt = y > YL ? xprev : -yprev;
+  yt = y > YL ? yprev : xprev;
+  xprev = xt;
+  yprev = yt;
+  xprev = x < XH ? xprev : XH;
+  yprev = y < YH ? yprev : YH;
+  zprev = z > ZL ? zprev : zprev + ZDZ;
+  zprev = z < ZH ? zprev : zprev - ZDZ;
+
+  q[id] = (x < XH & y < YH H) ? q[id] : 0;
+  x = x > XL ? x : -x;
+  x = x < XH ? x : XH;
+  y = y > YL ? y : -y;
+  y = y < YH ? y : YH;
+  z = z > ZL ? z : z + ZDZ;
+  z = z < ZH ? z : z - ZDZ;
+
+  x0[id] = xprev;
+  y0[id] = yprev;
+  z0[id] = zprev;
+  x1[id] = x;
+  y1[id] = y;
+  z1[id] = z;
+}
+
 void kernel density(global const float *x0, global const float *y0,
                     global const float *z0, // prev pos
                     global const float *x1, global const float *y1,
@@ -803,7 +939,7 @@ void kernel EUEst(global const float4 *V, global const float4 *n,
                   global float *EUtot) {
   int i = get_global_id(0);
   // Compute dot product for the given gid
-  EUtot[i] =  dot(V[i], n[i]);
+  EUtot[i] = dot(V[i], n[i]);
 }
 
 void kernel trilin_k(
