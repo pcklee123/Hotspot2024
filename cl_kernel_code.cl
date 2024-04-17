@@ -252,11 +252,8 @@ void kernel sumFftField(global const float *fft_real, global const float *Fe,
   size_t i = idx % NX;
   size_t j = (idx / NX) % NY;
   size_t k = (idx / NXNY) % NZ;
-
   size_t cdx = 0, cdx8 = 0;
-
   int idx000 = k * N0N1 + j * N0 + i; // idx_kji
-
   for (int c = 0; c < 3; ++c, cdx += NXNYNZ, cdx8 += N0N1N2) {
     F[cdx + idx] = Fe[cdx + idx] + fft_real[cdx8 + idx000];
   }

@@ -126,29 +126,33 @@ int calcEBV(fields *fi, par *par)
         copyextField_kernel = clCreateKernel(program_g(), "copyextField", NULL);
         EUEst_kernel = clCreateKernel(program_g(), "EUEst", NULL);
 
+        // Create memory buffers on the device for each vector
+
         fft_real_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_R4, 0, &res);
         cl_buffer_region region;
         region.origin = bufferSize_R;
         region.size = bufferSize_R3;
         fft_real_buffer1 = clCreateSubBuffer(fft_real_buffer, CL_MEM_READ_WRITE, CL_BUFFER_CREATE_TYPE_REGION, &region, &res);
-
+        if (fft_real_buffer1 == NULL)
+            cout << "cannot create sub buffer" << endl;
         fft_complex_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_C4, 0, &res);
         fft_p_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_P4, 0, &res);
-        cl_mem r3_base_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_R6, 0, &res);
-        cl_mem r2_base_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_R, 0, &res);
-
-        r3_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_C6, 0, &res);
-        r2_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_C, 0, &res);
-        fi->r3_buffer = r3_buffer;
-        fi->r2_buffer = r2_buffer;
-
         V_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_R, 0, &res);
         fi->V_buffer = V_buffer;
 
         EUtot_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, n_4 * sizeof(float), 0, &res);
         if (res)
             cout << "clCreateBuffer res: " << res << endl;
-        // Create memory buffers on the device for each vector
+
+        r3_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_C6, 0, &res);
+        r2_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_C, 0, &res);
+        fi->r3_buffer = r3_buffer;
+        fi->r2_buffer = r2_buffer;
+
+        // Create temporary memory buffers on the device
+
+        cl_mem r3_base_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_R6, 0, &res);
+        cl_mem r2_base_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_R, 0, &res);
 
         VkFFTConfiguration configuration = {};
         VkFFTApplication appfor_k = {};
@@ -440,11 +444,13 @@ int calcEBV(fields *fi, par *par)
     //   res = clEnqueueReadBuffer(vkGPU.commandQueue, V_buffer, CL_TRUE, 0, sizeof(float) * n_cells, fi->V, 0, NULL, NULL);
 #else
     // cout << "inverse transform to get convolution" << endl;
-    launchParams.inputBufferOffset = n_cells4 * sizeof(complex<float>);
-    resFFT = VkFFTAppend(&appbac3, 1, &launchParams); // 1 = inverse FFT//if (resFFT) //cout << "execute plan bac E resFFT = " << resFFT << endl;
-    res = clFinish(vkGPU.commandQueue);               // cout << "execute plan bac E ,clFinish res = " << res << endl;
+    launchParams.inputBufferOffset = n_cells4 * sizeof(complex<float>);  // complex[1-3] is FFT of E field
+    launchParams.outputBufferOffset = n_cells4 * sizeof(complex<float>); // real[1-3] is E field
+    resFFT = VkFFTAppend(&appbac3, 1, &launchParams);                    // 1 = inverse FFT//if (resFFT) //cout << "execute plan bac E resFFT = " << resFFT << endl;
+    res = clFinish(vkGPU.commandQueue);                                  // cout << "execute plan bac E ,clFinish res = " << res << endl;
     // resFFT = transferDataToCPU(&vkGPU, fft_real[0], &fft_real_buffer, bufferSize_R3);
     launchParams.inputBufferOffset = 0;
+    launchParams.outputBufferOffset = 0;
 #endif
 
 #ifdef octant
@@ -456,7 +462,7 @@ int calcEBV(fields *fi, par *par)
         cout << "sumFftFieldo_kernel res: " << res << endl;
     res = clFinish(vkGPU.commandQueue);
 #else
-    clSetKernelArg(sumFftField_kernel, 0, sizeof(cl_mem), &fft_real_buffer1);
+    clSetKernelArg(sumFftField_kernel, 0, sizeof(cl_mem), &fft_real_buffer1); // real[1-3] is E field
     clSetKernelArg(sumFftField_kernel, 1, sizeof(cl_mem), &buff_Ee);
     clSetKernelArg(sumFftField_kernel, 2, sizeof(cl_mem), &buff_E);
     res = clEnqueueNDRangeKernel(vkGPU.commandQueue, sumFftField_kernel, 1, NULL, &n_cells, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel

@@ -2,7 +2,7 @@
 #define maxcells 32
 #define cldevice 0 // 0 usually means integrated GPU
 #define sphere     // do hot spot  problem
- #define octant // do hot spot  problem 1/8 sphere not valid with B fields
+#define octant // do hot spot  problem 1/8 sphere not valid with B fields
 // #define cylinder //do hot rod problem
 // #define quadrant //do hotspot 1/4 sphere or hotrod 1/4 cylinder
 #define Weibull
