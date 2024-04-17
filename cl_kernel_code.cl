@@ -791,7 +791,7 @@ void kernel tnp_k_implicitqz(global const float8 *a1,
   zprev = z > ZL ? zprev : zprev + ZDZ;
   zprev = z < ZH ? zprev : zprev - ZDZ;
 
-  q[id] = (x < XH & y < YH H) ? q[id] : 0;
+  q[id] = (x < XH & y < YH) ? q[id] : 0;
   x = x > XL ? x : -x;
   x = x < XH ? x : XH;
   y = y > YL ? y : -y;
