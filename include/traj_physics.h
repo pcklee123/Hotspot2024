@@ -57,9 +57,9 @@ constexpr int md_me = 60;      // ratio of electron speed/deuteron speed at the 
 #define trilinon_
 
 #define Eon_     // whether to calculate the internally generated electric (E) field externally applied fields are always on
-#define Uon_     // whether to calculate the electric (V) potential and potential energy (U). Needs Eon to be enabled.
+//#define Uon_     // whether to calculate the electric (V) potential and potential energy (U). Needs Eon to be enabled.
 #define UE_field //
-#define Bon_     // whether to calculate the internally generated magnetic (B) field
+//#define Bon_     // whether to calculate the internally generated magnetic (B) field
 #define UB_field
 #define EFon_ // whether to apply electric force
 #define BFon_ // whether to apply magnetic force

@@ -97,7 +97,8 @@ int calcEBV(fields *fi, par *par)
     // static uint64_t bufferSize_P6 = bufferSize_P * 6;
     static uint64_t bufferSize_C6 = bufferSize_C * 6;
     static VkFFTLaunchParams launchParams = {};
-    size_t n_4 = n_cells / 4;
+    static const size_t nc3_16 = n_cells * 3 / 16;
+    static const size_t n_4 = n_cells / 4;
     static auto EUtot = new float[n_4];
     int Nbatch;
     if (first)
@@ -439,10 +440,10 @@ int calcEBV(fields *fi, par *par)
     //   res = clEnqueueReadBuffer(vkGPU.commandQueue, V_buffer, CL_TRUE, 0, sizeof(float) * n_cells, fi->V, 0, NULL, NULL);
 #else
     // cout << "inverse transform to get convolution" << endl;
-    launchParams.inputBufferOffset = n_cells4 * sizeof(complex<flost>);
+    launchParams.inputBufferOffset = n_cells4 * sizeof(complex<float>);
     resFFT = VkFFTAppend(&appbac3, 1, &launchParams); // 1 = inverse FFT//if (resFFT) //cout << "execute plan bac E resFFT = " << resFFT << endl;
     res = clFinish(vkGPU.commandQueue);               // cout << "execute plan bac E ,clFinish res = " << res << endl;
-    resFFT = transferDataToCPU(&vkGPU, fft_real[0], &fft_real_buffer, bufferSize_R3);
+    // resFFT = transferDataToCPU(&vkGPU, fft_real[0], &fft_real_buffer, bufferSize_R3);
     launchParams.inputBufferOffset = 0;
 #endif
 
@@ -462,7 +463,7 @@ int calcEBV(fields *fi, par *par)
     res = clFinish(vkGPU.commandQueue);
 #endif
 #else
-    size_t nc3_16 = n_cells * 3 / 16;
+
     clSetKernelArg(copyextField_kernel, 1, sizeof(cl_mem), &buff_Ee);
     clSetKernelArg(copyextField_kernel, 2, sizeof(cl_mem), &buff_E);
     res = clEnqueueNDRangeKernel(vkGPU.commandQueue, copyextField_kernel, 1, NULL, &nc3_16, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
@@ -485,6 +486,8 @@ int calcEBV(fields *fi, par *par)
 
     resFFT = VkFFTAppend(&appbac3, 1, &launchParams); // 1 = inverse FFT// cout << "execute plan bac E resFFT = " << resFFT << endl;
     res = clFinish(vkGPU.commandQueue);               // cout << "execute plan bac E ,clFinish res = " << res << endl;
+    if (res)
+        cout << "clFinish VkFFTAppend plan bac B  res: " << res << endl;
 
 #ifdef octant
     clSetKernelArg(sumFftFieldo_kernel, 0, sizeof(cl_mem), &fft_real_buffer); // real[0-3] contains B
@@ -494,6 +497,8 @@ int calcEBV(fields *fi, par *par)
     if (res)
         cout << "sumFftFieldo_kernel res: " << res << endl;
     res = clFinish(vkGPU.commandQueue);
+    if (res)
+        cout << "clFinish sumFftFieldo_kernel res: " << res << endl;
 #else
     clSetKernelArg(sumFftField_kernel, 0, sizeof(cl_mem), &fft_real_buffer);
     clSetKernelArg(sumFftField_kernel, 1, sizeof(cl_mem), &buff_Be);
@@ -523,15 +528,17 @@ int calcEBV(fields *fi, par *par)
     if (res)
         cout << "EUEst_kernel res: " << res << endl;
     res = clFinish(vkGPU.commandQueue);
+    if (res)
+        cout << "clFinish EUEst_kernel res: " << res << endl;
     res = clEnqueueReadBuffer(vkGPU.commandQueue, EUtot_buffer, CL_TRUE, 0, sizeof(float) * n_4, EUtot, 0, NULL, NULL);
     if (res)
         cout << "clEnqueueReadBuffer res: " << res << endl;
     res = clEnqueueReadBuffer(vkGPU.commandQueue, npt_buffer, CL_TRUE, 0, sizeof(float) * n_cells, fi->npt, 0, NULL, NULL);
     res = clEnqueueReadBuffer(vkGPU.commandQueue, V_buffer, CL_TRUE, 0, sizeof(float) * n_cells, fi->V, 0, NULL, NULL);
-
-    res = clFinish(vkGPU.commandQueue);
     if (res)
-        cout << "clFinish res: " << res << endl;
+        cout << "clEnqueueReadBuffer last res: " << res << endl;
+    //    res = clFinish(vkGPU.commandQueue);
+
     // #pragma omp parallel for simd reduction(+ : EUtot1)
     const float *V_1d = reinterpret_cast<float *>(fi->V);
     const float *npt_1d = reinterpret_cast<float *>(fi->npt);
