@@ -15,6 +15,10 @@ void tnp(fields *fi, particles *pt, par *par)
    /** HOST_PTR is only used so that memory is not copied, but instead shared between CPU and iGPU in RAM**/
    // Note that special alignment has been given to Ea, Ba, y0, z0, x0, x1, y1 in order to actually do this properly
    // Assume buffers A, B, I, J (Ea, Ba, ci, cf) will always be the same. Then we save a bit of time.
+
+   static cl::Buffer buff_Ea(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, sizeof(float) * nc, fastIO ? fi->Ea : NULL);
+   static cl::Buffer buff_Ba(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, sizeof(float) * nc, fastIO ? fi->Ba : NULL);
+
    cl::Buffer buff_E = fi->buff_E[0];
    cl::Buffer buff_B = fi->buff_B[0];
    cl::Buffer buff_Ee = fi->buff_Ee[0];
@@ -30,9 +34,6 @@ void tnp(fields *fi, particles *pt, par *par)
 
    cl::Buffer buff_npi = fi->buff_npi[0];
    cl::Buffer buff_cji = fi->buff_cji[0];
-
-   static cl::Buffer buff_Ea(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, sizeof(float) * nc, fastIO ? fi->Ea : NULL);
-   static cl::Buffer buff_Ba(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, sizeof(float) * nc, fastIO ? fi->Ba : NULL);
 
    cl::Buffer buff_x0_e = pt->buff_x0_e[0];
    cl::Buffer buff_y0_e = pt->buff_y0_e[0];
@@ -112,14 +113,14 @@ void tnp(fields *fi, particles *pt, par *par)
       kernel_trilin.setArg(2, sizeof(float), &par->a0_f); // scale
 
       queue.enqueueNDRangeKernel(kernel_trilin, cl::NullRange, cl::NDRange(n_cells), cl::NullRange); // run the kernel
-      queue.finish(); // wait for the end of the kernel program
+      queue.finish();                                                                                // wait for the end of the kernel program
 
       kernel_trilin.setArg(0, buff_Ba);                   // the 1st argument to the kernel program Ea
       kernel_trilin.setArg(1, buff_B);                    // Ba
       kernel_trilin.setArg(2, sizeof(float), &par->a0_f); // scale
       queue.enqueueNDRangeKernel(kernel_trilin, cl::NullRange, cl::NDRange(n_cells), cl::NullRange);
       queue.finish();
-      
+
       queue.enqueueFillBuffer(buff_npi, 0, 0, n_cellsi);
       queue.enqueueFillBuffer(buff_cji, 0, 0, n_cellsi * 3);
       //    queue.finish();
