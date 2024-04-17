@@ -280,6 +280,16 @@ void tnp(fields *fi, particles *pt, par *par)
       // timer.mark();
       // set externally applied fields this is inside time loop so we can set time varying E and B field
       // calcEeBe(Ee,Be,t); // find E field must work out every i,j,k depends on charge in every other cell
+/*
+          res = clEnqueueWriteBuffer(vkGPU.commandQueue, fi->npt_buffer, CL_TRUE, 0, sizeof(float) * n_cells, fi->npt, 0, NULL, NULL);
+#ifdef Eon_
+    resFFT = transferDataFromCPU(&vkGPU, fi->Ee, &fi->Ee_buffer, 3 * n_cells * sizeof(float));
+#endif
+#ifdef Bon_
+    res = clEnqueueWriteBuffer(vkGPU.commandQueue, fi->jc_buffer, CL_TRUE, 0, sizeof(float) * n_cells * 3, fi->jc, 0, NULL, NULL);
+    resFFT = transferDataFromCPU(&vkGPU, fi->Be, &fi->Be_buffer, 3 * n_cells * sizeof(float));
+#endif
+*/
       cdt = calcEBV(fi, par);
       // cout << "\nEBV: " << timer.elapsed() << "s, \n";
       if (fastIO)

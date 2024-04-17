@@ -220,6 +220,8 @@ struct fields                                                      // particles
     cl::Buffer *buff_Ee;
     cl::Buffer *buff_Be;
 
+    cl::Buffer *buff_V;
+
     cl::Buffer *buff_npt;
     cl::Buffer *buff_jc;
 

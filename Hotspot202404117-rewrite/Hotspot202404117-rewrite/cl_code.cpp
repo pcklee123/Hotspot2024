@@ -86,16 +86,16 @@ void cl_start(fields *fi, particles *pt, par *par)
         }
         info_file << std::endl;
     }
-    //cout << "getplatforms\n";
+    // cout << "getplatforms\n";
     cl::Platform::get(&platforms);
 
     cl::Platform default_platform = platforms[0];
     info_file << "Using platform: " << default_platform.getInfo<CL_PLATFORM_NAME>() << "\n";
-    //cout << "getdevice\n";
+    // cout << "getdevice\n";
     default_platform.getDevices(CL_DEVICE_TYPE_ALL, &devices);
     cl::Device default_device;
     device_id--;
-    //cout << "device_id = " << device_id << endl;
+    // cout << "device_id = " << device_id << endl;
     device_id = (device_id >= cldevice) ? cldevice : device_id; // use dGPU only if available
     default_device = devices[device_id];
     info_file << "\t\tDevice Name: " << default_device.getInfo<CL_DEVICE_NAME>() << "\ndevice_id =" << device_id << endl;
@@ -135,12 +135,12 @@ void cl_start(fields *fi, particles *pt, par *par)
     cout << "allocating buffers\n";
     bool fastIO;
 
-       // cout << "check for unified memory " << endl;
-   //  create buffers on the device
-   /** IMPORTANT: do not use CL_MEM_USE_HOST_PTR if on dGPU **/
-   /** HOST_PTR is only used so that memory is not copied, but instead shared between CPU and iGPU in RAM**/
-   // Note that special alignment has been given to Ea, Ba, y0, z0, x0, x1, y1 in order to actually do this properly
-   // Assume buffers A, B, I, J (Ea, Ba, ci, cf) will always be the same. Then we save a bit of time.
+    // cout << "check for unified memory " << endl;
+    //  create buffers on the device
+    /** IMPORTANT: do not use CL_MEM_USE_HOST_PTR if on dGPU **/
+    /** HOST_PTR is only used so that memory is not copied, but instead shared between CPU and iGPU in RAM**/
+    // Note that special alignment has been given to Ea, Ba, y0, z0, x0, x1, y1 in order to actually do this properly
+    // Assume buffers A, B, I, J (Ea, Ba, ci, cf) will always be the same. Then we save a bit of time.
     // get whether or not we are on an iGPU/similar, and can use certain memmory optimizations
     bool temp;
     default_device_g.getInfo(CL_DEVICE_HOST_UNIFIED_MEMORY, &temp);
@@ -157,6 +157,8 @@ void cl_start(fields *fi, particles *pt, par *par)
     static cl::Buffer buff_Be(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_ONLY, n_cellsf * 3, fastIO ? fi->Be : NULL, &cl_err);
     static cl::Buffer buff_npt(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cellsf, fastIO ? fi->npt : NULL, &cl_err); // cannot be static?
     static cl::Buffer buff_jc(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cellsf * 3, fastIO ? fi->jc : NULL, &cl_err);
+
+    static cl::Buffer buff_V(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cellsf, fastIO ? fi->V : NULL, &cl_err); // cannot be static?
 
     static cl::Buffer buff_np_e(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cellsf, fastIO ? fi->np[0] : NULL);
     static cl::Buffer buff_np_i(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cellsf, fastIO ? fi->np[1] : NULL);
@@ -195,6 +197,7 @@ void cl_start(fields *fi, particles *pt, par *par)
     fi->buff_Be = &buff_Be;
     fi->buff_npt = &buff_npt;
     fi->buff_jc = &buff_jc;
+    fi->buff_V = &buff_V;
 
     fi->buff_np_e = &buff_np_e;
     fi->buff_np_i = &buff_np_i;
@@ -228,4 +231,5 @@ void cl_start(fields *fi, particles *pt, par *par)
     fi->Be_buffer = buff_Be();
     fi->npt_buffer = buff_npt();
     fi->jc_buffer = buff_jc();
+    fi->V_buffer = buff_V();
 }
