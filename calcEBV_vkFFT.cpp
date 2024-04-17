@@ -94,8 +94,9 @@ int calcEBV(fields *fi, par *par)
     static uint64_t bufferSize_P4 = bufferSize_P * 4;
     static uint64_t bufferSize_C4 = bufferSize_C * 4;
     static uint64_t bufferSize_R6 = bufferSize_R * 6;
-    // static uint64_t bufferSize_P6 = bufferSize_P * 6;
+
     static uint64_t bufferSize_C6 = bufferSize_C * 6;
+
     static VkFFTLaunchParams launchParams = {};
     static const size_t nc3_16 = n_cells * 3 / 16;
     static const size_t n_4 = n_cells / 4;
