@@ -146,6 +146,19 @@ void kernel NxPrecalc(global const float2 *r3, global float2 *fft_complex) {
   fft_complex[n + i] =
       (float2)(b.s0 * c.s0 - b.s1 * c.s1, b.s0 * c.s1 + b.s1 * c.s0);
 }
+void kernel NxPrecalcnU(global const float2 *r3, global float2 *fft_complex) {
+  const size_t n = 4 * NZ * NY * (NX + 1);
+  size_t i = get_global_id(0), j = i + n, k = j + n;
+  float2 b = fft_complex[i], c = r3[k];
+  fft_complex[k] =
+      (float2)(b.s0 * c.s0 - b.s1 * c.s1, b.s0 * c.s1 + b.s1 * c.s0);
+  c = r3[j];
+  fft_complex[j] =
+      (float2)(b.s0 * c.s0 - b.s1 * c.s1, b.s0 * c.s1 + b.s1 * c.s0);
+  c = r3[i];
+  fft_complex[i] =
+      (float2)(b.s0 * c.s0 - b.s1 * c.s1, b.s0 * c.s1 + b.s1 * c.s0);
+}
 
 void kernel jcxPrecalc(global const float2 *r3, global float2 *ptr) {
   float2 t1, t2, t3;
@@ -773,7 +786,7 @@ void kernel tnp_k_implicitqz(global const float8 *a1,
                  fma(vyye, yzP - xP, fma(-vz, xxP + yyP, fma(zzP, zE, zE)))),
              vz);
   }
-  
+
   float xt, yt;
   xt = x > XL ? xprev : yprev;
   yt = x > XL ? yprev : -xprev;

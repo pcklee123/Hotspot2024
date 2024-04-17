@@ -46,6 +46,7 @@ int calcEBV(fields *fi, par *par)
     static cl_kernel copyData_kernel;
     static cl_kernel copy3Data_kernel;
     static cl_kernel NxPrecalc_kernel;
+    static cl_kernel NxPrecalcnU_kernel;
     static cl_kernel NxPrecalcr2_kernel;
     static cl_kernel jcxPrecalc_kernel;
     static cl_kernel sumFftFieldo_kernel;
@@ -66,6 +67,7 @@ int calcEBV(fields *fi, par *par)
     static cl_mem fft_real_buffer = 0;
     static cl_mem fft_real_buffer1 = 0;
     static cl_mem fft_complex_buffer = 0;
+    static cl_mem fft_complex_buffer1 = 0;
     static cl_mem fft_p_buffer = 0;
     static cl_mem V_buffer = 0;
     static cl_mem EUtot_buffer = 0;
@@ -115,36 +117,6 @@ int calcEBV(fields *fi, par *par)
         vkGPU.commandQueue = clCreateCommandQueue(vkGPU.context, vkGPU.device, 0, &res);
         launchParams.commandQueue = &vkGPU.commandQueue;
 
-        // Create the OpenCL kernel
-        copyData_kernel = clCreateKernel(program_g(), "copyData", NULL);
-        copy3Data_kernel = clCreateKernel(program_g(), "copy3Data", NULL);
-        NxPrecalc_kernel = clCreateKernel(program_g(), "NxPrecalc", NULL);
-        NxPrecalcr2_kernel = clCreateKernel(program_g(), "NxPrecalcr2", NULL);
-        jcxPrecalc_kernel = clCreateKernel(program_g(), "jcxPrecalc", NULL);
-        sumFftFieldo_kernel = clCreateKernel(program_g(), "sumFftFieldo", NULL);
-        sumFftField_kernel = clCreateKernel(program_g(), "sumFftField", NULL);
-        sumFftSField_kernel = clCreateKernel(program_g(), "sumFftSField", NULL);
-        copyextField_kernel = clCreateKernel(program_g(), "copyextField", NULL);
-        EUEst_kernel = clCreateKernel(program_g(), "EUEst", NULL);
-
-        // Create memory buffers on the device for each vector
-
-        fft_real_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_R4, 0, &res);
-        cl_buffer_region region;
-        region.origin = bufferSize_R;
-        region.size = bufferSize_R3;
-        fft_real_buffer1 = clCreateSubBuffer(fft_real_buffer, CL_MEM_READ_WRITE, CL_BUFFER_CREATE_TYPE_REGION, &region, &res);
-        if (fft_real_buffer1 == NULL)
-            cout << "cannot create sub buffer" << endl;
-        fft_complex_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_C4, 0, &res);
-        fft_p_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_P4, 0, &res);
-        V_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_R, 0, &res);
-        fi->V_buffer = V_buffer;
-
-        EUtot_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, n_4 * sizeof(float), 0, &res);
-        if (res)
-            cout << "clCreateBuffer res: " << res << endl;
-
         r3_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_C6, 0, &res);
         r2_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_C, 0, &res);
         fi->r3_buffer = r3_buffer;
@@ -168,7 +140,7 @@ int calcEBV(fields *fi, par *par)
         configuration.size[2] = N2;
 
         configuration.performR2C = true;
-        configuration.disableReorderFourStep = true; // disable reordering =true false
+        configuration.disableReorderFourStep = false; // disable reordering =true false
 
         configuration.isInputFormatted = 1; // out-of-place - we need to specify that input buffer is separate from the main buffer
 
@@ -189,6 +161,8 @@ int calcEBV(fields *fi, par *par)
         configuration.buffer = &r3_buffer;
         configuration.bufferSize = &bufferSize_C6;
         resFFT = initializeVkFFT(&appfor_k, configuration);
+        if (resFFT)
+            cout << "resFFT" << resFFT << endl;
 
 #ifdef Uon_
         configuration.makeForwardPlanOnly = true;
@@ -200,103 +174,16 @@ int calcEBV(fields *fi, par *par)
         resFFT = initializeVkFFT(&appfor_k2, configuration);
 #endif
 
-        // plan for density (forward R2C FFT scalar)
-        configuration.numberBatches = 1;
-        configuration.performZeropadding[0] = false;
-        configuration.performZeropadding[1] = false;
-        configuration.performZeropadding[2] = false;
-        configuration.frequencyZeroPadding = false; // true
-        configuration.fft_zeropad_left[0] = (uint64_t)ceil(configuration.size[0] / 2.0);
-        configuration.fft_zeropad_right[0] = configuration.size[0];
-        configuration.fft_zeropad_left[1] = (uint64_t)ceil(configuration.size[1] / 2.0);
-        configuration.fft_zeropad_right[1] = configuration.size[1];
-        configuration.fft_zeropad_left[2] = (uint64_t)ceil(configuration.size[2] / 2.0);
-        configuration.fft_zeropad_right[2] = configuration.size[2];
-
-        configuration.inputBuffer = &fft_real_buffer;
-        configuration.inputBufferSize = &bufferSize_R;
-        configuration.buffer = &fft_complex_buffer;
-        configuration.bufferSize = &bufferSize_C;
-        resFFT = initializeVkFFT(&app1, configuration);
-
-        // plan for current density (forward R2C FFT 3-vector)
-        configuration.isOutputFormatted = true;
-        configuration.inverseReturnToInputBuffer = false;
-        configuration.makeForwardPlanOnly = true;
-
-        configuration.performZeropadding[0] = false;
-        configuration.performZeropadding[1] = false;
-        configuration.performZeropadding[2] = false;
-
-        configuration.outputBufferStride[0] = (uint64_t)(configuration.size[0] / 2) + 1;
-        configuration.outputBufferStride[1] = configuration.outputBufferStride[0] * configuration.size[1];
-        configuration.outputBufferStride[2] = configuration.outputBufferStride[1] * configuration.size[2];
-
-        configuration.numberBatches = 3;
-        configuration.inputBuffer = &fft_real_buffer;
-        configuration.inputBufferSize = &bufferSize_R3;
-        configuration.buffer = &fft_p_buffer;
-        configuration.bufferSize = &bufferSize_P3;
-        configuration.outputBuffer = &fft_complex_buffer; // outputBuffer
-        configuration.outputBufferSize = &bufferSize_C3;  // outputBufferSize
-        resFFT = initializeVkFFT(&app3, configuration);
-
-        // plan for E and B field  inverse C2R FFT (3-vector)
-        configuration.isOutputFormatted = true;
-        configuration.inverseReturnToInputBuffer = false;
-        configuration.makeForwardPlanOnly = false;
-        configuration.makeInversePlanOnly = true;
-        configuration.performZeropadding[0] = false;
-        configuration.performZeropadding[1] = false;
-        configuration.performZeropadding[2] = false;
-        configuration.inputBufferStride[0] = (uint64_t)(configuration.size[0] / 2) + 1;
-        configuration.inputBufferStride[1] = configuration.inputBufferStride[0] * configuration.size[1];
-        configuration.inputBufferStride[2] = configuration.inputBufferStride[1] * configuration.size[2];
-
-        configuration.outputBufferStride[0] = configuration.size[0];
-        configuration.outputBufferStride[1] = configuration.outputBufferStride[0] * configuration.size[1];
-        configuration.outputBufferStride[2] = configuration.outputBufferStride[1] * configuration.size[2];
-
-        configuration.numberBatches = 3;
-        configuration.outputBuffer = &fft_real_buffer;
-        configuration.outputBufferSize = &bufferSize_R3;
-        configuration.buffer = &fft_p_buffer;
-        configuration.bufferSize = &bufferSize_P3;
-        configuration.inputBuffer = &fft_complex_buffer;
-        configuration.inputBufferSize = &bufferSize_C3;
-        resFFT = initializeVkFFT(&appbac3, configuration);
-
-#ifdef Uon_
-        // Perform ifft on the entire array; the first 3/4 is used for E while the last 1/4 is used for V
-        configuration.isOutputFormatted = true;
-        configuration.inverseReturnToInputBuffer = false;
-        configuration.makeForwardPlanOnly = false;
-        configuration.makeInversePlanOnly = true;
-        configuration.performZeropadding[0] = false;
-        configuration.performZeropadding[1] = false;
-        configuration.performZeropadding[2] = false;
-
-        configuration.numberBatches = 4;
-        configuration.outputBuffer = &fft_real_buffer;
-        configuration.outputBufferSize = &bufferSize_R4;
-        configuration.buffer = &fft_p_buffer;
-        configuration.bufferSize = &bufferSize_P4;
-        configuration.inputBuffer = &fft_complex_buffer;
-        configuration.inputBufferSize = &bufferSize_C4;
-
-        resFFT = initializeVkFFT(&appbac4, configuration);
-#endif
-
-#pragma omp barrier
-        //       cout << "allocate done\n";
+        // #pragma omp barrier
+        //        cout << "allocate done\n";
         float r3, rx, ry, rz, rx2, ry2, rz2;
         int i, j, k, loc_i, loc_j, loc_k;
         posL2[0] = -par->dd[0] * ((float)n_space_divx - 0.5);
         posL2[1] = -par->dd[1] * ((float)n_space_divy - 0.5);
         posL2[2] = -par->dd[2] * ((float)n_space_divz - 0.5);
 
-// precalculate 1/r^3 (field) and 1/r^2 (energy)
-#pragma omp parallel for simd num_threads(nthreads)
+        // precalculate 1/r^3 (field) and 1/r^2 (energy)
+        // #pragma omp parallel for simd num_threads(nthreads)
         for (k = -n_space_divz; k < n_space_divz; k++)
         {
             loc_k = k + (k < 0 ? n_space_divz2 : 0); // The "logical" array position
@@ -330,11 +217,11 @@ int calcEBV(fields *fi, par *par)
         // Multiply by the respective constants here, since it is faster to parallelize it
         const float Vconst = kc * e_charge * r_part_spart / n_cells8;
         const float Aconst = 1e-7 * e_charge * r_part_spart / n_cells8;
-//    const size_t n_cells4 = n_space_divx2 * n_space_divy2 * (n_space_divz2 / 2 + 1); // NOTE: This is not actually n_cells * 4, there is an additional buffer that fftw requires.
-#pragma omp parallel for simd num_threads(nthreads)
+        //    const size_t n_cells4 = n_space_divx2 * n_space_divy2 * (n_space_divz2 / 2 + 1); // NOTE: This is not actually n_cells * 4, there is an additional buffer that fftw requires.
+        // #pragma omp parallel for simd num_threads(nthreads)
         for (size_t i = 0; i < n_cells8 * 3; i++)
             reinterpret_cast<float *>(precalc_r3_base[0])[i] *= Vconst;
-#pragma omp parallel for simd num_threads(nthreads)
+        // #pragma omp parallel for simd num_threads(nthreads)
         for (size_t i = 0; i < n_cells8 * 3; i++)
             reinterpret_cast<float *>(precalc_r3_base[1])[i] *= Aconst;
 #ifdef Uon_
@@ -343,7 +230,11 @@ int calcEBV(fields *fi, par *par)
             (reinterpret_cast<float *>(precalc_r2_base))[i] *= Vconst;
 #endif
         resFFT = transferDataFromCPU(&vkGPU, precalc_r3_base, &r3_base_buffer, bufferSize_R6);
+        if (resFFT)
+            cout << "resFFT" << resFFT << endl;
         resFFT = VkFFTAppend(&appfor_k, -1, &launchParams); //   cout << "forward transform precalc_r3" << endl;
+        if (resFFT)
+            cout << "resFFT" << resFFT << endl;
         res = clFinish(vkGPU.commandQueue);
         deleteVkFFT(&appfor_k);
         clReleaseMemObject(r3_base_buffer);
@@ -393,6 +284,135 @@ int calcEBV(fields *fi, par *par)
             }
         }
         */
+
+        // Create memory buffers on the device for each vector
+
+        fft_real_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_R4, 0, &res);
+        cl_buffer_region region;
+        region.origin = bufferSize_R;
+        region.size = bufferSize_R3;
+        fft_real_buffer1 = clCreateSubBuffer(fft_real_buffer, CL_MEM_READ_WRITE, CL_BUFFER_CREATE_TYPE_REGION, &region, &res);
+        if (fft_real_buffer1 == NULL)
+            cout << "cannot create sub buffer" << endl;
+        fft_complex_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_C4, 0, &res);
+        region.origin = bufferSize_C;
+        region.size = bufferSize_C3;
+        fft_complex_buffer1 = clCreateSubBuffer(fft_real_buffer, CL_MEM_READ_WRITE, CL_BUFFER_CREATE_TYPE_REGION, &region, &res);
+        if (fft_real_buffer1 == NULL)
+            cout << "cannot create sub buffer" << endl;
+        fft_p_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_P4, 0, &res);
+        V_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_R, 0, &res);
+        fi->V_buffer = V_buffer;
+
+        EUtot_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, n_4 * sizeof(float), 0, &res);
+        if (res)
+            cout << "clCreateBuffer res: " << res << endl;
+        // plan for density (forward R2C FFT scalar)
+        configuration.numberBatches = 1;
+        configuration.performZeropadding[0] = false;
+        configuration.performZeropadding[1] = false;
+        configuration.performZeropadding[2] = false;
+        configuration.frequencyZeroPadding = false; // true
+        configuration.fft_zeropad_left[0] = (uint64_t)ceil(configuration.size[0] / 2.0);
+        configuration.fft_zeropad_right[0] = configuration.size[0];
+        configuration.fft_zeropad_left[1] = (uint64_t)ceil(configuration.size[1] / 2.0);
+        configuration.fft_zeropad_right[1] = configuration.size[1];
+        configuration.fft_zeropad_left[2] = (uint64_t)ceil(configuration.size[2] / 2.0);
+        configuration.fft_zeropad_right[2] = configuration.size[2];
+
+        configuration.inputBuffer = &fft_real_buffer;
+        configuration.inputBufferSize = &bufferSize_R;
+        configuration.buffer = &fft_complex_buffer;
+        configuration.bufferSize = &bufferSize_C;
+        resFFT = initializeVkFFT(&app1, configuration);
+        if (resFFT)
+            cout << "resFFT" << resFFT << endl;
+
+        // plan for current density (forward R2C FFT 3-vector)
+        configuration.isOutputFormatted = true;
+        configuration.inverseReturnToInputBuffer = false;
+        configuration.makeForwardPlanOnly = true;
+
+        configuration.performZeropadding[0] = false;
+        configuration.performZeropadding[1] = false;
+        configuration.performZeropadding[2] = false;
+
+        configuration.outputBufferStride[0] = (uint64_t)(configuration.size[0] / 2) + 1;
+        configuration.outputBufferStride[1] = configuration.outputBufferStride[0] * configuration.size[1];
+        configuration.outputBufferStride[2] = configuration.outputBufferStride[1] * configuration.size[2];
+
+        configuration.numberBatches = 3;
+        configuration.inputBuffer = &fft_real_buffer1;
+        configuration.inputBufferSize = &bufferSize_R3;
+        configuration.buffer = &fft_p_buffer;
+        configuration.bufferSize = &bufferSize_P3;
+        configuration.outputBuffer = &fft_complex_buffer1; // outputBuffer
+        configuration.outputBufferSize = &bufferSize_C3;   // outputBufferSize
+        resFFT = initializeVkFFT(&app3, configuration);
+        if (resFFT)
+            cout << "resFFT" << resFFT << endl;
+
+        // plan for E and B field  inverse C2R FFT (3-vector)
+        configuration.isOutputFormatted = true;
+        configuration.inverseReturnToInputBuffer = false;
+        configuration.makeForwardPlanOnly = false;
+        configuration.makeInversePlanOnly = true;
+        configuration.performZeropadding[0] = false;
+        configuration.performZeropadding[1] = false;
+        configuration.performZeropadding[2] = false;
+        configuration.inputBufferStride[0] = (uint64_t)(configuration.size[0] / 2) + 1;
+        configuration.inputBufferStride[1] = configuration.inputBufferStride[0] * configuration.size[1];
+        configuration.inputBufferStride[2] = configuration.inputBufferStride[1] * configuration.size[2];
+
+        configuration.outputBufferStride[0] = configuration.size[0];
+        configuration.outputBufferStride[1] = configuration.outputBufferStride[0] * configuration.size[1];
+        configuration.outputBufferStride[2] = configuration.outputBufferStride[1] * configuration.size[2];
+
+        configuration.numberBatches = 3;
+        configuration.outputBuffer = &fft_real_buffer1;
+        configuration.outputBufferSize = &bufferSize_R3;
+        configuration.buffer = &fft_p_buffer;
+        configuration.bufferSize = &bufferSize_P3;
+        configuration.inputBuffer = &fft_complex_buffer1;
+        configuration.inputBufferSize = &bufferSize_C3;
+        resFFT = initializeVkFFT(&appbac3, configuration);
+        if (resFFT)
+            cout << "resFFT" << resFFT << endl;
+
+#ifdef Uon_
+        // Perform ifft on the entire array; the first 3/4 is used for E while the last 1/4 is used for V
+        configuration.isOutputFormatted = true;
+        configuration.inverseReturnToInputBuffer = false;
+        configuration.makeForwardPlanOnly = false;
+        configuration.makeInversePlanOnly = true;
+        configuration.performZeropadding[0] = false;
+        configuration.performZeropadding[1] = false;
+        configuration.performZeropadding[2] = false;
+
+        configuration.numberBatches = 4;
+        configuration.outputBuffer = &fft_real_buffer;
+        configuration.outputBufferSize = &bufferSize_R4;
+        configuration.buffer = &fft_p_buffer;
+        configuration.bufferSize = &bufferSize_P4;
+        configuration.inputBuffer = &fft_complex_buffer;
+        configuration.inputBufferSize = &bufferSize_C4;
+
+        resFFT = initializeVkFFT(&appbac4, configuration);
+        if (resFFT)
+            cout << "resFFT" << resFFT << endl;
+#endif
+        // Create the OpenCL kernel
+        copyData_kernel = clCreateKernel(program_g(), "copyData", NULL);
+        copy3Data_kernel = clCreateKernel(program_g(), "copy3Data", NULL);
+        NxPrecalc_kernel = clCreateKernel(program_g(), "NxPrecalc", NULL);
+     //   NxPrecalcnU_kernel = clCreateKernel(program_g(), "NxPrecalcnU", NULL);
+        NxPrecalcr2_kernel = clCreateKernel(program_g(), "NxPrecalcr2", NULL);
+        jcxPrecalc_kernel = clCreateKernel(program_g(), "jcxPrecalc", NULL);
+        sumFftFieldo_kernel = clCreateKernel(program_g(), "sumFftFieldo", NULL);
+        sumFftField_kernel = clCreateKernel(program_g(), "sumFftField", NULL);
+        sumFftSField_kernel = clCreateKernel(program_g(), "sumFftSField", NULL);
+        copyextField_kernel = clCreateKernel(program_g(), "copyextField", NULL);
+        EUEst_kernel = clCreateKernel(program_g(), "EUEst", NULL);
         // Set the arguments of the kernel
         clSetKernelArg(copyData_kernel, 0, sizeof(cl_mem), &npt_buffer);
         clSetKernelArg(copyData_kernel, 1, sizeof(cl_mem), &fft_real_buffer);
@@ -401,13 +421,16 @@ int calcEBV(fields *fi, par *par)
         clSetKernelArg(copy3Data_kernel, 1, sizeof(cl_mem), &fft_real_buffer);
 
         clSetKernelArg(NxPrecalc_kernel, 0, sizeof(cl_mem), &r3_buffer);
-        clSetKernelArg(NxPrecalc_kernel, 1, sizeof(cl_mem), &fft_complex_buffer);
+        clSetKernelArg(NxPrecalc_kernel, 1, sizeof(cl_mem), &fft_complex_buffer); //use complex [1-3]
+
+   //     clSetKernelArg(NxPrecalcnU_kernel, 0, sizeof(cl_mem), &r3_buffer);
+   //     clSetKernelArg(NxPrecalcnU_kernel, 1, sizeof(cl_mem), &fft_complex_buffer1);
 
         clSetKernelArg(NxPrecalcr2_kernel, 0, sizeof(cl_mem), &r2_buffer);
         clSetKernelArg(NxPrecalcr2_kernel, 1, sizeof(cl_mem), &fft_complex_buffer);
 
         clSetKernelArg(jcxPrecalc_kernel, 0, sizeof(cl_mem), &r3_buffer);
-        clSetKernelArg(jcxPrecalc_kernel, 1, sizeof(cl_mem), &fft_complex_buffer);
+        clSetKernelArg(jcxPrecalc_kernel, 1, sizeof(cl_mem), &fft_complex_buffer1);// use complex [1-3]
 
         first = 0; //
                    // cout << "precalc done\n";
@@ -419,14 +442,14 @@ int calcEBV(fields *fi, par *par)
         cout << "copyData_kernel res: " << res << endl;
     res = clFinish(vkGPU.commandQueue);
     //  only density arrn1 = fft(arrn) multiply fft charge with fft of kernel(i.e field associated with 1 charge)
-    resFFT = VkFFTAppend(&app1, -1, &launchParams); // -1 = forward transform
-    res = clFinish(vkGPU.commandQueue);             //  cout << "execute plan for E" << endl;
-
+    resFFT = VkFFTAppend(&app1, -1, &launchParams);                                                              // -1 = forward transform
+    res = clFinish(vkGPU.commandQueue);                                                                          //  cout << "execute plan for E" << endl;
     res = clEnqueueNDRangeKernel(vkGPU.commandQueue, NxPrecalc_kernel, 1, NULL, &n_cells4, NULL, 0, NULL, NULL); //  multiply complex[0] with precalcr3[0-2] result in complex[1-3]
     if (res)
         cout << "NxPrecalc_kernel res: " << res << endl;
     res = clFinish(vkGPU.commandQueue);
 #ifdef Uon_
+
     res = clEnqueueNDRangeKernel(vkGPU.commandQueue, NxPrecalcr2_kernel, 1, NULL, &n_cells4, NULL, 0, NULL, NULL); //  multiply complex[0] with precalcr2[0] result in complex[0]
     if (res)
         cout << "NxPrecalcr2_kernel res: " << res << endl;
@@ -444,14 +467,15 @@ int calcEBV(fields *fi, par *par)
 
     //   res = clEnqueueReadBuffer(vkGPU.commandQueue, V_buffer, CL_TRUE, 0, sizeof(float) * n_cells, fi->V, 0, NULL, NULL);
 #else
+
     // cout << "inverse transform to get convolution" << endl;
-    launchParams.inputBufferOffset = n_cells4 * sizeof(complex<float>);  // complex[1-3] is FFT of E field
-    launchParams.outputBufferOffset = n_cells4 * sizeof(complex<float>); // real[1-3] is E field
-    resFFT = VkFFTAppend(&appbac3, 1, &launchParams);                    // 1 = inverse FFT//if (resFFT) //cout << "execute plan bac E resFFT = " << resFFT << endl;
-    res = clFinish(vkGPU.commandQueue);                                  // cout << "execute plan bac E ,clFinish res = " << res << endl;
+    // launchParams.inputBufferOffset = n_cells4 * sizeof(complex<float>);  // complex[1-3] is FFT of E field
+    // launchParams.outputBufferOffset = n_cells8 * sizeof(float); // real[1-3] is E field
+    resFFT = VkFFTAppend(&appbac3, 1, &launchParams); // 1 = inverse FFT//if (resFFT) //cout << "execute plan bac E resFFT = " << resFFT << endl;
+    res = clFinish(vkGPU.commandQueue);               // cout << "execute plan bac E ,clFinish res = " << res << endl;
     // resFFT = transferDataToCPU(&vkGPU, fft_real[0], &fft_real_buffer, bufferSize_R3);
-    launchParams.inputBufferOffset = 0;
-    launchParams.outputBufferOffset = 0;
+    // launchParams.inputBufferOffset = 0;
+    // launchParams.outputBufferOffset = 0;
 #endif
 
 #ifdef octant
