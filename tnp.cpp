@@ -1,8 +1,8 @@
 #include "include/traj.h"
 void tnp(fields *fi, particles *pt, par *par)
 {
-   unsigned int n0 = par->n_part[1]; // number of deuteron particles ;
-   unsigned int n = par->n_part[2];  // both electron and ion
+   unsigned int n0 = par->n_part[1];       // number of deuteron particles ;
+   unsigned int n = par->n_part[2];        // both electron and ion
    unsigned int n4 = n0 * sizeof(float);   // number of particles * sizeof(float)
    unsigned int n8 = n * sizeof(float);    // number of particles * sizeof(float)
    unsigned int nc = n_cells * ncoeff * 3; // trilin constatnts have 8 coefficients 3 components
@@ -112,13 +112,14 @@ void tnp(fields *fi, particles *pt, par *par)
       kernel_trilin.setArg(2, sizeof(float), &par->a0_f); // scale
 
       queue.enqueueNDRangeKernel(kernel_trilin, cl::NullRange, cl::NDRange(n_cells), cl::NullRange); // run the kernel
-      // queue.finish(); // wait for the end of the kernel program
+      queue.finish(); // wait for the end of the kernel program
 
       kernel_trilin.setArg(0, buff_Ba);                   // the 1st argument to the kernel program Ea
       kernel_trilin.setArg(1, buff_B);                    // Ba
       kernel_trilin.setArg(2, sizeof(float), &par->a0_f); // scale
       queue.enqueueNDRangeKernel(kernel_trilin, cl::NullRange, cl::NDRange(n_cells), cl::NullRange);
-      // queue.finish();
+      queue.finish();
+      
       queue.enqueueFillBuffer(buff_npi, 0, 0, n_cellsi);
       queue.enqueueFillBuffer(buff_cji, 0, 0, n_cellsi * 3);
       //    queue.finish();
@@ -189,6 +190,7 @@ void tnp(fields *fi, particles *pt, par *par)
       kernel_tnp.setArg(13, buff_q_i);                      // q
       // cout << "run kernel for ions" << endl;
       queue.enqueueNDRangeKernel(kernel_tnp, cl::NullRange, cl::NDRange(n0), cl::NullRange);
+      queue.finish(); // wait for the tnp for ions to finish before
 
       queue.enqueueFillBuffer(buff_npi, 0, 0, n_cellsi);
       queue.enqueueFillBuffer(buff_cji, 0, 0, n_cellsi * 3);
