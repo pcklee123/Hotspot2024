@@ -140,7 +140,7 @@ int calcEBV(fields *fi, par *par)
         configuration.size[2] = N2;
 
         configuration.performR2C = true;
-        configuration.disableReorderFourStep = false; // disable reordering =true false
+        configuration.disableReorderFourStep = true; // disable reordering =true false
 
         configuration.isInputFormatted = 1; // out-of-place - we need to specify that input buffer is separate from the main buffer
 
@@ -521,7 +521,7 @@ int calcEBV(fields *fi, par *par)
         cout << "clFinish VkFFTAppend plan bac B  res: " << res << endl;
 
 #ifdef octant
-    clSetKernelArg(sumFftFieldo_kernel, 0, sizeof(cl_mem), &fft_real_buffer); // real[0-3] contains B
+    clSetKernelArg(sumFftFieldo_kernel, 0, sizeof(cl_mem), &fft_real_buffer1); // real[1-3] contains B
     clSetKernelArg(sumFftFieldo_kernel, 1, sizeof(cl_mem), &buff_Be);
     clSetKernelArg(sumFftFieldo_kernel, 2, sizeof(cl_mem), &buff_B);
     res = clEnqueueNDRangeKernel(vkGPU.commandQueue, sumFftFieldo_kernel, 1, NULL, &n_cells, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel

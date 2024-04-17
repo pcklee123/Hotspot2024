@@ -134,6 +134,7 @@ void kernel copyData(global const float *npt, global float *fft_real) {
   fft_real[idx] = (in) ? npt[source_index] : 0;
 }
 void kernel NxPrecalc(global const float2 *r3, global float2 *fft_complex) {
+  //complex[3] = r3[2]*complex[3]; complex[2] = r3[1]*complex[2];;complex[1] = r3[0]*complex[1];
   const size_t n = 4 * NZ * NY * (NX + 1);
   size_t i = get_global_id(0), j = i + n, k = j + n;
   float2 b = fft_complex[i], c = r3[k];
