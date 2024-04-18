@@ -13,8 +13,7 @@ void tnp(fields *fi, particles *pt, par *par)
    static cl::Buffer buff_Ea(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cells3x8f, fastIO ? fi->Ea : NULL);
    static cl::Buffer buff_Ba(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cells3x8f, fastIO ? fi->Ba : NULL);
 
-   // cout << "command q" << endl; //  create queue to which we will push commands for the device.
-   static cl::CommandQueue queue(context_g, default_device_g);
+   cl::CommandQueue queue = commandQueue_g; // short form for comman queue
 #if defined(sphere)
 #if defined(octant)
    cl::Kernel kernel_tnp = cl::Kernel(program_g, "tnp_k_implicito"); // select the kernel program to run
@@ -30,7 +29,7 @@ void tnp(fields *fi, particles *pt, par *par)
    cl::Kernel kernel_trilin = cl::Kernel(program_g, "trilin_k"); // select the kernel program to run
    cl::Kernel kernel_density = cl::Kernel(program_g, "density"); // select the kernel program to run
    cl::Kernel kernel_df = cl::Kernel(program_g, "df");           // select the kernel program to run
-   cl::Kernel kernel_dtotal = cl::Kernel(program_g, "dtotal");   
+   cl::Kernel kernel_dtotal = cl::Kernel(program_g, "dtotal");
 #ifdef BFon_
    // check minus sign
    par->Bcoef[0] = -(float)qs[0] * e_charge_mass / (float)mp[0] * par->dt[0] * 0.5f;
