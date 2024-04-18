@@ -158,8 +158,8 @@ void kernel jcxPrecalc(global const float2 *r3, global float2 *ptr) {
   t3 = (float2)(ptr[i].s0 * r3[j1].s0 - ptr[i].s1 * r3[j1].s1,
                 ptr[i].s0 * r3[j1].s1 + ptr[i].s1 * r3[j1].s0) -
        (float2)(ptr[j].s0 * r3[i1].s0 - ptr[j].s1 * r3[i1].s1,
-                ptr[j].s0 * r3[i1].s1 + ptr[j].s1 * r3[i1].s0); 
-                // ptr[i] * r3[j1] - ptr[j] * r3[i1];
+                ptr[j].s0 * r3[i1].s1 + ptr[j].s1 * r3[i1].s0);
+  // ptr[i] * r3[j1] - ptr[j] * r3[i1];
   ptr[i] = t1;
   ptr[j] = t2;
   ptr[k] = t3;
@@ -167,14 +167,14 @@ void kernel jcxPrecalc(global const float2 *r3, global float2 *ptr) {
 
 void kernel NxPrecalcr2(global const float2 *r2, global const float2 *r3,
                         global float2 *fft_complex) {
-  const size_t n =  4 * NZ * NY * (NX + 1);
+  const size_t n = 4 * NZ * NY * (NX + 1);
   size_t i = get_global_id(0), j = i + n, k = j + n;
   float2 b = fft_complex[i], c = r2[i];
-  //V is at complex[3]
+  // V is at complex[3]
   fft_complex[n + k] =
       (float2)(b.s0 * c.s0 - b.s1 * c.s1, b.s0 * c.s1 + b.s1 * c.s0);
   c = r3[k];
-  //E is at complex[0]-[2]
+  // E is at complex[0]-[2]
   fft_complex[k] =
       (float2)(b.s0 * c.s0 - b.s1 * c.s1, b.s0 * c.s1 + b.s1 * c.s0);
   c = r3[j];
@@ -286,7 +286,6 @@ void kernel sumFftSField(global const float *fft_real, global float *V) {
   V[idx] = fft_real[idx000];
   // V[idx] = 5.0;
 }
-
 
 void kernel tnp_k_implicit(global const float8 *a1,
                            global const float8 *a2, // E, B coeff
@@ -893,4 +892,67 @@ void kernel dtotal(global const float16 *ne, global const float16 *ni,
   jt[i] = je[i] + ji[i];
   jt[n + i] = je[n + i] + ji[n + i];
   jt[n2 + i] = je[n2 + i] + ji[n2 + i];
+}
+
+void kernel copyextField(global const float16 *Fe, global float16 *F) {
+  // get global indices
+  size_t idx = get_global_id(0);
+  F[idx] = Fe[idx];
+}
+
+void kernel maxvalf(global const float16 *In, global float *Ou) {
+  // get global indices
+  size_t i = get_global_id(0);
+  float m = 0;
+  float a, v;
+  v = In[i].s0;
+  a = v > 0 ? v : -v;
+  m = m > a ? m : a;
+  v = In[i].s1;
+  a = v > 0 ? v : -v;
+  m = m > a ? m : a;
+  v = In[i].s2;
+  a = v > 0 ? v : -v;
+  m = m > a ? m : a;
+  v = In[i].s3;
+  a = v > 0 ? v : -v;
+  m = m > a ? m : a;
+  v = In[i].s4;
+  a = v > 0 ? v : -v;
+  m = m > a ? m : a;
+  v = In[i].s5;
+  a = v > 0 ? v : -v;
+  m = m > a ? m : a;
+  v = In[i].s6;
+  a = v > 0 ? v : -v;
+  m = m > a ? m : a;
+  v = In[i].s7;
+  a = v > 0 ? v : -v;
+  m = m > a ? m : a;
+  v = In[i].s8;
+  a = v > 0 ? v : -v;
+  m = m > a ? m : a;
+  v = In[i].s9;
+  a = v > 0 ? v : -v;
+  m = m > a ? m : a;
+  v = In[i].sA;
+  a = v > 0 ? v : -v;
+  m = m > a ? m : a;
+  v = In[i].sB;
+  a = v > 0 ? v : -v;
+  m = m > a ? m : a;
+  v = In[i].sC;
+  a = v > 0 ? v : -v;
+  m = m > a ? m : a;
+  v = In[i].sD;
+  a = v > 0 ? v : -v;
+  m = m > a ? m : a;
+  v = In[i].sE;
+  a = v > 0 ? v : -v;
+  m = m > a ? m : a;
+  v = In[i].sF;
+  a = v > 0 ? v : -v;
+  m = m > a ? m : a;
+
+  Ou[i] = m;
 }
