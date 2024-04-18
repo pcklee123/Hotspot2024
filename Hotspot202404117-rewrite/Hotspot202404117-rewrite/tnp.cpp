@@ -66,23 +66,23 @@ void tnp(fields *fi, particles *pt, par *par)
       queue.enqueueWriteBuffer(fi->buff_E[0], CL_TRUE, 0, n_cellsf * 3, fi->E);
       queue.enqueueWriteBuffer(fi->buff_B[0], CL_TRUE, 0, n_cellsf * 3, fi->B);
 
-      queue.enqueueWriteBuffer(pt->buff_x0_e[0], CL_TRUE, 0,  n_partf, pt->pos0x[0]);
-      queue.enqueueWriteBuffer(pt->buff_y0_e[0], CL_TRUE, 0,  n_partf, pt->pos0y[0]);
-      queue.enqueueWriteBuffer(pt->buff_z0_e[0], CL_TRUE, 0,  n_partf, pt->pos0z[0]);
-      queue.enqueueWriteBuffer(pt->buff_x1_e[0], CL_TRUE, 0,  n_partf, pt->pos1x[0]);
-      queue.enqueueWriteBuffer(pt->buff_y1_e[0], CL_TRUE, 0,  n_partf, pt->pos1y[0]);
-      queue.enqueueWriteBuffer(pt->buff_z1_e[0], CL_TRUE, 0,  n_partf, pt->pos1z[0]);
+      queue.enqueueWriteBuffer(pt->buff_x0_e[0], CL_TRUE, 0, n_partf, pt->pos0x[0]);
+      queue.enqueueWriteBuffer(pt->buff_y0_e[0], CL_TRUE, 0, n_partf, pt->pos0y[0]);
+      queue.enqueueWriteBuffer(pt->buff_z0_e[0], CL_TRUE, 0, n_partf, pt->pos0z[0]);
+      queue.enqueueWriteBuffer(pt->buff_x1_e[0], CL_TRUE, 0, n_partf, pt->pos1x[0]);
+      queue.enqueueWriteBuffer(pt->buff_y1_e[0], CL_TRUE, 0, n_partf, pt->pos1y[0]);
+      queue.enqueueWriteBuffer(pt->buff_z1_e[0], CL_TRUE, 0, n_partf, pt->pos1z[0]);
 
-      queue.enqueueWriteBuffer(pt->buff_q_e[0], CL_TRUE, 0,  n_partf, pt->q[0]);
+      queue.enqueueWriteBuffer(pt->buff_q_e[0], CL_TRUE, 0, n_partf, pt->q[0]);
 
-      queue.enqueueWriteBuffer(pt->buff_x0_i[0], CL_TRUE, 0,  n_partf, pt->pos0x[1]);
-      queue.enqueueWriteBuffer(pt->buff_y0_i[0], CL_TRUE, 0,  n_partf, pt->pos0y[1]);
-      queue.enqueueWriteBuffer(pt->buff_z0_i[0], CL_TRUE, 0,  n_partf, pt->pos0z[1]);
-      queue.enqueueWriteBuffer(pt->buff_x1_i[0], CL_TRUE, 0,  n_partf, pt->pos1x[1]);
-      queue.enqueueWriteBuffer(pt->buff_y1_i[0], CL_TRUE, 0,  n_partf, pt->pos1y[1]);
-      queue.enqueueWriteBuffer(pt->buff_z1_i[0], CL_TRUE, 0,  n_partf, pt->pos1z[1]);
+      queue.enqueueWriteBuffer(pt->buff_x0_i[0], CL_TRUE, 0, n_partf, pt->pos0x[1]);
+      queue.enqueueWriteBuffer(pt->buff_y0_i[0], CL_TRUE, 0, n_partf, pt->pos0y[1]);
+      queue.enqueueWriteBuffer(pt->buff_z0_i[0], CL_TRUE, 0, n_partf, pt->pos0z[1]);
+      queue.enqueueWriteBuffer(pt->buff_x1_i[0], CL_TRUE, 0, n_partf, pt->pos1x[1]);
+      queue.enqueueWriteBuffer(pt->buff_y1_i[0], CL_TRUE, 0, n_partf, pt->pos1y[1]);
+      queue.enqueueWriteBuffer(pt->buff_z1_i[0], CL_TRUE, 0, n_partf, pt->pos1z[1]);
 
-      queue.enqueueWriteBuffer(pt->buff_q_i[0], CL_TRUE, 0,  n_partf, pt->q[1]);
+      queue.enqueueWriteBuffer(pt->buff_q_i[0], CL_TRUE, 0, n_partf, pt->q[1]);
       //  fastIO = false;
    }
 
@@ -112,32 +112,32 @@ void tnp(fields *fi, particles *pt, par *par)
       //      cout << "\ntrilin " << timer.elapsed() << "s, \n";
       kernel_tnp.setArg(0, buff_Ea);                        // the 1st argument to the kernel program Ea
       kernel_tnp.setArg(1, buff_Ba);                        // Ba
-      kernel_tnp.setArg(2, pt->buff_x0_e[0]);                      // x0
-      kernel_tnp.setArg(3, pt->buff_y0_e[0]);                      // y0
-      kernel_tnp.setArg(4, pt->buff_z0_e[0]);                      // z0
-      kernel_tnp.setArg(5, pt->buff_x1_e[0]);                      // x1
-      kernel_tnp.setArg(6, pt->buff_y1_e[0]);                      // y1
-      kernel_tnp.setArg(7, pt->buff_z1_e[0]);                      // z1
+      kernel_tnp.setArg(2, pt->buff_x0_e[0]);               // x0
+      kernel_tnp.setArg(3, pt->buff_y0_e[0]);               // y0
+      kernel_tnp.setArg(4, pt->buff_z0_e[0]);               // z0
+      kernel_tnp.setArg(5, pt->buff_x1_e[0]);               // x1
+      kernel_tnp.setArg(6, pt->buff_y1_e[0]);               // y1
+      kernel_tnp.setArg(7, pt->buff_z1_e[0]);               // z1
       kernel_tnp.setArg(8, sizeof(float), &par->Bcoef[0]);  // Bconst
       kernel_tnp.setArg(9, sizeof(float), &par->Ecoef[0]);  // Econst
       kernel_tnp.setArg(10, sizeof(float), &par->a0_f);     // scale factor
       kernel_tnp.setArg(11, sizeof(int), &par->n_partp[0]); // npart
       kernel_tnp.setArg(12, sizeof(int), &par->ncalcp[0]);  // ncalc
-      kernel_tnp.setArg(13, pt->buff_q_e[0]);                      // q
+      kernel_tnp.setArg(13, pt->buff_q_e[0]);               // q
       // cout << "run kernel_tnp for electron" << endl;
       //  timer.mark();
-      queue.enqueueNDRangeKernel(kernel_tnp, cl::NullRange, cl::NDRange( par->n_part[1]), cl::NullRange);
+      queue.enqueueNDRangeKernel(kernel_tnp, cl::NullRange, cl::NDRange(par->n_part[1]), cl::NullRange);
 
       queue.finish();
-      kernel_density.setArg(0, pt->buff_x0_e[0]);                 // x0
-      kernel_density.setArg(1, pt->buff_y0_e[0]);                 // y0
-      kernel_density.setArg(2, pt->buff_z0_e[0]);                 // z0
-      kernel_density.setArg(3, pt->buff_x1_e[0]);                 // x1
-      kernel_density.setArg(4, pt->buff_y1_e[0]);                 // y1
-      kernel_density.setArg(5, pt->buff_z1_e[0]);                 // z1
+      kernel_density.setArg(0, pt->buff_x0_e[0]);          // x0
+      kernel_density.setArg(1, pt->buff_y0_e[0]);          // y0
+      kernel_density.setArg(2, pt->buff_z0_e[0]);          // z0
+      kernel_density.setArg(3, pt->buff_x1_e[0]);          // x1
+      kernel_density.setArg(4, pt->buff_y1_e[0]);          // y1
+      kernel_density.setArg(5, pt->buff_z1_e[0]);          // z1
       kernel_density.setArg(6, fi->buff_npi[0]);           // np integer temp
       kernel_density.setArg(7, fi->buff_cji[0]);           // current
-      kernel_density.setArg(8, pt->buff_q_e[0]);                  // q
+      kernel_density.setArg(8, pt->buff_q_e[0]);           // q
       kernel_density.setArg(9, sizeof(float), &par->a0_f); // scale factor
       // queue.finish();
 
@@ -145,7 +145,7 @@ void tnp(fields *fi, particles *pt, par *par)
       // wait for the end of the tnp electron to finish before starting density electron
       // run the kernel to get electron density
       //  timer.mark();
-      queue.enqueueNDRangeKernel(kernel_density, cl::NullRange, cl::NDRange( par->n_part[1]), cl::NullRange);
+      queue.enqueueNDRangeKernel(kernel_density, cl::NullRange, cl::NDRange(par->n_part[1]), cl::NullRange);
       queue.finish();
 
       kernel_df.setArg(0, fi->buff_np_e[0]);          // np
@@ -162,41 +162,41 @@ void tnp(fields *fi, particles *pt, par *par)
       //  set arguments to be fed into the kernel program
       kernel_tnp.setArg(0, buff_Ea);                        // the 1st argument to the kernel program Ea
       kernel_tnp.setArg(1, buff_Ba);                        // Ba
-      kernel_tnp.setArg(2, pt->buff_x0_i[0]);                      // x0
-      kernel_tnp.setArg(3, pt->buff_y0_i[0]);                      // y0
-      kernel_tnp.setArg(4, pt->buff_z0_i[0]);                      // z0
-      kernel_tnp.setArg(5, pt->buff_x1_i[0]);                      // x1
-      kernel_tnp.setArg(6, pt->buff_y1_i[0]);                      // y1
-      kernel_tnp.setArg(7, pt->buff_z1_i[0]);                      // z1
+      kernel_tnp.setArg(2, pt->buff_x0_i[0]);               // x0
+      kernel_tnp.setArg(3, pt->buff_y0_i[0]);               // y0
+      kernel_tnp.setArg(4, pt->buff_z0_i[0]);               // z0
+      kernel_tnp.setArg(5, pt->buff_x1_i[0]);               // x1
+      kernel_tnp.setArg(6, pt->buff_y1_i[0]);               // y1
+      kernel_tnp.setArg(7, pt->buff_z1_i[0]);               // z1
       kernel_tnp.setArg(8, sizeof(float), &par->Bcoef[1]);  // Bconst
       kernel_tnp.setArg(9, sizeof(float), &par->Ecoef[1]);  // Econst
       kernel_tnp.setArg(10, sizeof(float), &par->a0_f);     // scale factor
       kernel_tnp.setArg(11, sizeof(int), &par->n_partp[1]); // npart
       kernel_tnp.setArg(12, sizeof(int), &par->ncalcp[1]);  //
-      kernel_tnp.setArg(13, pt->buff_q_i[0]);                      // q
+      kernel_tnp.setArg(13, pt->buff_q_i[0]);               // q
 
       // cout << "run kernel for ions" << endl;
-      queue.enqueueNDRangeKernel(kernel_tnp, cl::NullRange, cl::NDRange( par->n_part[1]), cl::NullRange);
+      queue.enqueueNDRangeKernel(kernel_tnp, cl::NullRange, cl::NDRange(par->n_part[1]), cl::NullRange);
 
       queue.enqueueFillBuffer(fi->buff_npi[0], 0, 0, n_cellsi);
       queue.enqueueFillBuffer(fi->buff_cji[0], 0, 0, n_cellsi * 3);
 
       queue.finish(); // wait for the tnp for ions to finish before
 
-      kernel_density.setArg(0, pt->buff_x0_i[0]);                 // x0
-      kernel_density.setArg(1, pt->buff_y0_i[0]);                 // y0
-      kernel_density.setArg(2, pt->buff_z0_i[0]);                 // z0
-      kernel_density.setArg(3, pt->buff_x1_i[0]);                 // x1
-      kernel_density.setArg(4, pt->buff_y1_i[0]);                 // y1
-      kernel_density.setArg(5, pt->buff_z1_i[0]);                 // z1
+      kernel_density.setArg(0, pt->buff_x0_i[0]);          // x0
+      kernel_density.setArg(1, pt->buff_y0_i[0]);          // y0
+      kernel_density.setArg(2, pt->buff_z0_i[0]);          // z0
+      kernel_density.setArg(3, pt->buff_x1_i[0]);          // x1
+      kernel_density.setArg(4, pt->buff_y1_i[0]);          // y1
+      kernel_density.setArg(5, pt->buff_z1_i[0]);          // z1
       kernel_density.setArg(6, fi->buff_npi[0]);           // np temp integer
       kernel_density.setArg(7, fi->buff_cji[0]);           // current
-      kernel_density.setArg(8, pt->buff_q_i[0]);                  // q
+      kernel_density.setArg(8, pt->buff_q_i[0]);           // q
       kernel_density.setArg(9, sizeof(float), &par->a0_f); // scale factor
 
       // wait for the end of the tnp ion to finish before starting density ion
       // run the kernel to get ion density
-      queue.enqueueNDRangeKernel(kernel_density, cl::NullRange, cl::NDRange( par->n_part[1]), cl::NullRange);
+      queue.enqueueNDRangeKernel(kernel_density, cl::NullRange, cl::NDRange(par->n_part[1]), cl::NullRange);
       queue.finish();
       kernel_df.setArg(0, fi->buff_np_i[0]);          // np ion
       kernel_df.setArg(1, fi->buff_npi[0]);           // np ion temp integer
@@ -222,55 +222,47 @@ void tnp(fields *fi, particles *pt, par *par)
 
       // timer.mark();
       // set externally applied fields this is inside time loop so we can set time varying E and B field
-      // calcEeBe(Ee,Be,t); // find E field must work out every i,j,k depends on charge in every other cell
       /*
-                res = clEnqueueWriteBuffer(vkGPU.commandQueue, fi->npt_buffer, CL_TRUE, 0, sizeof(float) * n_cells, fi->npt, 0, NULL, NULL);
-      #ifdef Eon_
-          resFFT = transferDataFromCPU(&vkGPU, fi->Ee, &fi->Ee_buffer, 3 * n_cells * sizeof(float));
-      #endif
-      #ifdef Bon_
-          res = clEnqueueWriteBuffer(vkGPU.commandQueue, fi->jc_buffer, CL_TRUE, 0, sizeof(float) * n_cells * 3, fi->jc, 0, NULL, NULL);
-          resFFT = transferDataFromCPU(&vkGPU, fi->Be, &fi->Be_buffer, 3 * n_cells * sizeof(float));
-      #endif
+      calcEeBe(Ee, Be, t); // find E field must work out every i,j,k depends on charge in every other cell
+#ifdef Eon_
+      resFFT = transferDataFromCPU(&vkGPU, fi->Ee, &fi->Ee_buffer, 3 * n_cells * sizeof(float));
+#endif
+#ifdef Bon_
+      resFFT = transferDataFromCPU(&vkGPU, fi->Be, &fi->Be_buffer, 3 * n_cells * sizeof(float));
+#endif
       */
       cdt = calcEBV(fi, par);
       // cout << "\nEBV: " << timer.elapsed() << "s, \n";
-      if (fastIO)
-      { // is mapping required?
-              }
-      else
-      {
-         queue.enqueueWriteBuffer(fi->buff_E[0], CL_TRUE, 0, n_cellsf * 3, fi->E);
-         queue.enqueueWriteBuffer(fi->buff_B[0], CL_TRUE, 0, n_cellsf * 3, fi->B);
-      }
    }
 
    if (fastIO)
    { // is mapping required?
-        }
+   }
    else
    {
-      queue.enqueueReadBuffer(pt->buff_x0_e[0], CL_TRUE, 0,  n_partf, pt->pos0x[0]);
-      queue.enqueueReadBuffer(pt->buff_y0_e[0], CL_TRUE, 0,  n_partf, pt->pos0y[0]);
-      queue.enqueueReadBuffer(pt->buff_z0_e[0], CL_TRUE, 0,  n_partf, pt->pos0z[0]);
-      queue.enqueueReadBuffer(pt->buff_x1_e[0], CL_TRUE, 0,  n_partf, pt->pos1x[0]);
-      queue.enqueueReadBuffer(pt->buff_y1_e[0], CL_TRUE, 0,  n_partf, pt->pos1y[0]);
-      queue.enqueueReadBuffer(pt->buff_z1_e[0], CL_TRUE, 0,  n_partf, pt->pos1z[0]);
+      // for saving to disk
+      queue.enqueueReadBuffer(pt->buff_x0_e[0], CL_TRUE, 0, n_partf, pt->pos0x[0]);
+      queue.enqueueReadBuffer(pt->buff_y0_e[0], CL_TRUE, 0, n_partf, pt->pos0y[0]);
+      queue.enqueueReadBuffer(pt->buff_z0_e[0], CL_TRUE, 0, n_partf, pt->pos0z[0]);
+      queue.enqueueReadBuffer(pt->buff_x1_e[0], CL_TRUE, 0, n_partf, pt->pos1x[0]);
+      queue.enqueueReadBuffer(pt->buff_y1_e[0], CL_TRUE, 0, n_partf, pt->pos1y[0]);
+      queue.enqueueReadBuffer(pt->buff_z1_e[0], CL_TRUE, 0, n_partf, pt->pos1z[0]);
 
-      queue.enqueueReadBuffer(pt->buff_x0_i[0], CL_TRUE, 0,  n_partf, pt->pos0x[1]);
-      queue.enqueueReadBuffer(pt->buff_y0_i[0], CL_TRUE, 0,  n_partf, pt->pos0y[1]);
-      queue.enqueueReadBuffer(pt->buff_z0_i[0], CL_TRUE, 0,  n_partf, pt->pos0z[1]);
-      queue.enqueueReadBuffer(pt->buff_x1_i[0], CL_TRUE, 0,  n_partf, pt->pos1x[1]);
-      queue.enqueueReadBuffer(pt->buff_y1_i[0], CL_TRUE, 0,  n_partf, pt->pos1y[1]);
-      queue.enqueueReadBuffer(pt->buff_z1_i[0], CL_TRUE, 0,  n_partf, pt->pos1z[1]);
+      queue.enqueueReadBuffer(pt->buff_x0_i[0], CL_TRUE, 0, n_partf, pt->pos0x[1]);
+      queue.enqueueReadBuffer(pt->buff_y0_i[0], CL_TRUE, 0, n_partf, pt->pos0y[1]);
+      queue.enqueueReadBuffer(pt->buff_z0_i[0], CL_TRUE, 0, n_partf, pt->pos0z[1]);
+      queue.enqueueReadBuffer(pt->buff_x1_i[0], CL_TRUE, 0, n_partf, pt->pos1x[1]);
+      queue.enqueueReadBuffer(pt->buff_y1_i[0], CL_TRUE, 0, n_partf, pt->pos1y[1]);
+      queue.enqueueReadBuffer(pt->buff_z1_i[0], CL_TRUE, 0, n_partf, pt->pos1z[1]);
 
-      queue.enqueueReadBuffer(pt->buff_q_e[0], CL_TRUE, 0,  n_partf, pt->q[0]);
-      queue.enqueueReadBuffer(pt->buff_q_i[0], CL_TRUE, 0,  n_partf, pt->q[1]);
+      queue.enqueueReadBuffer(pt->buff_q_e[0], CL_TRUE, 0, n_partf, pt->q[0]);
+      queue.enqueueReadBuffer(pt->buff_q_i[0], CL_TRUE, 0, n_partf, pt->q[1]);
+
+      queue.enqueueReadBuffer(pt->buff_q_e[0], CL_TRUE, 0, n_partf, pt->q[0]);
+      queue.enqueueReadBuffer(pt->buff_q_i[0], CL_TRUE, 0, n_partf, pt->q[1]);
 
       queue.enqueueReadBuffer(fi->buff_E[0], CL_TRUE, 0, n_cellsf * 3, fi->E);
       queue.enqueueReadBuffer(fi->buff_B[0], CL_TRUE, 0, n_cellsf * 3, fi->B);
-      queue.enqueueReadBuffer(pt->buff_q_e[0], CL_TRUE, 0,  n_partf, pt->q[0]);
-      queue.enqueueReadBuffer(pt->buff_q_i[0], CL_TRUE, 0,  n_partf, pt->q[1]);
 
       queue.enqueueReadBuffer(fi->buff_np_e[0], CL_TRUE, 0, n_cellsf, fi->np[0]);
       queue.enqueueReadBuffer(fi->buff_np_i[0], CL_TRUE, 0, n_cellsf, fi->np[1]);
@@ -279,19 +271,19 @@ void tnp(fields *fi, particles *pt, par *par)
       queue.enqueueReadBuffer(fi->buff_currentj_i[0], CL_TRUE, 0, n_cellsf * 3, fi->currentj[1]);
       if (changedt(pt, cdt, par))
       {
-         queue.enqueueWriteBuffer(pt->buff_x0_e[0], CL_TRUE, 0,  n_partf, pt->pos0x[0]);
-         queue.enqueueWriteBuffer(pt->buff_y0_e[0], CL_TRUE, 0,  n_partf, pt->pos0y[0]);
-         queue.enqueueWriteBuffer(pt->buff_z0_e[0], CL_TRUE, 0,  n_partf, pt->pos0z[0]);
-         queue.enqueueWriteBuffer(pt->buff_x1_e[0], CL_TRUE, 0,  n_partf, pt->pos1x[0]);
-         queue.enqueueWriteBuffer(pt->buff_y1_e[0], CL_TRUE, 0,  n_partf, pt->pos1y[0]);
-         queue.enqueueWriteBuffer(pt->buff_z1_e[0], CL_TRUE, 0,  n_partf, pt->pos1z[0]);
+         queue.enqueueWriteBuffer(pt->buff_x0_e[0], CL_TRUE, 0, n_partf, pt->pos0x[0]);
+         queue.enqueueWriteBuffer(pt->buff_y0_e[0], CL_TRUE, 0, n_partf, pt->pos0y[0]);
+         queue.enqueueWriteBuffer(pt->buff_z0_e[0], CL_TRUE, 0, n_partf, pt->pos0z[0]);
+         queue.enqueueWriteBuffer(pt->buff_x1_e[0], CL_TRUE, 0, n_partf, pt->pos1x[0]);
+         queue.enqueueWriteBuffer(pt->buff_y1_e[0], CL_TRUE, 0, n_partf, pt->pos1y[0]);
+         queue.enqueueWriteBuffer(pt->buff_z1_e[0], CL_TRUE, 0, n_partf, pt->pos1z[0]);
 
-         queue.enqueueWriteBuffer(pt->buff_x0_i[0], CL_TRUE, 0,  n_partf, pt->pos0x[1]);
-         queue.enqueueWriteBuffer(pt->buff_y0_i[0], CL_TRUE, 0,  n_partf, pt->pos0y[1]);
-         queue.enqueueWriteBuffer(pt->buff_z0_i[0], CL_TRUE, 0,  n_partf, pt->pos0z[1]);
-         queue.enqueueWriteBuffer(pt->buff_x1_i[0], CL_TRUE, 0,  n_partf, pt->pos1x[1]);
-         queue.enqueueWriteBuffer(pt->buff_y1_i[0], CL_TRUE, 0,  n_partf, pt->pos1y[1]);
-         queue.enqueueWriteBuffer(pt->buff_z1_i[0], CL_TRUE, 0,  n_partf, pt->pos1z[1]);
+         queue.enqueueWriteBuffer(pt->buff_x0_i[0], CL_TRUE, 0, n_partf, pt->pos0x[1]);
+         queue.enqueueWriteBuffer(pt->buff_y0_i[0], CL_TRUE, 0, n_partf, pt->pos0y[1]);
+         queue.enqueueWriteBuffer(pt->buff_z0_i[0], CL_TRUE, 0, n_partf, pt->pos0z[1]);
+         queue.enqueueWriteBuffer(pt->buff_x1_i[0], CL_TRUE, 0, n_partf, pt->pos1x[1]);
+         queue.enqueueWriteBuffer(pt->buff_y1_i[0], CL_TRUE, 0, n_partf, pt->pos1y[1]);
+         queue.enqueueWriteBuffer(pt->buff_z1_i[0], CL_TRUE, 0, n_partf, pt->pos1z[1]);
          // cout<<"change_dt done"<<endl;
       };
    }
