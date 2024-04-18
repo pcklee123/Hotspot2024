@@ -18,8 +18,44 @@ void tnp(fields *fi, particles *pt, par *par)
    // Note that special alignment has been given to Ea, Ba, y0, z0, x0, x1, y1 in order to actually do this properly
 
    // Assume buffers A, B, I, J (Ea, Ba, ci, cf) will always be the same. Then we save a bit of time.
-   static cl::Buffer buff_E(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_ONLY, n_cellsf * 3, fastIO ? fi->Ea : NULL);
-   static cl::Buffer buff_B(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_ONLY, n_cellsf * 3, fastIO ? fi->Ba : NULL);
+      static cl::Buffer buff_Ea(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, sizeof(float) * nc, fastIO ? fi->Ea : NULL);
+   static cl::Buffer buff_Ba(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, sizeof(float) * nc, fastIO ? fi->Ba : NULL);
+
+   cl::Buffer buff_E = fi->buff_E[0];
+   cl::Buffer buff_B = fi->buff_B[0];
+   cl::Buffer buff_Ee = fi->buff_Ee[0];
+   cl::Buffer buff_Be = fi->buff_Be[0];
+
+   cl::Buffer buff_npt = fi->buff_npt[0];
+   cl::Buffer buff_jc = fi->buff_jc[0];
+
+   cl::Buffer buff_np_e = fi->buff_np_e[0];
+   cl::Buffer buff_np_i = fi->buff_np_i[0];
+   cl::Buffer buff_currentj_e = fi->buff_currentj_e[0];
+   cl::Buffer buff_currentj_i = fi->buff_currentj_i[0];
+
+   cl::Buffer buff_npi = fi->buff_npi[0];
+   cl::Buffer buff_cji = fi->buff_cji[0];
+
+   cl::Buffer buff_x0_e = pt->buff_x0_e[0];
+   cl::Buffer buff_y0_e = pt->buff_y0_e[0];
+   cl::Buffer buff_z0_e = pt->buff_z0_e[0];
+   cl::Buffer buff_x1_e = pt->buff_x1_e[0];
+   cl::Buffer buff_y1_e = pt->buff_y1_e[0];
+   cl::Buffer buff_z1_e = pt->buff_z1_e[0];
+
+   cl::Buffer buff_q_e = pt->buff_q_e[0];
+
+   cl::Buffer buff_x0_i = pt->buff_x0_i[0];
+   cl::Buffer buff_y0_i = pt->buff_y0_i[0];
+   cl::Buffer buff_z0_i = pt->buff_z0_i[0];
+   cl::Buffer buff_x1_i = pt->buff_x1_i[0];
+   cl::Buffer buff_y1_i = pt->buff_y1_i[0];
+   cl::Buffer buff_z1_i = pt->buff_z1_i[0];
+
+   cl::Buffer buff_q_i = pt->buff_q_i[0];
+   /*static cl::Buffer buff_E(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_ONLY, n_cellsf * 3, fastIO ? fi->Ea : NULL);
+   //static cl::Buffer buff_B(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_ONLY, n_cellsf * 3, fastIO ? fi->Ba : NULL);
    fi->buff_E = &buff_E;
    fi->buff_B = &buff_B;
    static cl::Buffer buff_Ea(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, sizeof(float) * nc, fastIO ? fi->Ea : NULL);
@@ -52,7 +88,7 @@ void tnp(fields *fi, particles *pt, par *par)
    static cl::Buffer buff_z1_i(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n4, fastIO ? pt->pos1z[1] : NULL); // z1
 
    static cl::Buffer buff_q_i(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n4, fastIO ? pt->q[1] : NULL); // q
-                                                                                                                                // */
+    */                                                                                                                            // */
    // cout << "command q" << endl; //  create queue to which we will push commands for the device.
    static cl::CommandQueue queue(context_g, default_device_g);
    // static auto *mapped_buff_x0_e = (float *)queue.enqueueMapBuffer(buff_x0_e, CL_TRUE, CL_MAP_WRITE, 0, sizeof(float) * n);
