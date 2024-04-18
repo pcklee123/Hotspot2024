@@ -82,7 +82,9 @@ constexpr size_t n_cells = n_space_divx * n_space_divy * n_space_divz;
 constexpr size_t n_cells8 = n_cells * 8;
 constexpr size_t n_cellsf = n_cells * sizeof(float);
 constexpr size_t n_cellsi = n_cells * sizeof(int);
-constexpr size_t n4 = n_partd * sizeof(float); // number of particles * sizeof(float)
+constexpr size_t n_partf = n_partd * sizeof(float);
+constexpr size_t n_cells3x8f = n_cells * 3 * 8 * sizeof(float);
+// constexpr size_t n4 = n_partd * sizeof(float); // number of particles * sizeof(float)
 constexpr size_t N0 = n_space_divx2, N1 = n_space_divy2, N2 = n_space_divz2,
                  N0N1 = N0 * N1, N0N1_2 = N0N1 / 2, N0N1N2 = N0 * N1 * N2,
                  N0_c = N0 / 2 + 1,
@@ -146,8 +148,8 @@ struct par // useful parameters
     unsigned int cl_align = 4096;
     std::string outpath;
     float a0_f = 1.0; // factor to scale cell size
-   // cl_mem buff_E = 0;
-   // cl_mem buff_B = 0;
+                      // cl_mem buff_E = 0;
+                      // cl_mem buff_B = 0;
 };
 
 struct particles // particles
@@ -214,7 +216,7 @@ struct fields                                                      // particles
     cl_mem Be_buffer = 0;
     cl_mem npt_buffer = 0;
     cl_mem jc_buffer = 0;
-    
+
     cl::Buffer *buff_E;
     cl::Buffer *buff_B;
     cl::Buffer *buff_Ee;

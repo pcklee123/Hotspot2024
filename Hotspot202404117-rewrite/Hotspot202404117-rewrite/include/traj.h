@@ -1,7 +1,6 @@
 #ifndef TRAJ_H_INCLUDED
 #define TRAJ_H_INCLUDED
 
-
 #include <immintrin.h>
 #include <iostream>
 #include <fstream>
@@ -42,7 +41,7 @@
 
 // #include <nfft3.h>
 //  #include "nfft3mp.h"
-//#include <fftw3_threads.h>
+// #include <fftw3_threads.h>
 #include <fftw3.h>
 
 using namespace std;
@@ -51,6 +50,7 @@ using namespace std;
 extern cl::Context context_g;
 extern cl::Device default_device_g;
 extern cl::Program program_g;
+extern cl::CommandQueue commandQueue_g;
 extern int device_id_g;
 extern string outpath;
 // #ifdef RamDisk // save file info - initialize filepath

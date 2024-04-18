@@ -15,6 +15,7 @@
         "span": "cpp",
         "charconv": "cpp",
         "sstream": "cpp",
-        "cstdlib": "cpp"
+        "cstdlib": "cpp",
+        "iosfwd": "cpp"
     }
 }

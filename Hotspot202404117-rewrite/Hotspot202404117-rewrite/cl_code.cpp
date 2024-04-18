@@ -225,7 +225,6 @@ void cl_start(fields *fi, particles *pt, par *par)
     pt->buff_z1_i = &buff_z1_i;
 
     fi->E_buffer = fi->buff_E[0](); // buff_E();
-                                    // cout << fi->E_buffer << ", " << buff_E() << ", " << fi->buff_E[0]() << endl;
     fi->B_buffer = buff_B();
     fi->Ee_buffer = buff_Ee();
     fi->Be_buffer = buff_Be();

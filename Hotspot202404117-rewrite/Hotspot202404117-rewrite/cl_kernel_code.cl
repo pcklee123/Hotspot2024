@@ -882,3 +882,15 @@ void kernel EUEst(global const float4 *V, global const float4 *n,
   // Compute dot product for the given gid
   EUtot[i] = dot(V[i], n[i]);
 }
+
+void kernel dtotal(global const float16 *ne, global const float16 *ni,
+                   global const float16 *je, global const float16 *ji,
+                   global float16 *nt, global float16 *jt, const size_t n) {
+  const size_t n1 = n / 16;
+  const size_t n2 = n1 + n1;
+  const int i = get_global_id(0); // Get index of current element processed
+  nt[i] = ne[i] + ni[i];          // Do the operation
+  jt[i] = je[i] + ji[i];
+  jt[n + i] = je[n + i] + ji[n + i];
+  jt[n2 + i] = je[n2 + i] + ji[n2 + i];
+}

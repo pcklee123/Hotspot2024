@@ -3,26 +3,20 @@ This contains the main loop for the program. Most of the initialization occurs h
 For settings (as to what to calculate, eg. E / B field, E / B force) go to the defines in include/traj.h
 */
 #include "include/traj.h"
-// sphere
-// 0,number of "super" electrons, electron +deuteriom ions, total
-unsigned int n_space_div[3] = {n_space_divx, n_space_divy, n_space_divz};
-unsigned int n_space_div2[3] = {n_space_divx2, n_space_divy2, n_space_divz2};
-par par1;
-par *par = &par1;
-float nt0prev;
-// particles particl1;
-// particles *pt = &particl1; //= alloc_particles( par);
-//  string outpath;
+
 ofstream info_file;
 int main()
 {
+    par par1;
+    par *par = &par1;
+    float nt0prev;
+    cl_int res;
     timer.mark(); // Yes, 3 time marks. The first is for the overall program dt
     timer.mark(); // The second is for compute_d_time
     timer.mark(); // The third is for start up dt
     double t = 0;
     // allocate memory for particles
     particles *pt = alloc_particles(par);
-    const unsigned int n_cells = n_space_divx * n_space_divy * n_space_divz;
     fields *fi = alloc_fields(par);
     int total_ncalc[2] = {0, 0}; // particle 0 - electron, particle 1 deuteron
 
@@ -99,27 +93,27 @@ int main()
     timer.mark();
 
     get_densityfields(fi, pt, par);
-    //   cout << "dt = " << par->dt[0] << ", " << par->dt[1] << endl;
-    //   float max_jc = maxvalf((reinterpret_cast<float *>(fi->jc)), n_cells * 3);
-    //  cout << "max current density  = " << max_jc << endl;
-    cout << timer.elapsed() << "s\n "; // density this is incorporated into tnp which also moves particles, but need to work out here to get good estimate of dt
-                                       // cout << "calcEBV: ";
-    timer.mark();
-    int cdt = calcEBV(fi, par); // electric and magnetic fields this is incorporated into tnp which also moves particles. Need here just to estimate dt
-    cout << timer.elapsed() << "s\n ";
-    // int cdt=0;
-    // changedt(pt, cdt, par); /* change time step if E or B too big*/
-
+    res = clEnqueueReadBuffer(commandQueue_g(), fi->buff_np_e[0](), CL_TRUE, 0, n_cellsf, fi->np[0], 0, NULL, NULL);
     float max_ne = maxvalf((reinterpret_cast<float *>(fi->np[0])), n_cells);
     float Density_e = max_ne * r_part_spart / powf(a0, 3);
-    float max_ni = maxvalf((reinterpret_cast<float *>(fi->np[1])), n_cells);
-    //    max_jc = maxvalf((reinterpret_cast<float *>(fi->jc)), n_cells * 3);
-    //   cout << "max current density  = " << max_jc << endl;
     // cout << "max density electron = " << max_ne << ", " << max_ne * r_part_spart / powf(a0, 3) << "m-3, ion = " << max_ni << ", " << max_ni * r_part_spart / powf(a0, 3) << endl;
-    //   cout << "Emax = " << par->Emax << ", " << "Bmax = " << par->Bmax << endl;
+    // float max_ni = maxvalf((reinterpret_cast<float *>(fi->np[1])), n_cells);
+    // max_jc = maxvalf((reinterpret_cast<float *>(fi->jc)), n_cells * 3);
+    cout << "dt = " << par->dt[0] << ", " << par->dt[1] << endl;
+    // float max_jc = maxvalf((reinterpret_cast<float *>(fi->jc)), n_cells * 3);
+    // cout << "max current density  = " << max_jc << endl;
+    cout << timer.elapsed() << "s\n ";
+    // cout << "calcEBV: ";
+    timer.mark();
+
+    int cdt = calcEBV(fi, par); // electric and magnetic fields this is incorporated into tnp which also moves particles. Need here just to estimate dt
+    res = clEnqueueReadBuffer(commandQueue_g(), fi->E_buffer, CL_TRUE, 0, n_cellsf * 3, fi->E, 0, NULL, NULL);
+    res = clEnqueueReadBuffer(commandQueue_g(), fi->B_buffer, CL_TRUE, 0, n_cellsf * 3, fi->B, 0, NULL, NULL);
+    cout << timer.elapsed() << "s\n ";
+
+    // cout << "Emax = " << par->Emax << ", " << "Bmax = " << par->Bmax << endl;
     // calculated plasma parameters
     float Density_e1 = nback * r_part_spart / (powf(n_space * a0, 3));
-
     info_file << "initial density = " << Density_e << "/m^3,  background density = " << Density_e1 << "/m^3 \n";
     float plasma_freq = sqrt(Density_e * e_charge * e_charge_mass / (mp[0] * epsilon0)) / (2 * pi);
     float plasma_period = 1 / plasma_freq;
@@ -137,16 +131,30 @@ int main()
     // set time step to allow electrons to gyrate if there is B field or to allow electrons to move slowly throughout the plasma distance
     float TExB = a0 * par->a0_f / (par->Emax + .1) * (par->Bmax + .00001);
     info_file << "Tdebye=" << TDebye << ", Tcycloton/4=" << Tcyclotron / 4 << ", plasma period/4=" << plasma_period / 4 << ",TE=" << TE << ",TExB=" << TExB << endl;
-    float inc = min(min(min(TDebye, Tcyclotron / 4), plasma_period / 4), TE / 16) / f1 / par->dt[0]; // redo dt
+    float inc = min(min(min(TDebye, Tcyclotron), plasma_period), TE) / f1 / par->dt[0]; // redo dt
     par->dt[0] *= inc;
     par->dt[1] *= inc;
-    //  cout << "dt0 = " << par->dt[0] << endl;
+    cout << "dt = " << par->dt[0] << ", " << par->dt[1] << endl;
     info_file << "v0 electron = " << vel_e << endl;
 // redo initial particle positions to get the correct velocities
 #pragma omp parallel for simd
+
     for (int n = 0; n < par->n_part[0] * 3 * 2; n++)
         pt->pos0[n] = pt->pos1[n] - (pt->pos1[n] - pt->pos0[n]) * inc;
-        //   cout << "dt changed" << endl;
+    res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_x0_e[0](), CL_TRUE, 0,  n_partf, pt->pos0x[0], 0, NULL, NULL);
+    res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_y0_e[0](), CL_TRUE, 0,  n_partf, pt->pos0y[0], 0, NULL, NULL);
+    res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_z0_e[0](), CL_TRUE, 0,  n_partf, pt->pos0z[0], 0, NULL, NULL);
+    res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_x1_e[0](), CL_TRUE, 0,  n_partf, pt->pos1x[0], 0, NULL, NULL);
+    res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_y1_e[0](), CL_TRUE, 0,  n_partf, pt->pos1y[0], 0, NULL, NULL);
+    res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_z1_e[0](), CL_TRUE, 0,  n_partf, pt->pos1z[0], 0, NULL, NULL);
+
+    res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_x0_i[0](), CL_TRUE, 0,  n_partf, pt->pos0x[1], 0, NULL, NULL);
+    res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_y0_i[0](), CL_TRUE, 0,  n_partf, pt->pos0y[1], 0, NULL, NULL);
+    res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_z0_i[0](), CL_TRUE, 0,  n_partf, pt->pos0z[1], 0, NULL, NULL);
+    res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_x1_i[0](), CL_TRUE, 0,  n_partf, pt->pos1x[1], 0, NULL, NULL);
+    res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_y1_i[0](), CL_TRUE, 0,  n_partf, pt->pos1y[1], 0, NULL, NULL);
+    res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_z1_i[0](), CL_TRUE, 0,  n_partf, pt->pos1z[1], 0, NULL, NULL);
+    //   cout << "dt changed" << endl;
 
 #ifdef Uon_
     // cout << "calculate the total potential energy U\n";
