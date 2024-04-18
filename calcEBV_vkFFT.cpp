@@ -1,7 +1,7 @@
 #include "include/traj.h"
 #include <math.h>
 #include <complex>
-#include <fftw3.h>
+// #include <fftw3.h>
 #include "include/vkFFT.h"
 #include "utils_VkFFT.h"
 // Shorthand for cleaner code
@@ -39,9 +39,17 @@ This is because we are making use of the fact that our original data is fully re
 
 int calcEBV(fields *fi, par *par)
 {
-    // static fftwf_plan planforE, planforB, planbacE, planbacB;
+    //  static fftwf_plan planforE, planforB, planbacE, planbacB;
     static int first = 1;
-
+    static auto *fft_real = static_cast<float(*)[n_cells8]>(_aligned_malloc(sizeof(float) * n_cells8 * 4, 4096));                      // fft_real[4][n_cells8]
+    static auto *fft_complex = static_cast<complex<float>(*)[n_cells4]>(_aligned_malloc(sizeof(complex<float>) * n_cells4 * 4, 4096)); // fft_complex[4][n_cells4]
+    //  pre-calculate 1/ r3 to make it faster to calculate electric and magnetic fields
+    static auto *precalc_r3 = static_cast<complex<float>(*)[3][n_cells4]>(_aligned_malloc(sizeof(complex<float>) * 2 * 3 * n_cells4, 4096)); // precalc_r3[2][3][n_cells4]
+#ifdef Uon_                                                                                                                                  // similar arrays for U, but kept separately in one ifdef
+    static auto *precalc_r2 = static_cast<complex<float>(*)>(_aligned_malloc(sizeof(complex<float>) * n_cells4, 4096));                      // precalc_r3[n_cells4]
+#endif
+    static const size_t n_4 = n_cells / 4;
+    static auto EUtot = new float[n_4];
     static float posL2[3];
     static cl_kernel copyData_kernel;
     static cl_kernel copy3Data_kernel;
@@ -54,6 +62,7 @@ int calcEBV(fields *fi, par *par)
     static cl_kernel sumFftSField_kernel;
     static cl_kernel copyextField_kernel;
     static cl_kernel EUEst_kernel;
+    static cl_kernel maxvalf_kernel;
 
     static VkFFTApplication app1 = {};
     static VkFFTApplication app3 = {};
@@ -65,20 +74,10 @@ int calcEBV(fields *fi, par *par)
     static cl_mem r3_buffer = 0;
     static cl_mem r2_buffer = 0;
     static cl_mem fft_real_buffer = 0;
-    static cl_mem fft_real_buffer1 = 0;
     static cl_mem fft_complex_buffer = 0;
-    static cl_mem fft_complex_buffer1 = 0;
     static cl_mem fft_p_buffer = 0;
-    static cl_mem V_buffer = 0;
     static cl_mem EUtot_buffer = 0;
-
-    cl_mem npt_buffer = fi->npt_buffer;
-    cl_mem jc_buffer = fi->jc_buffer;
-
-    cl_mem buff_E = fi->E_buffer;
-    cl_mem buff_B = fi->B_buffer;
-    cl_mem buff_Ee = fi->Ee_buffer;
-    cl_mem buff_Be = fi->Be_buffer;
+    static cl_mem maxval_buffer = 0;
 
     static VkGPU vkGPU = {};
     // vkGPU.device_id = 0; // 0 = use iGPU for FFT
@@ -96,37 +95,52 @@ int calcEBV(fields *fi, par *par)
     static uint64_t bufferSize_P4 = bufferSize_P * 4;
     static uint64_t bufferSize_C4 = bufferSize_C * 4;
     static uint64_t bufferSize_R6 = bufferSize_R * 6;
-
+    // static uint64_t bufferSize_P6 = bufferSize_P * 6;
     static uint64_t bufferSize_C6 = bufferSize_C * 6;
-
     static VkFFTLaunchParams launchParams = {};
-    static const size_t nc3_16 = n_cells * 3 / 16;
-    static const size_t n_4 = n_cells / 4;
-    static auto EUtot = new float[n_4];
+
     int Nbatch;
     if (first)
     { // allocate and initialize to 0
         int dims[3] = {N0, N1, N2};
         auto precalc_r3_base = new float[2][3][N2][N1][N0];
+        fi->precalc_r3 = (reinterpret_cast<float *>(precalc_r3));
 #ifdef Uon_ // similar arrays for U, but kept separately in one ifdef
         auto precalc_r2_base = new float[N2][N1][N0];
+        fi->precalc_r2 = (reinterpret_cast<float *>(precalc_r2));
 #endif
 
         vkGPU.device = default_device_g();
         vkGPU.context = context_g();
+        // vkGPU. = program_g();
         vkGPU.commandQueue = clCreateCommandQueue(vkGPU.context, vkGPU.device, 0, &res);
         launchParams.commandQueue = &vkGPU.commandQueue;
+        // Create the OpenCL kernel
+        copyData_kernel = clCreateKernel(program_g(), "copyData", NULL);
+        copy3Data_kernel = clCreateKernel(program_g(), "copy3Data", NULL);
+        NxPrecalc_kernel = clCreateKernel(program_g(), "NxPrecalc", NULL);
+        NxPrecalcr2_kernel = clCreateKernel(program_g(), "NxPrecalcr2", NULL);
+        jcxPrecalc_kernel = clCreateKernel(program_g(), "jcxPrecalc", NULL);
+        sumFftFieldo_kernel = clCreateKernel(program_g(), "sumFftFieldo", NULL);
+        sumFftField_kernel = clCreateKernel(program_g(), "sumFftField", NULL);
+        sumFftSField_kernel = clCreateKernel(program_g(), "sumFftSField", NULL);
+        copyextField_kernel = clCreateKernel(program_g(), "copyextField", NULL);
+        EUEst_kernel = clCreateKernel(program_g(), "EUEst", NULL);
+        maxvalf_kernel = clCreateKernel(program_g(), "maxvalf", NULL);
 
-        r3_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_C6, 0, &res);
-        r2_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_C, 0, &res);
-        fi->r3_buffer = r3_buffer;
-        fi->r2_buffer = r2_buffer;
-
-        // Create temporary memory buffers on the device
-
+        fft_real_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_R4, 0, &res);
+        fft_complex_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_C4, 0, &res);
+        fft_p_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_P4, 0, &res);
         cl_mem r3_base_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_R6, 0, &res);
         cl_mem r2_base_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_R, 0, &res);
+        r3_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_C6, 0, &res);
+        r2_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_C, 0, &res);
+        // Create memory buffers on the device for each vector
+        EUtot_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, n_4 * sizeof(float), 0, &res);
 
+        // cl::Buffer npt_buffer (context_g, CL_MEM_READ_WRITE, sizeof(float) * n_cells);
+        // npt_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, sizeof(float) * n_cells, 0, &res);
+        // jc_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, sizeof(float) * n_cells * 3, 0, &res);
         VkFFTConfiguration configuration = {};
         VkFFTApplication appfor_k = {};
 
@@ -161,8 +175,6 @@ int calcEBV(fields *fi, par *par)
         configuration.buffer = &r3_buffer;
         configuration.bufferSize = &bufferSize_C6;
         resFFT = initializeVkFFT(&appfor_k, configuration);
-        if (resFFT)
-            cout << "resFFT" << resFFT << endl;
 
 #ifdef Uon_
         configuration.makeForwardPlanOnly = true;
@@ -174,16 +186,117 @@ int calcEBV(fields *fi, par *par)
         resFFT = initializeVkFFT(&appfor_k2, configuration);
 #endif
 
-        // #pragma omp barrier
-        //        cout << "allocate done\n";
+        // plan for density (forward R2C FFT scalar)
+        configuration.numberBatches = 1;
+        configuration.performZeropadding[0] = false;
+        configuration.performZeropadding[1] = false;
+        configuration.performZeropadding[2] = false;
+        // configuration.performZeropadding[0] = true;
+        // configuration.performZeropadding[1] = true;
+        // configuration.performZeropadding[2] = true;
+
+        configuration.frequencyZeroPadding = false; // true
+        configuration.fft_zeropad_left[0] = (uint64_t)ceil(configuration.size[0] / 2.0);
+        configuration.fft_zeropad_right[0] = configuration.size[0];
+        configuration.fft_zeropad_left[1] = (uint64_t)ceil(configuration.size[1] / 2.0);
+        configuration.fft_zeropad_right[1] = configuration.size[1];
+        configuration.fft_zeropad_left[2] = (uint64_t)ceil(configuration.size[2] / 2.0);
+        configuration.fft_zeropad_right[2] = configuration.size[2];
+
+        configuration.fft_zeropad_left[0] = 0;
+        configuration.fft_zeropad_right[0] = (uint64_t)ceil(configuration.size[0] / 2.0);
+        configuration.fft_zeropad_left[1] = 0;
+        configuration.fft_zeropad_right[1] = (uint64_t)ceil(configuration.size[1] / 2.0);
+        configuration.fft_zeropad_left[2] = 0;
+        configuration.fft_zeropad_right[2] = (uint64_t)ceil(configuration.size[2] / 2.0);
+
+        configuration.inputBuffer = &fft_real_buffer;
+        configuration.inputBufferSize = &bufferSize_R;
+        configuration.buffer = &fft_complex_buffer;
+        configuration.bufferSize = &bufferSize_C;
+        resFFT = initializeVkFFT(&app1, configuration);
+
+        // plan for current density (forward R2C FFT 3-vector)
+        configuration.isOutputFormatted = true;
+        configuration.inverseReturnToInputBuffer = false;
+        configuration.makeForwardPlanOnly = true;
+
+        configuration.performZeropadding[0] = false;
+        configuration.performZeropadding[1] = false;
+        configuration.performZeropadding[2] = false;
+        //  configuration.performZeropadding[0] = true;
+        //  configuration.performZeropadding[1] = true;
+        //  configuration.performZeropadding[2] = true;
+
+        configuration.outputBufferStride[0] = (uint64_t)(configuration.size[0] / 2) + 1;
+        configuration.outputBufferStride[1] = configuration.outputBufferStride[0] * configuration.size[1];
+        configuration.outputBufferStride[2] = configuration.outputBufferStride[1] * configuration.size[2];
+
+        configuration.numberBatches = 3;
+        configuration.inputBuffer = &fft_real_buffer;
+        configuration.inputBufferSize = &bufferSize_R3;
+        configuration.buffer = &fft_p_buffer;
+        configuration.bufferSize = &bufferSize_P3;
+        configuration.outputBuffer = &fft_complex_buffer; // outputBuffer
+        configuration.outputBufferSize = &bufferSize_C3;  // outputBufferSize
+        resFFT = initializeVkFFT(&app3, configuration);
+
+        // plan for E and B field  inverse C2R FFT (3-vector)
+        configuration.isOutputFormatted = true;
+        configuration.inverseReturnToInputBuffer = false;
+        configuration.makeForwardPlanOnly = false;
+        configuration.makeInversePlanOnly = true;
+        configuration.performZeropadding[0] = false;
+        configuration.performZeropadding[1] = false;
+        configuration.performZeropadding[2] = false;
+        configuration.inputBufferStride[0] = (uint64_t)(configuration.size[0] / 2) + 1;
+        configuration.inputBufferStride[1] = configuration.inputBufferStride[0] * configuration.size[1];
+        configuration.inputBufferStride[2] = configuration.inputBufferStride[1] * configuration.size[2];
+
+        configuration.outputBufferStride[0] = configuration.size[0];
+        configuration.outputBufferStride[1] = configuration.outputBufferStride[0] * configuration.size[1];
+        configuration.outputBufferStride[2] = configuration.outputBufferStride[1] * configuration.size[2];
+
+        configuration.numberBatches = 3;
+        configuration.outputBuffer = &fft_real_buffer;
+        configuration.outputBufferSize = &bufferSize_R3;
+        configuration.buffer = &fft_p_buffer;
+        configuration.bufferSize = &bufferSize_P3;
+        configuration.inputBuffer = &fft_complex_buffer;
+        configuration.inputBufferSize = &bufferSize_C3;
+        resFFT = initializeVkFFT(&appbac3, configuration);
+
+#ifdef Uon_
+        // Perform ifft on the entire array; the first 3/4 is used for E while the last 1/4 is used for V
+        configuration.isOutputFormatted = true;
+        configuration.inverseReturnToInputBuffer = false;
+        configuration.makeForwardPlanOnly = false;
+        configuration.makeInversePlanOnly = true;
+        configuration.performZeropadding[0] = false;
+        configuration.performZeropadding[1] = false;
+        configuration.performZeropadding[2] = false;
+
+        configuration.numberBatches = 4;
+        configuration.outputBuffer = &fft_real_buffer;
+        configuration.outputBufferSize = &bufferSize_R4;
+        configuration.buffer = &fft_p_buffer;
+        configuration.bufferSize = &bufferSize_P4;
+        configuration.inputBuffer = &fft_complex_buffer;
+        configuration.inputBufferSize = &bufferSize_C4;
+
+        resFFT = initializeVkFFT(&appbac4, configuration);
+#endif
+
+#pragma omp barrier
+        //       cout << "allocate done\n";
         float r3, rx, ry, rz, rx2, ry2, rz2;
         int i, j, k, loc_i, loc_j, loc_k;
         posL2[0] = -par->dd[0] * ((float)n_space_divx - 0.5);
         posL2[1] = -par->dd[1] * ((float)n_space_divy - 0.5);
         posL2[2] = -par->dd[2] * ((float)n_space_divz - 0.5);
 
-        // precalculate 1/r^3 (field) and 1/r^2 (energy)
-        // #pragma omp parallel for simd num_threads(nthreads)
+// precalculate 1/r^3 (field) and 1/r^2 (energy)
+#pragma omp parallel for simd num_threads(nthreads)
         for (k = -n_space_divz; k < n_space_divz; k++)
         {
             loc_k = k + (k < 0 ? n_space_divz2 : 0); // The "logical" array position
@@ -213,15 +326,14 @@ int calcEBV(fields *fi, par *par)
                 }
             }
         }
-        cout << "precalc calculate done\n";
         // Multiply by the respective constants here, since it is faster to parallelize it
         const float Vconst = kc * e_charge * r_part_spart / n_cells8;
         const float Aconst = 1e-7 * e_charge * r_part_spart / n_cells8;
-        //    const size_t n_cells4 = n_space_divx2 * n_space_divy2 * (n_space_divz2 / 2 + 1); // NOTE: This is not actually n_cells * 4, there is an additional buffer that fftw requires.
-        // #pragma omp parallel for simd num_threads(nthreads)
+//    const size_t n_cells4 = n_space_divx2 * n_space_divy2 * (n_space_divz2 / 2 + 1); // NOTE: This is not actually n_cells * 4, there is an additional buffer that fftw requires.
+#pragma omp parallel for simd num_threads(nthreads)
         for (size_t i = 0; i < n_cells8 * 3; i++)
             reinterpret_cast<float *>(precalc_r3_base[0])[i] *= Vconst;
-        // #pragma omp parallel for simd num_threads(nthreads)
+#pragma omp parallel for simd num_threads(nthreads)
         for (size_t i = 0; i < n_cells8 * 3; i++)
             reinterpret_cast<float *>(precalc_r3_base[1])[i] *= Aconst;
 #ifdef Uon_
@@ -230,21 +342,18 @@ int calcEBV(fields *fi, par *par)
             (reinterpret_cast<float *>(precalc_r2_base))[i] *= Vconst;
 #endif
         resFFT = transferDataFromCPU(&vkGPU, precalc_r3_base, &r3_base_buffer, bufferSize_R6);
-        if (resFFT)
-            cout << "resFFT" << resFFT << endl;
         resFFT = VkFFTAppend(&appfor_k, -1, &launchParams); //   cout << "forward transform precalc_r3" << endl;
-        if (resFFT)
-            cout << "resFFT" << resFFT << endl;
         res = clFinish(vkGPU.commandQueue);
         deleteVkFFT(&appfor_k);
+        resFFT = transferDataToCPU(&vkGPU, precalc_r3, &r3_buffer, bufferSize_C6);
         clReleaseMemObject(r3_base_buffer);
         delete[] precalc_r3_base;
-
 #ifdef Uon_
         resFFT = transferDataFromCPU(&vkGPU, precalc_r2_base, &r2_base_buffer, bufferSize_R);
         resFFT = VkFFTAppend(&appfor_k2, -1, &launchParams);
         res = clFinish(vkGPU.commandQueue);
         deleteVkFFT(&appfor_k2);
+        resFFT = transferDataToCPU(&vkGPU, precalc_r2, &r2_buffer, bufferSize_C);
         clReleaseMemObject(r2_base_buffer);
         delete[] precalc_r2_base;
 #endif
@@ -284,337 +393,175 @@ int calcEBV(fields *fi, par *par)
             }
         }
         */
-
-        // Create memory buffers on the device for each vector
-
-        fft_real_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_R4, 0, &res);
-        cl_buffer_region region;
-        region.origin = bufferSize_R;
-        region.size = bufferSize_R3;
-        fft_real_buffer1 = clCreateSubBuffer(fft_real_buffer, CL_MEM_READ_WRITE, CL_BUFFER_CREATE_TYPE_REGION, &region, &res);
-        if (fft_real_buffer1 == NULL)
-            cout << "cannot create sub buffer" << endl;
-        fft_complex_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_C4, 0, &res);
-        region.origin = bufferSize_C;
-        region.size = bufferSize_C3;
-        fft_complex_buffer1 = clCreateSubBuffer(fft_real_buffer, CL_MEM_READ_WRITE, CL_BUFFER_CREATE_TYPE_REGION, &region, &res);
-        if (fft_real_buffer1 == NULL)
-            cout << "cannot create sub buffer" << endl;
-        fft_p_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_P4, 0, &res);
-        V_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_R, 0, &res);
-        fi->V_buffer = V_buffer;
-
-        EUtot_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, n_4 * sizeof(float), 0, &res);
-        if (res)
-            cout << "clCreateBuffer res: " << res << endl;
-        // plan for density (forward R2C FFT scalar)
-        configuration.numberBatches = 1;
-        configuration.performZeropadding[0] = false;
-        configuration.performZeropadding[1] = false;
-        configuration.performZeropadding[2] = false;
-        configuration.frequencyZeroPadding = false; // true
-        configuration.fft_zeropad_left[0] = (uint64_t)ceil(configuration.size[0] / 2.0);
-        configuration.fft_zeropad_right[0] = configuration.size[0];
-        configuration.fft_zeropad_left[1] = (uint64_t)ceil(configuration.size[1] / 2.0);
-        configuration.fft_zeropad_right[1] = configuration.size[1];
-        configuration.fft_zeropad_left[2] = (uint64_t)ceil(configuration.size[2] / 2.0);
-        configuration.fft_zeropad_right[2] = configuration.size[2];
-
-        configuration.inputBuffer = &fft_real_buffer;
-        configuration.inputBufferSize = &bufferSize_R;
-        configuration.buffer = &fft_complex_buffer;
-        configuration.bufferSize = &bufferSize_C;
-        resFFT = initializeVkFFT(&app1, configuration);
-        if (resFFT)
-            cout << "resFFT" << resFFT << endl;
-
-        // plan for current density (forward R2C FFT 3-vector)
-        configuration.isOutputFormatted = true;
-        configuration.inverseReturnToInputBuffer = false;
-        configuration.makeForwardPlanOnly = true;
-
-        configuration.performZeropadding[0] = false;
-        configuration.performZeropadding[1] = false;
-        configuration.performZeropadding[2] = false;
-
-        configuration.outputBufferStride[0] = (uint64_t)(configuration.size[0] / 2) + 1;
-        configuration.outputBufferStride[1] = configuration.outputBufferStride[0] * configuration.size[1];
-        configuration.outputBufferStride[2] = configuration.outputBufferStride[1] * configuration.size[2];
-
-        configuration.numberBatches = 3;
-        configuration.inputBuffer = &fft_real_buffer1;
-        configuration.inputBufferSize = &bufferSize_R3;
-        configuration.buffer = &fft_p_buffer;
-        configuration.bufferSize = &bufferSize_P3;
-        configuration.outputBuffer = &fft_complex_buffer1; // outputBuffer
-        configuration.outputBufferSize = &bufferSize_C3;   // outputBufferSize
-        resFFT = initializeVkFFT(&app3, configuration);
-        if (resFFT)
-            cout << "resFFT" << resFFT << endl;
-
-        // plan for E and B field  inverse C2R FFT (3-vector)
-        configuration.isOutputFormatted = true;
-        configuration.inverseReturnToInputBuffer = false;
-        configuration.makeForwardPlanOnly = false;
-        configuration.makeInversePlanOnly = true;
-        configuration.performZeropadding[0] = false;
-        configuration.performZeropadding[1] = false;
-        configuration.performZeropadding[2] = false;
-        configuration.inputBufferStride[0] = (uint64_t)(configuration.size[0] / 2) + 1;
-        configuration.inputBufferStride[1] = configuration.inputBufferStride[0] * configuration.size[1];
-        configuration.inputBufferStride[2] = configuration.inputBufferStride[1] * configuration.size[2];
-
-        configuration.outputBufferStride[0] = configuration.size[0];
-        configuration.outputBufferStride[1] = configuration.outputBufferStride[0] * configuration.size[1];
-        configuration.outputBufferStride[2] = configuration.outputBufferStride[1] * configuration.size[2];
-
-        configuration.numberBatches = 3;
-        configuration.outputBuffer = &fft_real_buffer1;
-        configuration.outputBufferSize = &bufferSize_R3;
-        configuration.buffer = &fft_p_buffer;
-        configuration.bufferSize = &bufferSize_P3;
-        configuration.inputBuffer = &fft_complex_buffer1;
-        configuration.inputBufferSize = &bufferSize_C3;
-        resFFT = initializeVkFFT(&appbac3, configuration);
-        if (resFFT)
-            cout << "resFFT" << resFFT << endl;
-
-#ifdef Uon_
-        // Perform ifft on the entire array; the first 3/4 is used for E while the last 1/4 is used for V
-        configuration.isOutputFormatted = true;
-        configuration.inverseReturnToInputBuffer = false;
-        configuration.makeForwardPlanOnly = false;
-        configuration.makeInversePlanOnly = true;
-        configuration.performZeropadding[0] = false;
-        configuration.performZeropadding[1] = false;
-        configuration.performZeropadding[2] = false;
-
-        configuration.numberBatches = 4;
-        configuration.outputBuffer = &fft_real_buffer;
-        configuration.outputBufferSize = &bufferSize_R4;
-        configuration.buffer = &fft_p_buffer;
-        configuration.bufferSize = &bufferSize_P4;
-        configuration.inputBuffer = &fft_complex_buffer;
-        configuration.inputBufferSize = &bufferSize_C4;
-
-        resFFT = initializeVkFFT(&appbac4, configuration);
-        if (resFFT)
-            cout << "resFFT" << resFFT << endl;
-#endif
-        // Create the OpenCL kernel
-        copyData_kernel = clCreateKernel(program_g(), "copyData", NULL);
-        copy3Data_kernel = clCreateKernel(program_g(), "copy3Data", NULL);
-        NxPrecalc_kernel = clCreateKernel(program_g(), "NxPrecalc", NULL);
-     //   NxPrecalcnU_kernel = clCreateKernel(program_g(), "NxPrecalcnU", NULL);
-        NxPrecalcr2_kernel = clCreateKernel(program_g(), "NxPrecalcr2", NULL);
-        jcxPrecalc_kernel = clCreateKernel(program_g(), "jcxPrecalc", NULL);
-        sumFftFieldo_kernel = clCreateKernel(program_g(), "sumFftFieldo", NULL);
-        sumFftField_kernel = clCreateKernel(program_g(), "sumFftField", NULL);
-        sumFftSField_kernel = clCreateKernel(program_g(), "sumFftSField", NULL);
-        copyextField_kernel = clCreateKernel(program_g(), "copyextField", NULL);
-        EUEst_kernel = clCreateKernel(program_g(), "EUEst", NULL);
         // Set the arguments of the kernel
-        clSetKernelArg(copyData_kernel, 0, sizeof(cl_mem), &npt_buffer);
+        clSetKernelArg(copyData_kernel, 0, sizeof(cl_mem), &fi->npt_buffer);
         clSetKernelArg(copyData_kernel, 1, sizeof(cl_mem), &fft_real_buffer);
 
-        clSetKernelArg(copy3Data_kernel, 0, sizeof(cl_mem), &jc_buffer);
+        clSetKernelArg(copy3Data_kernel, 0, sizeof(cl_mem), &fi->jc_buffer);
         clSetKernelArg(copy3Data_kernel, 1, sizeof(cl_mem), &fft_real_buffer);
 
         clSetKernelArg(NxPrecalc_kernel, 0, sizeof(cl_mem), &r3_buffer);
-        clSetKernelArg(NxPrecalc_kernel, 1, sizeof(cl_mem), &fft_complex_buffer); //use complex [1-3]
-
-   //     clSetKernelArg(NxPrecalcnU_kernel, 0, sizeof(cl_mem), &r3_buffer);
-   //     clSetKernelArg(NxPrecalcnU_kernel, 1, sizeof(cl_mem), &fft_complex_buffer1);
+        clSetKernelArg(NxPrecalc_kernel, 1, sizeof(cl_mem), &fft_complex_buffer);
 
         clSetKernelArg(NxPrecalcr2_kernel, 0, sizeof(cl_mem), &r2_buffer);
-        clSetKernelArg(NxPrecalcr2_kernel, 1, sizeof(cl_mem), &fft_complex_buffer);
+        clSetKernelArg(NxPrecalcr2_kernel, 1, sizeof(cl_mem), &r3_buffer);
+        clSetKernelArg(NxPrecalcr2_kernel, 2, sizeof(cl_mem), &fft_complex_buffer);
 
         clSetKernelArg(jcxPrecalc_kernel, 0, sizeof(cl_mem), &r3_buffer);
-        clSetKernelArg(jcxPrecalc_kernel, 1, sizeof(cl_mem), &fft_complex_buffer1);// use complex [1-3]
+        clSetKernelArg(jcxPrecalc_kernel, 1, sizeof(cl_mem), &fft_complex_buffer);
 
-        first = 0; //
-                   // cout << "precalc done\n";
+        first = 0; //      cout << "precalc done\n";
     }
 
 #ifdef Eon_
-    res = clEnqueueNDRangeKernel(vkGPU.commandQueue, copyData_kernel, 1, NULL, &n_cells8, NULL, 0, NULL, NULL); //  density goes to real[0]
-    if (res)
-        cout << "copyData_kernel res: " << res << endl;
-    res = clFinish(vkGPU.commandQueue);
-    //  only density arrn1 = fft(arrn) multiply fft charge with fft of kernel(i.e field associated with 1 charge)
-    resFFT = VkFFTAppend(&app1, -1, &launchParams);                                                              // -1 = forward transform
-    res = clFinish(vkGPU.commandQueue);                                                                          //  cout << "execute plan for E" << endl;
-    res = clEnqueueNDRangeKernel(vkGPU.commandQueue, NxPrecalc_kernel, 1, NULL, &n_cells4, NULL, 0, NULL, NULL); //  multiply complex[0] with precalcr3[0-2] result in complex[1-3]
-    if (res)
-        cout << "NxPrecalc_kernel res: " << res << endl;
-    res = clFinish(vkGPU.commandQueue);
+    {
+        res = clEnqueueNDRangeKernel(vkGPU.commandQueue, copyData_kernel, 1, NULL, &n_cells8, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
+        res = clFinish(vkGPU.commandQueue);
+        //  only density arrn1 = fft(arrn) multiply fft charge with fft of kernel(i.e field associated with 1 charge)
+        resFFT = VkFFTAppend(&app1, -1, &launchParams); // -1 = forward transform
+        res = clFinish(vkGPU.commandQueue);             //  cout << "execute plan for E" << endl;
+
 #ifdef Uon_
-
-    res = clEnqueueNDRangeKernel(vkGPU.commandQueue, NxPrecalcr2_kernel, 1, NULL, &n_cells4, NULL, 0, NULL, NULL); //  multiply complex[0] with precalcr2[0] result in complex[0]
-    if (res)
-        cout << "NxPrecalcr2_kernel res: " << res << endl;
-    res = clFinish(vkGPU.commandQueue);
-
-    // cout << "inverse transform to get convolution" << endl;
-    resFFT = VkFFTAppend(&appbac4, 1, &launchParams);                                                              // 1 = inverse FFT//if (resFFT)  //cout << "execute plan bac E resFFT = " << resFFT << endl;
-    res = clFinish(vkGPU.commandQueue);                                                                            // cout << "execute plan bac E ,clFinish res = " << res << endl;
-    clSetKernelArg(sumFftSField_kernel, 0, sizeof(cl_mem), &fft_real_buffer);                                      // real[0] is V
-    clSetKernelArg(sumFftSField_kernel, 1, sizeof(cl_mem), &V_buffer);                                             // copy to ncells8 to ncells
-    res = clEnqueueNDRangeKernel(vkGPU.commandQueue, sumFftSField_kernel, 1, NULL, &n_cells, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
-    if (res)
-        cout << "sumFftSField_kernel res: " << res << endl;
-    res = clFinish(vkGPU.commandQueue);
-
-    //   res = clEnqueueReadBuffer(vkGPU.commandQueue, V_buffer, CL_TRUE, 0, sizeof(float) * n_cells, fi->V, 0, NULL, NULL);
+        res = clEnqueueNDRangeKernel(vkGPU.commandQueue, NxPrecalcr2_kernel, 1, NULL, &n_cells4, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
+        res = clFinish(vkGPU.commandQueue);
+        resFFT = VkFFTAppend(&appbac4, 1, &launchParams);                                                              // cout << "inverse transform to get convolution" << endl;                                                             // 1 = inverse FFT//if (resFFT)                cout << "execute plan bac E resFFT = " << resFFT << endl;
+        res = clFinish(vkGPU.commandQueue);                                                                            // cout << "execute plan bac E ,clFinish res = " << res << endl;
+        clSetKernelArg(sumFftSField_kernel, 0, sizeof(cl_mem), &fft_real_buffer);                                      // real[0] is V
+        clSetKernelArg(sumFftSField_kernel, 1, sizeof(cl_mem), &fi->V_buffer);                                         // copy to ncells8 to ncells
+        res = clEnqueueNDRangeKernel(vkGPU.commandQueue, sumFftSField_kernel, 1, NULL, &n_cells, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
+        if (res)
+            cout << "sumFftSField_kernel res: " << res << endl;
+        res = clFinish(vkGPU.commandQueue);
 #else
+        res = clEnqueueNDRangeKernel(vkGPU.commandQueue, NxPrecalc_kernel, 1, NULL, &n_cells4, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
+        res = clFinish(vkGPU.commandQueue);
+        resFFT = VkFFTAppend(&appbac3, 1, &launchParams); // 1 = inverse FFT//if (resFFT) // cout << "inverse transform to get convolution" << endl;               cout << "execute plan bac E resFFT = " << resFFT << endl;
+        res = clFinish(vkGPU.commandQueue);               // cout << "execute plan bac E ,clFinish res = " << res << endl;
 
-    // cout << "inverse transform to get convolution" << endl;
-    // launchParams.inputBufferOffset = n_cells4 * sizeof(complex<float>);  // complex[1-3] is FFT of E field
-    // launchParams.outputBufferOffset = n_cells8 * sizeof(float); // real[1-3] is E field
-    resFFT = VkFFTAppend(&appbac3, 1, &launchParams); // 1 = inverse FFT//if (resFFT) //cout << "execute plan bac E resFFT = " << resFFT << endl;
-    res = clFinish(vkGPU.commandQueue);               // cout << "execute plan bac E ,clFinish res = " << res << endl;
-    // resFFT = transferDataToCPU(&vkGPU, fft_real[0], &fft_real_buffer, bufferSize_R3);
-    // launchParams.inputBufferOffset = 0;
-    // launchParams.outputBufferOffset = 0;
 #endif
-
 #ifdef octant
-    clSetKernelArg(sumFftFieldo_kernel, 0, sizeof(cl_mem), &fft_real_buffer1); // real[1-3] is E field
-    clSetKernelArg(sumFftFieldo_kernel, 1, sizeof(cl_mem), &buff_Ee);
-    clSetKernelArg(sumFftFieldo_kernel, 2, sizeof(cl_mem), &buff_E);                                               // copy to ncells8 to ncells adding External electric field
-    res = clEnqueueNDRangeKernel(vkGPU.commandQueue, sumFftFieldo_kernel, 1, NULL, &n_cells, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
-    if (res)
-        cout << "sumFftFieldo_kernel res: " << res << endl;
-    res = clFinish(vkGPU.commandQueue);
+        clSetKernelArg(sumFftFieldo_kernel, 0, sizeof(cl_mem), &fft_real_buffer); // real[0-2] is E field
+        clSetKernelArg(sumFftFieldo_kernel, 1, sizeof(cl_mem), &fi->Ee_buffer);
+        clSetKernelArg(sumFftFieldo_kernel, 2, sizeof(cl_mem), &fi->E_buffer);                                         // copy to ncells8 to ncells adding External electric field
+        res = clEnqueueNDRangeKernel(vkGPU.commandQueue, sumFftFieldo_kernel, 1, NULL, &n_cells, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
+        if (res)
+            cout << "sumFftFieldo_kernel E  res: " << res << endl;
+        res = clFinish(vkGPU.commandQueue);
 #else
-    clSetKernelArg(sumFftField_kernel, 0, sizeof(cl_mem), &fft_real_buffer1); // real[1-3] is E field
-    clSetKernelArg(sumFftField_kernel, 1, sizeof(cl_mem), &buff_Ee);
-    clSetKernelArg(sumFftField_kernel, 2, sizeof(cl_mem), &buff_E);
-    res = clEnqueueNDRangeKernel(vkGPU.commandQueue, sumFftField_kernel, 1, NULL, &n_cells, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
-    res = clFinish(vkGPU.commandQueue);
+        clSetKernelArg(sumFftField_kernel, 0, sizeof(cl_mem), &fft_real_buffer); // real[0-2] is E field
+        clSetKernelArg(sumFftField_kernel, 1, sizeof(cl_mem), &fi->Ee_buffer);
+        clSetKernelArg(sumFftField_kernel, 2, sizeof(cl_mem), &fi->E_buffer);
+        res = clEnqueueNDRangeKernel(vkGPU.commandQueue, sumFftField_kernel, 1, NULL, &n_cells, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
+        res = clFinish(vkGPU.commandQueue);
 #endif
+    }
 #else
+    {
+        clSetKernelArg(copyextField_kernel, 1, sizeof(cl_mem), &fi->Ee_buffer);
+        clSetKernelArg(copyextField_kernel, 2, sizeof(cl_mem), &fi->E_buffer);
+        res = clEnqueueNDRangeKernel(vkGPU.commandQueue, copyextField_kernel, 1, NULL, &nc3_16, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
+        res = clFinish(vkGPU.commandQueue);
+    }
+#endif
+    //                  cout << "E done\n";
 
-    clSetKernelArg(copyextField_kernel, 1, sizeof(cl_mem), &buff_Ee);
-    clSetKernelArg(copyextField_kernel, 2, sizeof(cl_mem), &buff_E);
-    res = clEnqueueNDRangeKernel(vkGPU.commandQueue, copyextField_kernel, 1, NULL, &nc3_16, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
-    res = clFinish(vkGPU.commandQueue);
-#endif
-// cout << "E done\n";
 #ifdef Bon_
+    {
+        res = clEnqueueNDRangeKernel(vkGPU.commandQueue, copy3Data_kernel, 1, NULL, &n_cells8, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
+        res = clFinish(vkGPU.commandQueue);
+        resFFT = VkFFTAppend(&app3, -1, &launchParams); // -1 = forward transform // cout << "execute plan for E resFFT = " << resFFT << endl;
+        res = clFinish(vkGPU.commandQueue);             //  cout << "execute plan for E" << endl;
 
-    // res = clEnqueueWriteBuffer(vkGPU.commandQueue, jc_buffer, CL_TRUE, 0, sizeof(float) * n_cells * 3, fi->jc, 0, NULL, NULL);
-    res = clEnqueueNDRangeKernel(vkGPU.commandQueue, copy3Data_kernel, 1, NULL, &n_cells8, NULL, 0, NULL, NULL); //  copy ncells current density to zero padded ncells8  real[0-2]
-    if (res)
-        cout << "sumFftFieldo_kernel res: " << res << endl;
-    res = clFinish(vkGPU.commandQueue);
-
-    resFFT = VkFFTAppend(&app3, -1, &launchParams); // -1 = forward transform // cout << "execute plan for E resFFT = " << resFFT << endl;
-    res = clFinish(vkGPU.commandQueue);             //  cout << "execute plan for E" << endl;
-
-    res = clEnqueueNDRangeKernel(vkGPU.commandQueue, jcxPrecalc_kernel, 1, NULL, &n_cells8, NULL, 0, NULL, NULL); // cross product complex[0-2] with precalc_r3[3-5]
-    res = clFinish(vkGPU.commandQueue);
-
-    resFFT = VkFFTAppend(&appbac3, 1, &launchParams); // 1 = inverse FFT// cout << "execute plan bac E resFFT = " << resFFT << endl;
-    res = clFinish(vkGPU.commandQueue);               // cout << "execute plan bac E ,clFinish res = " << res << endl;
-    if (res)
-        cout << "clFinish VkFFTAppend plan bac B  res: " << res << endl;
+        res = clEnqueueNDRangeKernel(vkGPU.commandQueue, jcxPrecalc_kernel, 1, NULL, &n_cells8, NULL, 0, NULL, NULL);
+        res = clFinish(vkGPU.commandQueue);
+        resFFT = VkFFTAppend(&appbac3, 1, &launchParams); // 1 = inverse FFT// cout << "execute plan bac E resFFT = " << resFFT << endl;
+        res = clFinish(vkGPU.commandQueue);               // cout << "execute plan bac E ,clFinish res = " << res << endl;
+                                                          // resFFT = transferDataToCPU(&vkGPU, &fft_real[0][0], &fft_real_buffer, bufferSize_R3);
 
 #ifdef octant
-    clSetKernelArg(sumFftFieldo_kernel, 0, sizeof(cl_mem), &fft_real_buffer1); // real[1-3] contains B
-    clSetKernelArg(sumFftFieldo_kernel, 1, sizeof(cl_mem), &buff_Be);
-    clSetKernelArg(sumFftFieldo_kernel, 2, sizeof(cl_mem), &buff_B);
-    res = clEnqueueNDRangeKernel(vkGPU.commandQueue, sumFftFieldo_kernel, 1, NULL, &n_cells, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
-    if (res)
-        cout << "sumFftFieldo_kernel res: " << res << endl;
-    res = clFinish(vkGPU.commandQueue);
-    if (res)
-        cout << "clFinish sumFftFieldo_kernel res: " << res << endl;
+        clSetKernelArg(sumFftFieldo_kernel, 0, sizeof(cl_mem), &fft_real_buffer); // real[0-3] contains B
+        clSetKernelArg(sumFftFieldo_kernel, 1, sizeof(cl_mem), &fi->Be_buffer);
+        clSetKernelArg(sumFftFieldo_kernel, 2, sizeof(cl_mem), &fi->B_buffer);
+        res = clEnqueueNDRangeKernel(vkGPU.commandQueue, sumFftFieldo_kernel, 1, NULL, &n_cells, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
+        if (res)
+            cout << "sumFftFieldo_kernel B res: " << res << endl;
+        res = clFinish(vkGPU.commandQueue);
+        if (res)
+            cout << "clFinish sumFftFieldo_kernel res: " << res << endl;
 #else
-    clSetKernelArg(sumFftField_kernel, 0, sizeof(cl_mem), &fft_real_buffer);
-    clSetKernelArg(sumFftField_kernel, 1, sizeof(cl_mem), &buff_Be);
-    clSetKernelArg(sumFftField_kernel, 2, sizeof(cl_mem), &buff_B);
-    res = clEnqueueNDRangeKernel(vkGPU.commandQueue, sumFftField_kernel, 1, NULL, &n_cells, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
-    res = clFinish(vkGPU.commandQueue);
+        clSetKernelArg(sumFftField_kernel, 0, sizeof(cl_mem), &fft_real_buffer); // real[0-2] is E field
+        clSetKernelArg(sumFftField_kernel, 1, sizeof(cl_mem), &fi->Be_buffer);
+        clSetKernelArg(sumFftField_kernel, 2, sizeof(cl_mem), &fi->B_buffer);
+        res = clEnqueueNDRangeKernel(vkGPU.commandQueue, sumFftField_kernel, 1, NULL, &n_cells, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
+        res = clFinish(vkGPU.commandQueue);
 #endif
-
+    }
 #else
-    clSetKernelArg(copyextField_kernel, 1, sizeof(cl_mem), &buff_Be);
-    clSetKernelArg(copyextField_kernel, 2, sizeof(cl_mem), &buff_B);
+    clSetKernelArg(copyextField_kernel, 1, sizeof(cl_mem), &fi->Be_buffer);
+    clSetKernelArg(copyextField_kernel, 2, sizeof(cl_mem), &fi->B_buffer);
     res = clEnqueueNDRangeKernel(vkGPU.commandQueue, copyextField_kernel, 1, NULL, &nc3_16, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
     res = clFinish(vkGPU.commandQueue);
-
 #endif
-// cout << "B done\n";
+    //                     cout << "B done\n";
+
 #ifdef Uon_
 #ifdef Eon_ // if both Uon and Eon are defined
-    // float EUtot[n_4];
-
-    float EUtot1 = 0.0;
-    float EUtot2 = 0.f;
-    clSetKernelArg(EUEst_kernel, 0, sizeof(cl_mem), &V_buffer);
-    clSetKernelArg(EUEst_kernel, 1, sizeof(cl_mem), &npt_buffer);
+    float EUtot1 = 0.0f;
+    clSetKernelArg(EUEst_kernel, 0, sizeof(cl_mem), &fi->V_buffer);
+    clSetKernelArg(EUEst_kernel, 1, sizeof(cl_mem), &fi->npt_buffer);
     clSetKernelArg(EUEst_kernel, 2, sizeof(cl_mem), &EUtot_buffer);
     res = clEnqueueNDRangeKernel(vkGPU.commandQueue, EUEst_kernel, 1, NULL, &n_4, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
-    if (res)
-        cout << "EUEst_kernel res: " << res << endl;
-    res = clFinish(vkGPU.commandQueue);
-    if (res)
-        cout << "clFinish EUEst_kernel res: " << res << endl;
     res = clEnqueueReadBuffer(vkGPU.commandQueue, EUtot_buffer, CL_TRUE, 0, sizeof(float) * n_4, EUtot, 0, NULL, NULL);
-    if (res)
-        cout << "clEnqueueReadBuffer res: " << res << endl;
-    res = clEnqueueReadBuffer(vkGPU.commandQueue, npt_buffer, CL_TRUE, 0, sizeof(float) * n_cells, fi->npt, 0, NULL, NULL);
-    res = clEnqueueReadBuffer(vkGPU.commandQueue, V_buffer, CL_TRUE, 0, sizeof(float) * n_cells, fi->V, 0, NULL, NULL);
-    if (res)
-        cout << "clEnqueueReadBuffer last res: " << res << endl;
-    //    res = clFinish(vkGPU.commandQueue);
-
-    // #pragma omp parallel for simd reduction(+ : EUtot1)
-    const float *V_1d = reinterpret_cast<float *>(fi->V);
-    const float *npt_1d = reinterpret_cast<float *>(fi->npt);
     for (int i = 0; i < n_4; ++i)
-    {
         EUtot1 += EUtot[i];
-        // cout << EUtot[i] << ", ";
-        // cout << fi->npt[i] << ", ";
-        // cout << V_1d[i] << ", ";
-    }
-    // Perform estimate of electric potential energy
-    // for (int i = 0; i < n_cells; ++i)
-    // EUtot2 += V_1d[i] * npt_1d[i];
     EUtot1 *= 0.5f; // * e_charge / ev_to_j; <- this is just 1
-    // cout << "Eele (estimate): " << EUtot1 << ", " << EUtot2 * 0.5 << endl;
 #endif
 #endif
 
-    int E_exceeds = 0, B_exceeds = 0;
-#pragma omp parallel sections
-    {
-#pragma omp section
-        par->Emax = maxvalf(reinterpret_cast<float *>(fi->E), n_cells * 3);
-#pragma omp section
-        par->Bmax = maxvalf(reinterpret_cast<float *>(fi->B), n_cells * 3);
-    }
+    size_t n = n_cells * 3 / 16;
+    maxval_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, n * sizeof(float), 0, &res);
+    float *maxval_array = (float *)_aligned_malloc(sizeof(float) * n, par->cl_align);
+#ifdef Eon_
+    clSetKernelArg(maxvalf_kernel, 0, sizeof(cl_mem), &fi->E_buffer);
+    clSetKernelArg(maxvalf_kernel, 1, sizeof(cl_mem), &maxval_buffer);
+    res = clEnqueueNDRangeKernel(vkGPU.commandQueue, maxvalf_kernel, 1, NULL, &n, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
+    res = clEnqueueReadBuffer(vkGPU.commandQueue, maxval_buffer, CL_TRUE, 0, sizeof(float) * n, maxval_array, 0, NULL, NULL);
+    par->Emax = maxvalf(maxval_array, n);
+    // resFFT = transferDataToCPU(&vkGPU, fi->E, &fi->E_buffer, 3 * n_cells * sizeof(float));
+    // par->Emax = maxvalf(reinterpret_cast<float *>(fi->E), n_cells * 3);
+#endif
 
+#ifdef Bon_
+    clSetKernelArg(maxvalf_kernel, 0, sizeof(cl_mem), &fi->B_buffer);
+    clSetKernelArg(maxvalf_kernel, 1, sizeof(cl_mem), &maxval_buffer);
+    res = clEnqueueNDRangeKernel(vkGPU.commandQueue, maxvalf_kernel, 1, NULL, &n, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
+    res = clEnqueueReadBuffer(vkGPU.commandQueue, maxval_buffer, CL_TRUE, 0, sizeof(float) * n, maxval_array, 0, NULL, NULL);
+    par->Bmax = maxvalf(maxval_array, n);
+    //   resFFT = transferDataToCPU(&vkGPU, fi->B, &fi->B_buffer, 3 * n_cells * sizeof(float));
+    //   par->Bmax = maxvalf(reinterpret_cast<float *>(fi->B), n_cells * 3);
+#endif
+    _aligned_free(maxval_array);
+    clReleaseMemObject(maxval_buffer);
+
+    int E_exceeds = 0,
+        B_exceeds = 0;
     float Tcyclotron = 2.0 * pi * mp[0] / (e_charge_mass * (par->Bmax + 1e-3f));
-    float acc_e = fabsf(par->Emax * e_charge_mass);
+    float acc_e = fabsf(e_charge_mass * par->Emax);
     float vel_e = sqrt(kb * Temp_e / e_mass);
-    float TE = (sqrt(1 + 2 * a0 * par->a0_f * acc_e / pow(vel_e, 2)) - 1) * vel_e / acc_e;
-    TE = ((TE <= 0) | (isnanf(TE))) ? a0 * par->a0_f / vel_e : TE; // if acc is negligible
-    float TE1 = a0 * par->a0_f / par->Emax * (par->Bmax + .00001);
-    float TE2 = a0 * par->a0_f / 3e8;
-    TE1 = TE1 < TE2 ? TE1 : TE2;
-    //   cout << "Tcyclotron=" << Tcyclotron << ",Bmax= " << par->Bmax << ", TE=" << TE << ", TE1=" << TE1 << ",Emax= " << par->Emax << endl;
-    TE = TE > TE1 ? TE : TE1;
-    TE *= 1;                                // x times larger try to save time but makes it unstable.
-    if (TE < (par->dt[0] * f1 * ncalc0[0])) // if ideal time step is lower than actual timestep
+    float TE = (sqrt(1 + 2 * a0 * par->a0_f * acc_e / pow(vel_e, 2)) - 1) * vel_e / acc_e; // time for electron to move across 1 cell
+    TE = ((TE <= 0) | (isnanf(TE))) ? a0 * par->a0_f / vel_e : TE;                         // if acc is negligible i.e. in square root ~=1, use approximation is more accurate
+    // set time step to allow electrons to gyrate if there is B field or to allow electrons to move slowly throughout the plasma distance
+
+    TE *= 1; // x times larger try to save time but makes it unstable.
+
+    cout << "Tcyclotron=" << Tcyclotron << ",Bmax= " << par->Bmax << ", TE=" << TE << ",Emax= " << par->Emax << ",dt= " << par->dt[0] * f1 << endl;
+    if (TE < (par->dt[0] * f1)) // if ideal time step is lower than actual timestep
         E_exceeds = 1;
-    else if (TE > (par->dt[0] * f2 * ncalc0[0]))
+    else if (TE > (par->dt[0] * f2)) // can increase time step
         E_exceeds = 2;
-    if (Tcyclotron < (par->dt[0] * 4 * f1 * ncalc0[0]))
+    if (Tcyclotron < (par->dt[0] * 4 * f1))
         B_exceeds = 4;
-    else if (Tcyclotron > (par->dt[0] * 4 * f2 * ncalc0[0]))
+    else if (Tcyclotron > (par->dt[0] * 4 * f2))
         B_exceeds = 8;
     // cout <<"calcEBV\n";
     return (E_exceeds + B_exceeds);

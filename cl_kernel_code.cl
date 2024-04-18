@@ -72,11 +72,6 @@ void kernel vector_muls(global float *A, global const float *B) {
   A[i] = Bb * A[i];         // Do the operation
 }
 
-void kernel buffer_muls(global float *A, const float Bb) {
-  int i = get_global_id(0); // Get index of current element processed
-  A[i] = Bb * A[i];         // Do the operation
-}
-
 void kernel vector_mul_complex(global float2 *A, global float2 *B,
                                global float2 *C) {
   int i = get_global_id(0); // Get index of the current element to be processed
@@ -134,20 +129,6 @@ void kernel copyData(global const float *npt, global float *fft_real) {
   fft_real[idx] = (in) ? npt[source_index] : 0;
 }
 void kernel NxPrecalc(global const float2 *r3, global float2 *fft_complex) {
-  //complex[3] = r3[2]*complex[3]; complex[2] = r3[1]*complex[2];;complex[1] = r3[0]*complex[1];
-  const size_t n = 4 * NZ * NY * (NX + 1);
-  size_t i = get_global_id(0), j = i + n, k = j + n;
-  float2 b = fft_complex[i], c = r3[k];
-  fft_complex[n + k] =
-      (float2)(b.s0 * c.s0 - b.s1 * c.s1, b.s0 * c.s1 + b.s1 * c.s0);
-  c = r3[j];
-  fft_complex[n + j] =
-      (float2)(b.s0 * c.s0 - b.s1 * c.s1, b.s0 * c.s1 + b.s1 * c.s0);
-  c = r3[i];
-  fft_complex[n + i] =
-      (float2)(b.s0 * c.s0 - b.s1 * c.s1, b.s0 * c.s1 + b.s1 * c.s0);
-}
-void kernel NxPrecalcnU(global const float2 *r3, global float2 *fft_complex) {
   const size_t n = 4 * NZ * NY * (NX + 1);
   size_t i = get_global_id(0), j = i + n, k = j + n;
   float2 b = fft_complex[i], c = r3[k];
@@ -184,10 +165,22 @@ void kernel jcxPrecalc(global const float2 *r3, global float2 *ptr) {
   ptr[k] = t3;
 }
 
-void kernel NxPrecalcr2(global const float2 *r2, global float2 *fft_complex) {
-  // const size_t n = 3 * 4 * NZ * NY * (NX + 1);
-  size_t i = get_global_id(0);
+void kernel NxPrecalcr2(global const float2 *r2, global const float2 *r3,
+                        global float2 *fft_complex) {
+  const size_t n = 4 * NZ * NY * (NX + 1);
+  size_t i = get_global_id(0), j = i + n, k = j + n;
   float2 b = fft_complex[i], c = r2[i];
+  // V is at complex[3]
+  fft_complex[n + k] =
+      (float2)(b.s0 * c.s0 - b.s1 * c.s1, b.s0 * c.s1 + b.s1 * c.s0);
+  c = r3[k];
+  // E is at complex[0]-[2]
+  fft_complex[k] =
+      (float2)(b.s0 * c.s0 - b.s1 * c.s1, b.s0 * c.s1 + b.s1 * c.s0);
+  c = r3[j];
+  fft_complex[j] =
+      (float2)(b.s0 * c.s0 - b.s1 * c.s1, b.s0 * c.s1 + b.s1 * c.s0);
+  c = r3[i];
   fft_complex[i] =
       (float2)(b.s0 * c.s0 - b.s1 * c.s1, b.s0 * c.s1 + b.s1 * c.s0);
 }
@@ -292,12 +285,6 @@ void kernel sumFftSField(global const float *fft_real, global float *V) {
   int idx000 = k * N0N1 + j * N0 + i; // idx_kji
   V[idx] = fft_real[idx000];
   // V[idx] = 5.0;
-}
-
-void kernel copyextField(global const float16 *Fe, global float16 *F) {
-  // get global indices
-  size_t idx = get_global_id(0);
-  F[idx] = Fe[idx];
 }
 
 void kernel tnp_k_implicit(global const float8 *a1,
@@ -682,148 +669,6 @@ void kernel tnp_k_implicito(global const float8 *a1,
   z1[id] = z;
 }
 
-void kernel tnp_k_implicitqz(global const float8 *a1,
-                             global const float8 *a2, // E, B coeff
-                             global float *x0, global float *y0,
-                             global float *z0, // prev pos
-                             global float *x1, global float *y1,
-                             global float *z1, // current pos
-                             float Bcoef,
-                             float Ecoef, // Bcoeff, Ecoeff
-                             float a0_f, const unsigned int n,
-                             const unsigned int ncalc, // n, ncalc
-                             global int *q) {
-
-  uint id = get_global_id(0);
-  uint prev_idx = UINT_MAX;
-  float xprev = x0[id], yprev = y0[id], zprev = z0[id], x = x1[id], y = y1[id],
-        z = z1[id];
-  float8 temp, pos;
-  float r1 = 1.0f;
-  float r2 = r1 * r1;
-  float8 store0, store1, store2, store3, store4, store5;
-  const float Bcoeff = Bcoef / r1;
-  const float Ecoeff = Ecoef / r1;
-  const float DX = DXo * a0_f, DY = DYo * a0_f, DZ = DZo * a0_f;
-  const float XLOW = XLOWo * a0_f, YLOW = YLOWo * a0_f, ZLOW = ZLOWo * a0_f;
-  const float XHIGH = XHIGHo * a0_f, YHIGH = YHIGHo * a0_f,
-              ZHIGH = ZHIGHo * a0_f;
-  // const float XL = (XLOW + 1.5f * DX), YL = (YLOW + 1.5f * DY),
-  //             ZL = (ZLOW + 1.5f * DZ);
-  const float XL = (XLOW + 0.5f * DX), YL = (YLOW + 0.5f * DX),
-              ZL = (ZLOW + 0.5f * DX);
-  const float XH = (XHIGH - 1.5f * DX), YH = (YHIGH - 1.5f * DY),
-              ZH = (ZHIGH - 1.5f * DZ);
-  const float ZDZ = ZH - ZL - DZ / 10;
-  const float8 ones = (float8)(1, 1, 1, 1, 1, 1, 1, 1);
-  for (int t = 0; t < ncalc; t++) {
-    float xy = x * y, xz = x * z, yz = y * z, xyz = x * yz;
-    uint idx =
-        ((uint)((z - ZLOW) / DZ) * NZ + (uint)((y - YLOW) / DY)) * NY +
-        (uint)((x - XLOW) / DX); // round down the cells - this is intentional
-    idx *= 3;
-    pos = (float8)(1.f, x, y, z, xy, xz, yz, xyz);
-    // Is there no better way to do this? Why does float8 not have dot()?
-    if (prev_idx != idx) {
-      store0 = a1[idx]; // Ex
-      store1 = a1[idx + 1];
-      store2 = a1[idx + 2];
-      store3 = a2[idx]; // Bx
-      store4 = a2[idx + 1];
-      store5 = a2[idx + 2];
-      prev_idx = idx;
-    }
-    temp = store0 * pos;
-    float xE = temp.s0 + temp.s1 + temp.s2 + temp.s3 + temp.s4 + temp.s5 +
-               temp.s6 + temp.s7;
-    temp = store1 * pos;
-    float yE = temp.s0 + temp.s1 + temp.s2 + temp.s3 + temp.s4 + temp.s5 +
-               temp.s6 + temp.s7;
-    temp = store2 * pos;
-    float zE = temp.s0 + temp.s1 + temp.s2 + temp.s3 + temp.s4 + temp.s5 +
-               temp.s6 + temp.s7;
-    temp = store3 * pos;
-    float xP = temp.s0 + temp.s1 + temp.s2 + temp.s3 + temp.s4 + temp.s5 +
-               temp.s6 + temp.s7;
-    temp = store4 * pos;
-    float yP = temp.s0 + temp.s1 + temp.s2 + temp.s3 + temp.s4 + temp.s5 +
-               temp.s6 + temp.s7;
-    temp = store5 * pos;
-    float zP = temp.s0 + temp.s1 + temp.s2 + temp.s3 + temp.s4 + temp.s5 +
-               temp.s6 + temp.s7;
-
-    xP *= Bcoeff;
-    yP *= Bcoeff;
-    zP *= Bcoeff;
-    xE *= Ecoeff;
-    yE *= Ecoeff;
-    zE *= Ecoeff;
-
-    float xyP = xP * yP, yzP = yP * zP, xzP = xP * zP;
-    float xxP = xP * xP, yyP = yP * yP, zzP = zP * zP;
-    // float b_det = 1.f / (1.f + xxP + yyP + zzP);
-    float b_det = r2 / (r2 + xxP + yyP + zzP);
-
-    float vx = (x - xprev); // / dt -> cancels out in the end
-    float vy = (y - yprev);
-    float vz = (z - zprev);
-
-    xprev = x;
-    yprev = y;
-    zprev = z;
-
-    float vxxe = vx + xE, vyye = vy + yE, vzze = vz + zE;
-
-    x += fma(b_det,
-             fma(-vx, yyP + zzP,
-                 fma(vyye, zP + xyP, fma(vzze, xzP - yP, fma(xxP, xE, xE)))),
-             vx);
-    y += fma(b_det,
-             fma(vxxe, xyP - zP,
-                 fma(-vy, xxP + zzP, fma(vzze, xP + yzP, fma(yyP, yE, yE)))),
-             vy);
-    z += fma(b_det,
-             fma(vxxe, yP + xzP,
-                 fma(vyye, yzP - xP, fma(-vz, xxP + yyP, fma(zzP, zE, zE)))),
-             vz);
-  }
-
-  float xt, yt;
-  xt = x > XL ? xprev : yprev;
-  yt = x > XL ? yprev : -xprev;
-  xprev = xt;
-  yprev = yt;
-  xt = y > YL ? xprev : -yprev;
-  yt = y > YL ? yprev : xprev;
-  xprev = xt;
-  yprev = yt;
-  xprev = x < XH ? xprev : XH;
-  yprev = y < YH ? yprev : YH;
-  zprev = z > ZL ? zprev : zprev + ZDZ;
-  zprev = z < ZH ? zprev : zprev - ZDZ;
-
-  q[id] = (x < XH & y < YH) ? q[id] : 0;
-  xt = x > XL ? x : y;
-  yt = x > XL ? y : -x;
-  xprev = xt;
-  yprev = yt;
-  xt = y > YL ? x : -y;
-  yt = y > YL ? y : x;
-  xprev = xt;
-  yprev = yt;
-  x = x < XH ? x : XH;
-  y = y < YH ? y : YH;
-  z = z > ZL ? z : z + ZDZ;
-  z = z < ZH ? z : z - ZDZ;
-
-  x0[id] = xprev;
-  y0[id] = yprev;
-  z0[id] = zprev;
-  x1[id] = x;
-  y1[id] = y;
-  z1[id] = z;
-}
-
 void kernel density(global const float *x0, global const float *y0,
                     global const float *z0, // prev pos
                     global const float *x1, global const float *y1,
@@ -886,7 +731,8 @@ void kernel density(global const float *x0, global const float *y0,
   atomic_add(&npi[idx00 + odx110], f.s6);
   atomic_add(&npi[idx00 + odx111], f.s7);
   /*
-  npi[idx00 + odx000] += f.s0;
+
+    npi[idx00 + odx000] += f.s0;
   npi[idx00 + odx001] += f.s1;
   npi[idx00 + odx010] += f.s2;
   npi[idx00 + odx011] += f.s3;
@@ -939,24 +785,6 @@ void kernel df(global float *np, global const int *npi, global float *currentj,
   currentj[idx00] = dx * cji[idx00];
   currentj[idx01] = dy * cji[idx01];
   currentj[idx02] = dz * cji[idx02];
-}
-
-void kernel dtotal(global const float16 *ne, global const float16 *ni,
-                   global const float16 *je, global const float16 *ji,
-                   global float16 *nt, global float16 *jt, const size_t n) {
-  const size_t n1 = n / 16;
-  const size_t n2 = n1 + n1;
-  const int i = get_global_id(0); // Get index of current element processed
-  nt[i] = ne[i] + ni[i];          // Do the operation
-  jt[i] = je[i] + ji[i];
-  jt[n + i] = je[n + i] + ji[n + i];
-  jt[n2 + i] = je[n2 + i] + ji[n2 + i];
-}
-void kernel EUEst(global const float4 *V, global const float4 *n,
-                  global float *EUtot) {
-  int i = get_global_id(0);
-  // Compute dot product for the given gid
-  EUtot[i] = dot(V[i], n[i]);
 }
 
 void kernel trilin_k(
@@ -1045,4 +873,91 @@ void kernel trilin_k(
         dV1;
     Ea[oa].s7 = (c000 - c001 - c010 + c011 - c100 + c101 + c110 - c111) * dV1;
   }
+}
+
+void kernel EUEst(global const float4 *V, global const float4 *n,
+                  global float *EUtot) {
+  int i = get_global_id(0);
+  // Compute dot product for the given gid
+  EUtot[i] = dot(V[i], n[i]);
+}
+
+void kernel dtotal(global const float16 *ne, global const float16 *ni,
+                   global const float16 *je, global const float16 *ji,
+                   global float16 *nt, global float16 *jt, const size_t n) {
+  const size_t n1 = n / 16;
+  const size_t n2 = n1 + n1;
+  const int i = get_global_id(0); // Get index of current element processed
+  nt[i] = ne[i] + ni[i];          // Do the operation
+  jt[i] = je[i] + ji[i];
+  jt[n + i] = je[n + i] + ji[n + i];
+  jt[n2 + i] = je[n2 + i] + ji[n2 + i];
+}
+
+void kernel copyextField(global const float16 *Fe, global float16 *F) {
+  // get global indices
+  size_t idx = get_global_id(0);
+  F[idx] = Fe[idx];
+}
+
+void kernel maxvalf(global const float16 *In, global float *Ou) {
+  // get global indices
+  size_t i = get_global_id(0);
+  float m = 0;
+  float a, v;
+  v = In[i].s0;
+  a = v > 0 ? v : -v;
+  m = m > a ? m : a;
+  v = In[i].s1;
+  a = v > 0 ? v : -v;
+  m = m > a ? m : a;
+  v = In[i].s2;
+  a = v > 0 ? v : -v;
+  m = m > a ? m : a;
+  v = In[i].s3;
+  a = v > 0 ? v : -v;
+  m = m > a ? m : a;
+  v = In[i].s4;
+  a = v > 0 ? v : -v;
+  m = m > a ? m : a;
+  v = In[i].s5;
+  a = v > 0 ? v : -v;
+  m = m > a ? m : a;
+  v = In[i].s6;
+  a = v > 0 ? v : -v;
+  m = m > a ? m : a;
+  v = In[i].s7;
+  a = v > 0 ? v : -v;
+  m = m > a ? m : a;
+  v = In[i].s8;
+  a = v > 0 ? v : -v;
+  m = m > a ? m : a;
+  v = In[i].s9;
+  a = v > 0 ? v : -v;
+  m = m > a ? m : a;
+  v = In[i].sA;
+  a = v > 0 ? v : -v;
+  m = m > a ? m : a;
+  v = In[i].sB;
+  a = v > 0 ? v : -v;
+  m = m > a ? m : a;
+  v = In[i].sC;
+  a = v > 0 ? v : -v;
+  m = m > a ? m : a;
+  v = In[i].sD;
+  a = v > 0 ? v : -v;
+  m = m > a ? m : a;
+  v = In[i].sE;
+  a = v > 0 ? v : -v;
+  m = m > a ? m : a;
+  v = In[i].sF;
+  a = v > 0 ? v : -v;
+  m = m > a ? m : a;
+
+  Ou[i] = m;
+}
+
+void kernel buffer_muls(global float *A, const float Bb) {
+  int i = get_global_id(0); // Get index of current element processed
+  A[i] = Bb * A[i];         // Do the operation
 }

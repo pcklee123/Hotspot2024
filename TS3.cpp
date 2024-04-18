@@ -1,22 +1,22 @@
 /* TS3.cpp
 This contains the main loop for the program. Most of the initialization occurs here, and time steps are iterated through.
-For settings (as to what to calculate, eg. E / B field, E / B force) go to the defines in include/trajphysics.h
+For settings (as to what to calculate, eg. E / B field, E / B force) go to the defines in include/traj.h
 */
 #include "include/traj.h"
+
 ofstream info_file;
 int main()
 {
     par par1;
     par *par = &par1;
     float nt0prev;
-    cl_int cl_err;
+    cl_int res;
     timer.mark(); // Yes, 3 time marks. The first is for the overall program dt
     timer.mark(); // The second is for compute_d_time
     timer.mark(); // The third is for start up dt
     double t = 0;
     // allocate memory for particles
     particles *pt = alloc_particles(par);
-    const unsigned int n_cells = n_space_divx * n_space_divy * n_space_divz;
     fields *fi = alloc_fields(par);
     int total_ncalc[2] = {0, 0}; // particle 0 - electron, particle 1 deuteron
 
@@ -68,7 +68,7 @@ int main()
     // float TEs = a0 * par->a0_f * vel_e;
     TE = TE <= 0 ? a0 * par->a0_f * vel_e : TE; // if acc is negligible
     // set time step to allow electrons to gyrate if there is B field or to allow electrons to move slowly throughout the plasma distance
-    par->dt[0] = min(Tcyclotron , TE ) / f1; // electron should not move more than 1 cell after ncalc*dt and should not make more than 1/4 gyration and must calculate E before the next 1/4 plasma period
+    par->dt[0] = min(Tcyclotron / 4, TE / 16) / f1; // electron should not move more than 1 cell after ncalc*dt and should not make more than 1/4 gyration and must calculate E before the next 1/4 plasma period
     par->dt[1] = par->dt[0] * md_me;
     // cout << "dt = " << par->dt[0] << ", " << par->dt[1] << endl;
 #define generateRandom
@@ -91,8 +91,8 @@ int main()
     int i_time = 0;
     // cout << "get_densityfields: ";
     timer.mark();
-    cl_int res = 0;
-    get_densityfields(fi, pt, par); // density this is incorporated into tnp which also moves particles, but need to work out here to get good estimate of dt
+
+    get_densityfields(fi, pt, par);
     res = clEnqueueReadBuffer(commandQueue_g(), fi->buff_np_e[0](), CL_TRUE, 0, n_cellsf, fi->np[0], 0, NULL, NULL);
     float max_ne = maxvalf((reinterpret_cast<float *>(fi->np[0])), n_cells);
     float Density_e = max_ne * r_part_spart / powf(a0, 3);
@@ -105,8 +105,8 @@ int main()
     cout << timer.elapsed() << "s\n ";
     // cout << "calcEBV: ";
     timer.mark();
-    int cdt = calcEBV(fi, par); // electric and magnetic fields this is incorporated into tnp which also moves particles. Need here just to estimate dt
 
+    int cdt = calcEBV(fi, par); // electric and magnetic fields this is incorporated into tnp which also moves particles. Need here just to estimate dt
     res = clEnqueueReadBuffer(commandQueue_g(), fi->E_buffer, CL_TRUE, 0, n_cellsf * 3, fi->E, 0, NULL, NULL);
     res = clEnqueueReadBuffer(commandQueue_g(), fi->B_buffer, CL_TRUE, 0, n_cellsf * 3, fi->B, 0, NULL, NULL);
     cout << timer.elapsed() << "s\n ";
@@ -131,7 +131,7 @@ int main()
     // set time step to allow electrons to gyrate if there is B field or to allow electrons to move slowly throughout the plasma distance
     float TExB = a0 * par->a0_f / (par->Emax + .1) * (par->Bmax + .00001);
     info_file << "Tdebye=" << TDebye << ", Tcycloton/4=" << Tcyclotron / 4 << ", plasma period/4=" << plasma_period / 4 << ",TE=" << TE << ",TExB=" << TExB << endl;
-    float inc = min(min(min(TDebye, Tcyclotron ), plasma_period ), TE ) / f1 / par->dt[0]; // redo dt
+    float inc = min(min(min(TDebye, Tcyclotron), plasma_period), TE) / f1 / par->dt[0]; // redo dt
     par->dt[0] *= inc;
     par->dt[1] *= inc;
     cout << "dt = " << par->dt[0] << ", " << par->dt[1] << endl;
@@ -141,35 +141,37 @@ int main()
 
     for (int n = 0; n < par->n_part[0] * 3 * 2; n++)
         pt->pos0[n] = pt->pos1[n] - (pt->pos1[n] - pt->pos0[n]) * inc;
-    res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_x0_e[0](), CL_TRUE, 0, n4, pt->pos0x[0], 0, NULL, NULL);
-    res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_y0_e[0](), CL_TRUE, 0, n4, pt->pos0y[0], 0, NULL, NULL);
-    res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_z0_e[0](), CL_TRUE, 0, n4, pt->pos0z[0], 0, NULL, NULL);
-    res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_x1_e[0](), CL_TRUE, 0, n4, pt->pos1x[0], 0, NULL, NULL);
-    res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_y1_e[0](), CL_TRUE, 0, n4, pt->pos1y[0], 0, NULL, NULL);
-    res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_z1_e[0](), CL_TRUE, 0, n4, pt->pos1z[0], 0, NULL, NULL);
+    res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_x0_e[0](), CL_TRUE, 0,  n_partf, pt->pos0x[0], 0, NULL, NULL);
+    res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_y0_e[0](), CL_TRUE, 0,  n_partf, pt->pos0y[0], 0, NULL, NULL);
+    res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_z0_e[0](), CL_TRUE, 0,  n_partf, pt->pos0z[0], 0, NULL, NULL);
+    res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_x1_e[0](), CL_TRUE, 0,  n_partf, pt->pos1x[0], 0, NULL, NULL);
+    res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_y1_e[0](), CL_TRUE, 0,  n_partf, pt->pos1y[0], 0, NULL, NULL);
+    res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_z1_e[0](), CL_TRUE, 0,  n_partf, pt->pos1z[0], 0, NULL, NULL);
 
-    res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_x0_i[0](), CL_TRUE, 0, n4, pt->pos0x[1], 0, NULL, NULL);
-    res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_y0_i[0](), CL_TRUE, 0, n4, pt->pos0y[1], 0, NULL, NULL);
-    res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_z0_i[0](), CL_TRUE, 0, n4, pt->pos0z[1], 0, NULL, NULL);
-    res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_x1_i[0](), CL_TRUE, 0, n4, pt->pos1x[1], 0, NULL, NULL);
-    res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_y1_i[0](), CL_TRUE, 0, n4, pt->pos1y[1], 0, NULL, NULL);
-    res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_z1_i[0](), CL_TRUE, 0, n4, pt->pos1z[1], 0, NULL, NULL);
+    res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_x0_i[0](), CL_TRUE, 0,  n_partf, pt->pos0x[1], 0, NULL, NULL);
+    res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_y0_i[0](), CL_TRUE, 0,  n_partf, pt->pos0y[1], 0, NULL, NULL);
+    res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_z0_i[0](), CL_TRUE, 0,  n_partf, pt->pos0z[1], 0, NULL, NULL);
+    res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_x1_i[0](), CL_TRUE, 0,  n_partf, pt->pos1x[1], 0, NULL, NULL);
+    res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_y1_i[0](), CL_TRUE, 0,  n_partf, pt->pos1y[1], 0, NULL, NULL);
+    res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_z1_i[0](), CL_TRUE, 0,  n_partf, pt->pos1z[1], 0, NULL, NULL);
     //   cout << "dt changed" << endl;
+
 #ifdef Uon_
     // cout << "calculate the total potential energy U\n";
     //                  timer.mark();
     calcU(fi, pt, par);
-    // cout << "U: " << timer.elapsed() << "s, ";
+// cout << "U: " << timer.elapsed() << "s, ";
 #endif
     // cout << "savefiles" << endl;
     info(par); // printout initial info.csv file re do this with updated info
     save_files(i_time, t, fi, pt, par);
 
-    // cout << "logentry" << endl;
+    //    cout << "logentry" << endl;
     log_headers();                             // log file start with headers
     log_entry(0, 0, cdt, total_ncalc, t, par); // Write everything to log
     nt0prev = par->nt[0];
     //  cout << par->nt[0] << " " << nt0prev << endl;
+#pragma omp barrier
 
     cout << "print data: " << timer.elapsed() << "s (no. of electron time steps calculated: " << 0 << ")\n";
 
@@ -197,12 +199,12 @@ int main()
 
 #ifdef Uon_
         // cout << "calculate the total potential energy U\n";
-        // timer.mark();// calculate the total potential energy U
+        //  timer.mark();// calculate the total potential energy U
         calcU(fi, pt, par);
         // cout << "calculate the total potential energy U done\n";
-        // cout << "U: " << timer.elapsed() << "s, ";
+        //  cout << "U: " << timer.elapsed() << "s, ";
 #endif
-        // cout << "logentry" << endl;
+        //        cout << "logentry" << endl;
         log_entry(i_time, 0, cdt, total_ncalc, t, par); // cout<<"log entry done"<<endl;
         cout << "print data: " << timer.elapsed() << "s (no. of electron time steps calculated: " << total_ncalc[0] << ")\n";
     }

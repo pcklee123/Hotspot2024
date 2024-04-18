@@ -1,21 +1,8 @@
 {
     "files.associations": {
-        "Makefile.*": "makefile",
-        "cmath": "cpp",
-        "complex": "cpp",
-        "fstream": "cpp",
-        "iostream": "cpp",
-        "ostream": "cpp",
-        "new": "cpp",
-        "chrono": "cpp",
-        "array": "cpp",
-        "string_view": "cpp",
-        "format": "cpp",
-        "initializer_list": "cpp",
-        "span": "cpp",
-        "charconv": "cpp",
-        "sstream": "cpp",
-        "cstdlib": "cpp",
-        "iosfwd": "cpp"
+        "Makefile.*": "Make",
+        "iosfwd": "cpp",
+        "optional": "cpp",
+        "variant": "cpp"
     }
 }

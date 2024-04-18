@@ -37,11 +37,11 @@
 #include <vtk/vtkImageData.h>
 #include <vtk/vtkPointData.h>
 #include <complex>
-//#include <infft.h>
+// #include <infft.h>
 
-//#include <nfft3.h>
-//#include "nfft3mp.h"
-//#include <fftw3_threads.h>
+// #include <nfft3.h>
+//  #include "nfft3mp.h"
+// #include <fftw3_threads.h>
 #include <fftw3.h>
 
 using namespace std;
@@ -101,14 +101,15 @@ extern ofstream info_file;
 void log_entry(int i_time, int ntime, int cdt, int total_ncalc[2], double t, par *par);
 void log_headers();
 
-void cl_start(fields *fi, particles *pt ,par *par);
+void cl_start(fields *fi, particles *pt, par *par);
 void cl_set_build_options(par *par);
 
 void tnp(fields *fi, particles *pt, par *par);
-
+// void get_precalc_r3(float precalc_r3[3][n_space_divz2][n_space_divy2][n_space_divx2], float dd[3]);
 int calcEBV(fields *fi, par *par);
 
 void save_files(int i_time, double t, fields *fi, particles *pt, par *par);
+// void sel_part_print(particles *pt, float posp[2][n_output_part][3], float KE[2][n_output_part], par *par);
 
 void get_densityfields(fields *fi, particles *pt, par *par);
 void calc_trilin_constants(fields *fi, par *par);
@@ -132,5 +133,4 @@ void info(par *par);
 void changedx(fields *fi, par *par);
 particles *alloc_particles(par *par);
 fields *alloc_fields(par *par);
-void buffer_muls(cl_mem buffer_A, float Bb, int n);
 #endif // TRAJ_H_INCLUDED
