@@ -30,8 +30,7 @@ void tnp(fields *fi, particles *pt, par *par)
    cl::Kernel kernel_trilin = cl::Kernel(program_g, "trilin_k"); // select the kernel program to run
    cl::Kernel kernel_density = cl::Kernel(program_g, "density"); // select the kernel program to run
    cl::Kernel kernel_df = cl::Kernel(program_g, "df");           // select the kernel program to run
-   cl::Kernel kernel_dtotal = cl::Kernel(program_g, "dtotal");   // ncalc_e = par->ncalcp[0];
-                                                                 // ncalc_i = par->ncalcp[1];
+   cl::Kernel kernel_dtotal = cl::Kernel(program_g, "dtotal");   
 #ifdef BFon_
    // check minus sign
    par->Bcoef[0] = -(float)qs[0] * e_charge_mass / (float)mp[0] * par->dt[0] * 0.5f;
