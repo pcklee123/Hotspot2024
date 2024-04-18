@@ -545,16 +545,15 @@ int calcEBV(fields *fi, par *par)
     int E_exceeds = 0,
         B_exceeds = 0;
     float Tcyclotron = 2.0 * pi * mp[0] / (e_charge_mass * (par->Bmax + 1e-3f));
-    float acc_e = fabsf(par->Emax * e_charge_mass);
+    float acc_e = fabsf(e_charge_mass * par->Emax);
     float vel_e = sqrt(kb * Temp_e / e_mass);
-    float TE = (sqrt(1 + 2 * a0 * par->a0_f * acc_e / pow(vel_e, 2)) - 1) * vel_e / acc_e;
-    TE = ((TE <= 0) | (isnanf(TE))) ? a0 * par->a0_f / vel_e : TE; // if acc is negligible
-    float TE1 = a0 * par->a0_f / par->Emax * (par->Bmax + .00001);
-    float TE2 = a0 * par->a0_f / 3e8;
-    TE1 = TE1 < TE2 ? TE1 : TE2;
-    cout << "Tcyclotron=" << Tcyclotron << ",Bmax= " << par->Bmax << ", TE=" << TE << ", TE1=" << TE1 << ",Emax= " << par->Emax << endl;
-    TE = TE > TE1 ? TE : TE1;
-    TE *= 1;                    // x times larger try to save time but makes it unstable.
+    float TE = (sqrt(1 + 2 * a0 * par->a0_f * acc_e / pow(vel_e, 2)) - 1) * vel_e / acc_e; // time for electron to move across 1 cell
+    TE = ((TE <= 0) | (isnanf(TE))) ? a0 * par->a0_f / vel_e : TE;                   // if acc is negligible i.e. in square root ~=1, use approximation is more accurate
+    // set time step to allow electrons to gyrate if there is B field or to allow electrons to move slowly throughout the plasma distance
+
+    TE *= 1; // x times larger try to save time but makes it unstable.
+
+    cout << "Tcyclotron=" << Tcyclotron << ",Bmax= " << par->Bmax << ", TE=" << TE << ",Emax= " << par->Emax << ",dt= " << par->dt[0] * f1 << endl;
     if (TE < (par->dt[0] * f1)) // if ideal time step is lower than actual timestep
         E_exceeds = 1;
     else if (TE > (par->dt[0] * f2)) // can increase time step
