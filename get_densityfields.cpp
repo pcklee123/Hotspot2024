@@ -3,7 +3,7 @@ void get_densityfields(fields *fi, particles *pt, par *par)
 {
    static bool fastIO;
    static bool first = true;
-   static int ncalc_e = 0, ncalc_i = 0;
+  // static int ncalc_e = 0, ncalc_i = 0;
    // cout << "check for unified memory " << endl;
    if (first)
    { // get whether or not we are on an iGPU/similar, and can use certain memmory optimizations
