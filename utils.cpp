@@ -96,12 +96,12 @@ void log_entry(int i_time, int ntime, int cdt, int total_ncalc[2], double t, par
     logger.write(par->UB / ntall);
     logger.write((par->KEtot[0] + par->KEtot[1] + par->UB + par->UE * 0.5) / ntall);
     logger.write(par->Emax);
-    logger.write(par->Bmax * 1000);
+    logger.write(par->Bmax * 1000); // mT
     logger.write(par->Ecoef[0] * 1e21);
     logger.write(par->Bcoef[0] * 1e9);
     logger.write(par->Ecoef[1] * 1e21);
     logger.write(par->Bcoef[1] * 1e9);
-    logger.write(par->a0_f);
+    logger.write(par->a0_f * 100); //%
     logger.newline();
 }
 float maxvalf(float *data_1d, int n)
