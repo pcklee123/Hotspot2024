@@ -956,3 +956,8 @@ void kernel maxvalf(global const float16 *In, global float *Ou) {
 
   Ou[i] = m;
 }
+
+void kernel buffer_muls(global float *A, const float Bb) {
+  int i = get_global_id(0); // Get index of current element processed
+  A[i] = Bb * A[i];         // Do the operation
+}

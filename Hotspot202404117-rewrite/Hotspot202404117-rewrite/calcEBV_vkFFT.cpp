@@ -518,30 +518,31 @@ int calcEBV(fields *fi, par *par)
 #endif
 #endif
 
-#pragma omp parallel sections
-    {
-#pragma omp section
-#ifdef Eon_
-        resFFT = transferDataToCPU(&vkGPU, fi->E, &fi->E_buffer, 3 * n_cells * sizeof(float));
-        par->Emax = maxvalf(reinterpret_cast<float *>(fi->E), n_cells * 3);
-#endif
-#pragma omp section
-#ifdef Bon_
         size_t n = n_cells * 3 / 16;
         maxval_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, n * sizeof(float), 0, &res);
         float *maxval_array = (float *)_aligned_malloc(sizeof(float) * n, par->cl_align);
+#ifdef Eon_
+        clSetKernelArg(maxvalf_kernel, 0, sizeof(cl_mem), &fi->E_buffer);
+        clSetKernelArg(maxvalf_kernel, 1, sizeof(cl_mem), &maxval_buffer);
+        res = clEnqueueNDRangeKernel(vkGPU.commandQueue, maxvalf_kernel, 1, NULL, &n, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
+        res = clEnqueueReadBuffer(vkGPU.commandQueue, maxval_buffer, CL_TRUE, 0, sizeof(float) * n, maxval_array, 0, NULL, NULL);
+        par->Emax = maxvalf(maxval_array, n);
+        //resFFT = transferDataToCPU(&vkGPU, fi->E, &fi->E_buffer, 3 * n_cells * sizeof(float));
+        //par->Emax = maxvalf(reinterpret_cast<float *>(fi->E), n_cells * 3);
+#endif
+
+#ifdef Bon_
         clSetKernelArg(maxvalf_kernel, 0, sizeof(cl_mem), &fi->B_buffer);
         clSetKernelArg(maxvalf_kernel, 1, sizeof(cl_mem), &maxval_buffer);
         res = clEnqueueNDRangeKernel(vkGPU.commandQueue, maxvalf_kernel, 1, NULL, &n, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
         res = clEnqueueReadBuffer(vkGPU.commandQueue, maxval_buffer, CL_TRUE, 0, sizeof(float) * n, maxval_array, 0, NULL, NULL);
         par->Bmax = maxvalf(maxval_array, n);
+     //   resFFT = transferDataToCPU(&vkGPU, fi->B, &fi->B_buffer, 3 * n_cells * sizeof(float));
+     //   par->Bmax = maxvalf(reinterpret_cast<float *>(fi->B), n_cells * 3);
+#endif
         _aligned_free(maxval_array);
         clReleaseMemObject(maxval_buffer);
 
-        // resFFT = transferDataToCPU(&vkGPU, fi->B, &fi->B_buffer, 3 * n_cells * sizeof(float));
-        // par->Bmax = maxvalf(reinterpret_cast<float *>(fi->B), n_cells * 3);
-#endif
-    }
     int E_exceeds = 0,
         B_exceeds = 0;
     float Tcyclotron = 2.0 * pi * mp[0] / (e_charge_mass * (par->Bmax + 1e-3f));
