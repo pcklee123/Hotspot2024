@@ -518,30 +518,30 @@ int calcEBV(fields *fi, par *par)
 #endif
 #endif
 
-        size_t n = n_cells * 3 / 16;
-        maxval_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, n * sizeof(float), 0, &res);
-        float *maxval_array = (float *)_aligned_malloc(sizeof(float) * n, par->cl_align);
+    size_t n = n_cells * 3 / 16;
+    maxval_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, n * sizeof(float), 0, &res);
+    float *maxval_array = (float *)_aligned_malloc(sizeof(float) * n, par->cl_align);
 #ifdef Eon_
-        clSetKernelArg(maxvalf_kernel, 0, sizeof(cl_mem), &fi->E_buffer);
-        clSetKernelArg(maxvalf_kernel, 1, sizeof(cl_mem), &maxval_buffer);
-        res = clEnqueueNDRangeKernel(vkGPU.commandQueue, maxvalf_kernel, 1, NULL, &n, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
-        res = clEnqueueReadBuffer(vkGPU.commandQueue, maxval_buffer, CL_TRUE, 0, sizeof(float) * n, maxval_array, 0, NULL, NULL);
-        par->Emax = maxvalf(maxval_array, n);
-        //resFFT = transferDataToCPU(&vkGPU, fi->E, &fi->E_buffer, 3 * n_cells * sizeof(float));
-        //par->Emax = maxvalf(reinterpret_cast<float *>(fi->E), n_cells * 3);
+    clSetKernelArg(maxvalf_kernel, 0, sizeof(cl_mem), &fi->E_buffer);
+    clSetKernelArg(maxvalf_kernel, 1, sizeof(cl_mem), &maxval_buffer);
+    res = clEnqueueNDRangeKernel(vkGPU.commandQueue, maxvalf_kernel, 1, NULL, &n, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
+    res = clEnqueueReadBuffer(vkGPU.commandQueue, maxval_buffer, CL_TRUE, 0, sizeof(float) * n, maxval_array, 0, NULL, NULL);
+    par->Emax = maxvalf(maxval_array, n);
+    // resFFT = transferDataToCPU(&vkGPU, fi->E, &fi->E_buffer, 3 * n_cells * sizeof(float));
+    // par->Emax = maxvalf(reinterpret_cast<float *>(fi->E), n_cells * 3);
 #endif
 
 #ifdef Bon_
-        clSetKernelArg(maxvalf_kernel, 0, sizeof(cl_mem), &fi->B_buffer);
-        clSetKernelArg(maxvalf_kernel, 1, sizeof(cl_mem), &maxval_buffer);
-        res = clEnqueueNDRangeKernel(vkGPU.commandQueue, maxvalf_kernel, 1, NULL, &n, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
-        res = clEnqueueReadBuffer(vkGPU.commandQueue, maxval_buffer, CL_TRUE, 0, sizeof(float) * n, maxval_array, 0, NULL, NULL);
-        par->Bmax = maxvalf(maxval_array, n);
-     //   resFFT = transferDataToCPU(&vkGPU, fi->B, &fi->B_buffer, 3 * n_cells * sizeof(float));
-     //   par->Bmax = maxvalf(reinterpret_cast<float *>(fi->B), n_cells * 3);
+    clSetKernelArg(maxvalf_kernel, 0, sizeof(cl_mem), &fi->B_buffer);
+    clSetKernelArg(maxvalf_kernel, 1, sizeof(cl_mem), &maxval_buffer);
+    res = clEnqueueNDRangeKernel(vkGPU.commandQueue, maxvalf_kernel, 1, NULL, &n, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
+    res = clEnqueueReadBuffer(vkGPU.commandQueue, maxval_buffer, CL_TRUE, 0, sizeof(float) * n, maxval_array, 0, NULL, NULL);
+    par->Bmax = maxvalf(maxval_array, n);
+    //   resFFT = transferDataToCPU(&vkGPU, fi->B, &fi->B_buffer, 3 * n_cells * sizeof(float));
+    //   par->Bmax = maxvalf(reinterpret_cast<float *>(fi->B), n_cells * 3);
 #endif
-        _aligned_free(maxval_array);
-        clReleaseMemObject(maxval_buffer);
+    _aligned_free(maxval_array);
+    clReleaseMemObject(maxval_buffer);
 
     int E_exceeds = 0,
         B_exceeds = 0;
@@ -549,7 +549,7 @@ int calcEBV(fields *fi, par *par)
     float acc_e = fabsf(e_charge_mass * par->Emax);
     float vel_e = sqrt(kb * Temp_e / e_mass);
     float TE = (sqrt(1 + 2 * a0 * par->a0_f * acc_e / pow(vel_e, 2)) - 1) * vel_e / acc_e; // time for electron to move across 1 cell
-    TE = ((TE <= 0) | (isnanf(TE))) ? a0 * par->a0_f / vel_e : TE;                   // if acc is negligible i.e. in square root ~=1, use approximation is more accurate
+    TE = ((TE <= 0) | (isnanf(TE))) ? a0 * par->a0_f / vel_e : TE;                         // if acc is negligible i.e. in square root ~=1, use approximation is more accurate
     // set time step to allow electrons to gyrate if there is B field or to allow electrons to move slowly throughout the plasma distance
 
     TE *= 1; // x times larger try to save time but makes it unstable.
