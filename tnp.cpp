@@ -205,7 +205,7 @@ void tnp(fields *fi, particles *pt, par *par)
       queue.finish();
 
       // read result arrays from the device to main memory
-
+      unsigned long ntemp = n_cells;
       //  cout << "\neions  " << timer.elapsed() << "s, \n";
       // sum total electron and ion densitiies and current densities for E B calculations
       kernel_dtotal.setArg(0, fi->buff_np_e[0]);       // np ion
@@ -214,7 +214,7 @@ void tnp(fields *fi, particles *pt, par *par)
       kernel_dtotal.setArg(3, fi->buff_currentj_i[0]); // current
       kernel_dtotal.setArg(4, fi->buff_npt[0]);        // total particles density
       kernel_dtotal.setArg(5, fi->buff_jc[0]);         // total current density
-      kernel_dtotal.setArg(6, sizeof(size_t), &n_cells);
+      kernel_dtotal.setArg(6, sizeof(unsigned long), &ntemp);
       queue.enqueueNDRangeKernel(kernel_dtotal, cl::NullRange, cl::NDRange(n_cells / 16), cl::NullRange);
       queue.finish();
 
