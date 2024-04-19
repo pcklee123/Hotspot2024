@@ -7,6 +7,7 @@ cl::Device default_device_g;
 cl::Program program_g;
 cl::CommandQueue commandQueue_g;
 int device_id_g;
+bool fastIO;
 
 stringstream cl_build_options;
 void add_build_option(string name, string param)
@@ -133,7 +134,6 @@ void cl_start(fields *fi, particles *pt, par *par)
     commandQueue_g = queue;
 
     cout << "allocating buffers\n";
-    bool fastIO;
 
     // cout << "check for unified memory " << endl;
     //  create buffers on the device
@@ -224,6 +224,7 @@ void cl_start(fields *fi, particles *pt, par *par)
     pt->buff_y1_i = &buff_y1_i;
     pt->buff_z1_i = &buff_z1_i;
 
+    // because some code is in C not C++
     fi->E_buffer = fi->buff_E[0](); // buff_E();
     fi->B_buffer = buff_B();
     fi->Ee_buffer = buff_Ee();

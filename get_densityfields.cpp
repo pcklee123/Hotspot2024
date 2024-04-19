@@ -1,52 +1,12 @@
 #include "include/traj.h"
 void get_densityfields(fields *fi, particles *pt, par *par)
 {
-   static bool fastIO;
    static bool first = true;
-  // static int ncalc_e = 0, ncalc_i = 0;
-   // cout << "check for unified memory " << endl;
-   if (first)
-   { // get whether or not we are on an iGPU/similar, and can use certain memmory optimizations
-      bool temp;
-      default_device_g.getInfo(CL_DEVICE_HOST_UNIFIED_MEMORY, &temp);
-      if (temp == true)
-         info_file << "Using unified memory: " << temp << " \n";
-      else
-         info_file << "No unified memory: " << temp << " \n";
-      fastIO = temp;
-      fastIO = false;
-      first = false;
-   }
 
-   static cl::CommandQueue queue(context_g, default_device_g);
+   cl::CommandQueue queue = commandQueue_g; shorthand for command queue
    cl::Kernel kernel_density = cl::Kernel(program_g, "density"); // select the kernel program to run
    cl::Kernel kernel_df = cl::Kernel(program_g, "df");           // select the kernel program to run
    cl::Kernel kernel_dtotal = cl::Kernel(program_g, "dtotal");
-   // write input arrays to the device
-   if (fastIO)
-   {
-   }
-   else
-   {
-      queue.enqueueWriteBuffer(pt->buff_x0_e[0], CL_TRUE, 0, n_partf, pt->pos0x[0]);
-      queue.enqueueWriteBuffer(pt->buff_y0_e[0], CL_TRUE, 0, n_partf, pt->pos0y[0]);
-      queue.enqueueWriteBuffer(pt->buff_z0_e[0], CL_TRUE, 0, n_partf, pt->pos0z[0]);
-      queue.enqueueWriteBuffer(pt->buff_x1_e[0], CL_TRUE, 0, n_partf, pt->pos1x[0]);
-      queue.enqueueWriteBuffer(pt->buff_y1_e[0], CL_TRUE, 0, n_partf, pt->pos1y[0]);
-      queue.enqueueWriteBuffer(pt->buff_z1_e[0], CL_TRUE, 0, n_partf, pt->pos1z[0]);
-
-      queue.enqueueWriteBuffer(pt->buff_q_e[0], CL_TRUE, 0, n_partf, pt->q[0]);
-
-      //  ions next
-      queue.enqueueWriteBuffer(pt->buff_x0_i[0], CL_TRUE, 0, n_partf, pt->pos0x[1]);
-      queue.enqueueWriteBuffer(pt->buff_y0_i[0], CL_TRUE, 0, n_partf, pt->pos0y[1]);
-      queue.enqueueWriteBuffer(pt->buff_z0_i[0], CL_TRUE, 0, n_partf, pt->pos0z[1]);
-      queue.enqueueWriteBuffer(pt->buff_x1_i[0], CL_TRUE, 0, n_partf, pt->pos1x[1]);
-      queue.enqueueWriteBuffer(pt->buff_y1_i[0], CL_TRUE, 0, n_partf, pt->pos1y[1]);
-      queue.enqueueWriteBuffer(pt->buff_z1_i[0], CL_TRUE, 0, n_partf, pt->pos1z[1]);
-
-      queue.enqueueWriteBuffer(pt->buff_q_i[0], CL_TRUE, 0, n_partf, pt->q[1]);
-   }
 
    queue.enqueueFillBuffer(fi->buff_npi[0], 0, 0, n_cellsi);
    queue.enqueueFillBuffer(fi->buff_cji[0], 0, 0, n_cellsi * 3);

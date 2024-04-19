@@ -52,6 +52,7 @@ extern cl::Device default_device_g;
 extern cl::Program program_g;
 extern cl::CommandQueue commandQueue_g;
 extern int device_id_g;
+extern bool fastIO;
 extern string outpath;
 // #ifdef RamDisk // save file info - initialize filepath
 const string outpath1 = "R:\\Temp\\out\\";
