@@ -1081,12 +1081,6 @@ void kernel copyextField(global const float16 *Fe, global float16 *F) {
   F[idx] = Fe[idx];
 }
 
-void kernel copyextFielda(global const float16x16 *Fe, global float16x16 *F) {
-  // get global indices
-  size_t idx = get_global_id(0);
-  F[idx] = Fe[idx];
-}
-
 void kernel maxvalf(global const float16 *In, global float *Ou) {
   // get global indices
   size_t i = get_global_id(0);

@@ -100,21 +100,18 @@ int calcEBV(fields *fi, par *par)
     static uint64_t bufferSize_C6 = bufferSize_C * 6;
     static VkFFTLaunchParams launchParams = {};
 
-    int Nbatch;
     if (first)
     { // allocate and initialize to 0
-        int dims[3] = {N0, N1, N2};
         auto precalc_r3_base = new float[2][3][N2][N1][N0];
         fi->precalc_r3 = (reinterpret_cast<float *>(precalc_r3));
 #ifdef Uon_ // similar arrays for U, but kept separately in one ifdef
         auto precalc_r2_base = new float[N2][N1][N0];
         fi->precalc_r2 = (reinterpret_cast<float *>(precalc_r2));
 #endif
-
         vkGPU.device = default_device_g();
         vkGPU.context = context_g();
-        // vkGPU. = program_g();
-        vkGPU.commandQueue = clCreateCommandQueue(vkGPU.context, vkGPU.device, 0, &res);
+        vkGPU.commandQueue = commandQueue_g();
+//        vkGPU.commandQueue = clCreateCommandQueue(vkGPU.context, vkGPU.device, 0, &res);
         launchParams.commandQueue = &vkGPU.commandQueue;
         // Create the OpenCL kernel
         copyData_kernel = clCreateKernel(program_g(), "copyData", NULL);
