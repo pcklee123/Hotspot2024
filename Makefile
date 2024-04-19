@@ -16,7 +16,7 @@ LIBS= -lm -lgsl -lOpenCL  -lgomp # -lfftw3f -lfftw3f_omp
 LIBS+= -lvtkCommonCore.dll  -lvtksys.dll -lvtkIOXML.dll -lvtkCommonDataModel.dll -lvtkIOCore.dll
 
 
-AFLAGS= -flto -funroll-loops -fno-signed-zeros -fno-trapping-math -D_GLIBCXX_PARALLEL -fgcse-sm -fgcse-las 
+AFLAGS= -flto=$(CPUS) -funroll-loops -fno-signed-zeros -fno-trapping-math -D_GLIBCXX_PARALLEL -fgcse-sm -fgcse-las 
 #-Wl,--stack,4294967296
 
 CFLAGS += $(AFLAGS)
