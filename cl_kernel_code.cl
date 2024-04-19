@@ -256,10 +256,10 @@ void kernel sumFftFieldq(global const float *fft_real, global const float *Fe,
   const float s001[3] = {-1, +1, +1};
   const float s010[3] = {+1, -1, +1};
   const float s011[3] = {-1, -1, +1};
-  //const float s100[3] = {+1, +1, -1};
-  //const float s101[3] = {-1, +1, -1};
-  //const float s110[3] = {+1, -1, -1};
-  //const float s111[3] = {-1, -1, -1};
+  // const float s100[3] = {+1, +1, -1};
+  // const float s101[3] = {-1, +1, -1};
+  // const float s110[3] = {+1, -1, -1};
+  // const float s111[3] = {-1, -1, -1};
 
   // get global indices
   size_t idx = get_global_id(0);
@@ -274,19 +274,19 @@ void kernel sumFftFieldq(global const float *fft_real, global const float *Fe,
   int idx001 = k * N0N1 + j * N0;
   int idx010 = k * N0N1 + i;
   int idx011 = k * N0N1;
-  //int idx100 = j * N0 + i;
-  //int idx101 = j * N0;
-  //int idx110 = i;
-  //int idx111 = 0;
+  // int idx100 = j * N0 + i;
+  // int idx101 = j * N0;
+  // int idx110 = i;
+  // int idx111 = 0;
 
   int odx000 = 0;                          // odx_kji
   int odx001 = i == 0 ? 0 : N0 - i;        // iskip
   int odx010 = j == 0 ? 0 : N0 * (N1 - j); // jskip
   int odx011 = odx001 + odx010;
-  //int odx100 = k == 0 ? 0 : N0 * N1 * (N2 - k); // kskip
-  //int odx101 = odx100 + odx001;
-  //int odx110 = odx100 + odx010;
-  //int odx111 = odx100 + odx011;
+  // int odx100 = k == 0 ? 0 : N0 * N1 * (N2 - k); // kskip
+  // int odx101 = odx100 + odx001;
+  // int odx110 = odx100 + odx010;
+  // int odx111 = odx100 + odx011;
   for (int c = 0; c < 3; ++c, cdx += NXNYNZ, cdx8 += N0N1N2) {
     F[cdx + idx] = Fe[cdx + idx];
     F[cdx + idx] += s000[c] * fft_real[cdx8 + odx000 + idx000]; // main octant
@@ -294,10 +294,10 @@ void kernel sumFftFieldq(global const float *fft_real, global const float *Fe,
     F[cdx + idx] += s001[c] * fft_real[cdx8 + odx001 + idx001];
     F[cdx + idx] += s010[c] * fft_real[cdx8 + odx010 + idx010];
     F[cdx + idx] += s011[c] * fft_real[cdx8 + odx011 + idx011];
-   // F[cdx + idx] += s100[c] * fft_real[cdx8 + odx100 + idx100];
-   // F[cdx + idx] += s101[c] * fft_real[cdx8 + odx101 + idx101];
-   // F[cdx + idx] += s110[c] * fft_real[cdx8 + odx110 + idx110];
-   // F[cdx + idx] += s111[c] * fft_real[cdx8 + odx111 + idx111];
+    // F[cdx + idx] += s100[c] * fft_real[cdx8 + odx100 + idx100];
+    // F[cdx + idx] += s101[c] * fft_real[cdx8 + odx101 + idx101];
+    // F[cdx + idx] += s110[c] * fft_real[cdx8 + odx110 + idx110];
+    // F[cdx + idx] += s111[c] * fft_real[cdx8 + odx111 + idx111];
   }
 }
 
@@ -625,13 +625,11 @@ void kernel tnp_k_implicito(global const float8 *a1,
   const float XLOW = XLOWo * a0_f, YLOW = YLOWo * a0_f, ZLOW = ZLOWo * a0_f;
   const float XHIGH = XHIGHo * a0_f, YHIGH = YHIGHo * a0_f,
               ZHIGH = ZHIGHo * a0_f;
-  // const float XL = (XLOW + 1.5f * DX), YL = (YLOW + 1.5f * DY),
-  //             ZL = (ZLOW + 1.5f * DZ);
   const float XL = (XLOW + 0.5f * DX), YL = (YLOW + 0.5f * DX),
               ZL = (ZLOW + 0.5f * DX);
   const float XH = (XHIGH - 1.5f * DX), YH = (YHIGH - 1.5f * DY),
               ZH = (ZHIGH - 1.5f * DZ);
-  const float ZDZ = ZH - ZL - DZ / 10;
+  // const float ZDZ = ZH - ZL - DZ / 10;
   const float8 ones = (float8)(1, 1, 1, 1, 1, 1, 1, 1);
   for (int t = 0; t < ncalc; t++) {
     float xy = x * y, xz = x * z, yz = y * z, xyz = x * yz;
@@ -749,12 +747,11 @@ void kernel tnp_k_implicitq(global const float8 *a1,
   float8 store0, store1, store2, store3, store4, store5;
   const float Bcoeff = Bcoef / r1;
   const float Ecoeff = Ecoef / r1;
+
   const float DX = DXo * a0_f, DY = DYo * a0_f, DZ = DZo * a0_f;
   const float XLOW = XLOWo * a0_f, YLOW = YLOWo * a0_f, ZLOW = ZLOWo * a0_f;
   const float XHIGH = XHIGHo * a0_f, YHIGH = YHIGHo * a0_f,
               ZHIGH = ZHIGHo * a0_f;
-  // const float XL = (XLOW + 1.5f * DX), YL = (YLOW + 1.5f * DY),
-  //             ZL = (ZLOW + 1.5f * DZ);
   const float XL = (XLOW + 0.5f * DX), YL = (YLOW + 0.5f * DX),
               ZL = (ZLOW + 0.5f * DX);
   const float XH = (XHIGH - 1.5f * DX), YH = (YHIGH - 1.5f * DY),
@@ -832,22 +829,18 @@ void kernel tnp_k_implicitq(global const float8 *a1,
                  fma(vyye, yzP - xP, fma(-vz, xxP + yyP, fma(zzP, zE, zE)))),
              vz);
   }
-  float xt, yt, xt1, yt1;
-  xt = x > XL ? xprev : yprev;
-  yt = x > XL ? yprev : -xprev;
-  xt1 = y > XL ? xt : -yt;
-  yt1 = y > XL ? yt : xt;
-  xprev = xt1;
-  yprev = yt1;
+  float xt[4] = {xprev, yprev, -yprev, -xprev};
+  float yt[4] = {yprev, -xprev, xprev, -yprev};
+  float xt1[4] = {x, y, -y, -x};
+  float yt1[4] = {y, -x, x, -y};
+  int idx = (x < XL) + ((y < YL) << 1);
+  xprev = xt[idx];
+  yprev = yt[idx];
   zprev = z > ZL ? zprev : zprev + ZDZ;
   zprev = z < ZH ? zprev : zprev - ZDZ;
-  q[id] = (x < XH & y < YH) ? q[id] : 0;
-  xt = x > XL ? x : y;
-  yt = x > XL ? y : -x;
-  xt1 = y > XL ? xt : -yt;
-  yt1 = y > XL ? yt : xt;
-  x = xt1;
-  y = yt1;
+  q[id] = ((x < XH) & (y < YH)) ? q[id] : 0;
+  x = xt1[idx];
+  y = yt1[idx];
   z = z > ZL ? z : z + ZDZ;
   z = z < ZH ? z : z - ZDZ;
 

@@ -23,7 +23,7 @@ constexpr size_t nback = n_partd / 4; // background stationary particles distrib
 constexpr float R_s = n_space / 1;                                 // LPF smoothing radius
 constexpr float r0_f[3] = {n_space / 4 + 1, n_space / 4, n_space}; //  radius of sphere or cylinder (electron, ion, plasma)
 
-constexpr float Bz0 = 0.0001;     // in T, static constant fields
+constexpr float Bz0 = 10.0001;     // in T, static constant fields
 constexpr float Btheta0 = 10.0001; // in T, static constant fields
 constexpr float Ez0 = 0.0f;       // in V/m
 constexpr float vz0 = 0.0f;
