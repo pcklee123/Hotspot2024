@@ -82,26 +82,26 @@ int main()
 #else
     generateParticles(pt, par);
 #endif
-   if (!fastIO) // write CPU generated positions to opencl buffers
-   { //  electrons 
-      queue.enqueueWriteBuffer(pt->buff_x0_e[0], CL_TRUE, 0, n_partf, pt->pos0x[0]);
-      queue.enqueueWriteBuffer(pt->buff_y0_e[0], CL_TRUE, 0, n_partf, pt->pos0y[0]);
-      queue.enqueueWriteBuffer(pt->buff_z0_e[0], CL_TRUE, 0, n_partf, pt->pos0z[0]);
-      queue.enqueueWriteBuffer(pt->buff_x1_e[0], CL_TRUE, 0, n_partf, pt->pos1x[0]);
-      queue.enqueueWriteBuffer(pt->buff_y1_e[0], CL_TRUE, 0, n_partf, pt->pos1y[0]);
-      queue.enqueueWriteBuffer(pt->buff_z1_e[0], CL_TRUE, 0, n_partf, pt->pos1z[0]);
+    if (!fastIO) // write CPU generated positions to opencl buffers
+    {            //  electrons
+        commandQueue_g.enqueueWriteBuffer(pt->buff_x0_e[0], CL_TRUE, 0, n_partf, pt->pos0x[0]);
+        commandQueue_g.enqueueWriteBuffer(pt->buff_y0_e[0], CL_TRUE, 0, n_partf, pt->pos0y[0]);
+        commandQueue_g.enqueueWriteBuffer(pt->buff_z0_e[0], CL_TRUE, 0, n_partf, pt->pos0z[0]);
+        commandQueue_g.enqueueWriteBuffer(pt->buff_x1_e[0], CL_TRUE, 0, n_partf, pt->pos1x[0]);
+        commandQueue_g.enqueueWriteBuffer(pt->buff_y1_e[0], CL_TRUE, 0, n_partf, pt->pos1y[0]);
+        commandQueue_g.enqueueWriteBuffer(pt->buff_z1_e[0], CL_TRUE, 0, n_partf, pt->pos1z[0]);
 
-      queue.enqueueWriteBuffer(pt->buff_q_e[0], CL_TRUE, 0, n_partf, pt->q[0]);
-      //  ions 
-      queue.enqueueWriteBuffer(pt->buff_x0_i[0], CL_TRUE, 0, n_partf, pt->pos0x[1]);
-      queue.enqueueWriteBuffer(pt->buff_y0_i[0], CL_TRUE, 0, n_partf, pt->pos0y[1]);
-      queue.enqueueWriteBuffer(pt->buff_z0_i[0], CL_TRUE, 0, n_partf, pt->pos0z[1]);
-      queue.enqueueWriteBuffer(pt->buff_x1_i[0], CL_TRUE, 0, n_partf, pt->pos1x[1]);
-      queue.enqueueWriteBuffer(pt->buff_y1_i[0], CL_TRUE, 0, n_partf, pt->pos1y[1]);
-      queue.enqueueWriteBuffer(pt->buff_z1_i[0], CL_TRUE, 0, n_partf, pt->pos1z[1]);
+        commandQueue_g.enqueueWriteBuffer(pt->buff_q_e[0], CL_TRUE, 0, n_partf, pt->q[0]);
+        //  ions
+        commandQueue_g.enqueueWriteBuffer(pt->buff_x0_i[0], CL_TRUE, 0, n_partf, pt->pos0x[1]);
+        commandQueue_g.enqueueWriteBuffer(pt->buff_y0_i[0], CL_TRUE, 0, n_partf, pt->pos0y[1]);
+        commandQueue_g.enqueueWriteBuffer(pt->buff_z0_i[0], CL_TRUE, 0, n_partf, pt->pos0z[1]);
+        commandQueue_g.enqueueWriteBuffer(pt->buff_x1_i[0], CL_TRUE, 0, n_partf, pt->pos1x[1]);
+        commandQueue_g.enqueueWriteBuffer(pt->buff_y1_i[0], CL_TRUE, 0, n_partf, pt->pos1y[1]);
+        commandQueue_g.enqueueWriteBuffer(pt->buff_z1_i[0], CL_TRUE, 0, n_partf, pt->pos1z[1]);
 
-      queue.enqueueWriteBuffer(pt->buff_q_i[0], CL_TRUE, 0, n_partf, pt->q[1]);
-   }
+        commandQueue_g.enqueueWriteBuffer(pt->buff_q_i[0], CL_TRUE, 0, n_partf, pt->q[1]);
+    }
     // get limits and spacing of Field cells
     generateField(fi, par);
 
@@ -160,19 +160,19 @@ int main()
 
     for (int n = 0; n < par->n_part[0] * 3 * 2; n++)
         pt->pos0[n] = pt->pos1[n] - (pt->pos1[n] - pt->pos0[n]) * inc;
-    res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_x0_e[0](), CL_TRUE, 0,  n_partf, pt->pos0x[0], 0, NULL, NULL);
-    res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_y0_e[0](), CL_TRUE, 0,  n_partf, pt->pos0y[0], 0, NULL, NULL);
-    res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_z0_e[0](), CL_TRUE, 0,  n_partf, pt->pos0z[0], 0, NULL, NULL);
-    res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_x1_e[0](), CL_TRUE, 0,  n_partf, pt->pos1x[0], 0, NULL, NULL);
-    res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_y1_e[0](), CL_TRUE, 0,  n_partf, pt->pos1y[0], 0, NULL, NULL);
-    res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_z1_e[0](), CL_TRUE, 0,  n_partf, pt->pos1z[0], 0, NULL, NULL);
+    res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_x0_e[0](), CL_TRUE, 0, n_partf, pt->pos0x[0], 0, NULL, NULL);
+    res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_y0_e[0](), CL_TRUE, 0, n_partf, pt->pos0y[0], 0, NULL, NULL);
+    res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_z0_e[0](), CL_TRUE, 0, n_partf, pt->pos0z[0], 0, NULL, NULL);
+    res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_x1_e[0](), CL_TRUE, 0, n_partf, pt->pos1x[0], 0, NULL, NULL);
+    res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_y1_e[0](), CL_TRUE, 0, n_partf, pt->pos1y[0], 0, NULL, NULL);
+    res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_z1_e[0](), CL_TRUE, 0, n_partf, pt->pos1z[0], 0, NULL, NULL);
 
-    res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_x0_i[0](), CL_TRUE, 0,  n_partf, pt->pos0x[1], 0, NULL, NULL);
-    res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_y0_i[0](), CL_TRUE, 0,  n_partf, pt->pos0y[1], 0, NULL, NULL);
-    res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_z0_i[0](), CL_TRUE, 0,  n_partf, pt->pos0z[1], 0, NULL, NULL);
-    res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_x1_i[0](), CL_TRUE, 0,  n_partf, pt->pos1x[1], 0, NULL, NULL);
-    res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_y1_i[0](), CL_TRUE, 0,  n_partf, pt->pos1y[1], 0, NULL, NULL);
-    res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_z1_i[0](), CL_TRUE, 0,  n_partf, pt->pos1z[1], 0, NULL, NULL);
+    res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_x0_i[0](), CL_TRUE, 0, n_partf, pt->pos0x[1], 0, NULL, NULL);
+    res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_y0_i[0](), CL_TRUE, 0, n_partf, pt->pos0y[1], 0, NULL, NULL);
+    res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_z0_i[0](), CL_TRUE, 0, n_partf, pt->pos0z[1], 0, NULL, NULL);
+    res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_x1_i[0](), CL_TRUE, 0, n_partf, pt->pos1x[1], 0, NULL, NULL);
+    res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_y1_i[0](), CL_TRUE, 0, n_partf, pt->pos1y[1], 0, NULL, NULL);
+    res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_z1_i[0](), CL_TRUE, 0, n_partf, pt->pos1z[1], 0, NULL, NULL);
     //   cout << "dt changed" << endl;
 
 #ifdef Uon_
