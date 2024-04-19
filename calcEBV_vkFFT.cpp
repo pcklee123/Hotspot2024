@@ -527,8 +527,6 @@ int calcEBV(fields *fi, par *par)
     res = clEnqueueNDRangeKernel(vkGPU.commandQueue, maxvalf_kernel, 1, NULL, &n, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
     res = clEnqueueReadBuffer(vkGPU.commandQueue, maxval_buffer, CL_TRUE, 0, sizeof(float) * n, maxval_array, 0, NULL, NULL);
     par->Emax = maxvalf(maxval_array, n);
-    // resFFT = transferDataToCPU(&vkGPU, fi->E, &fi->E_buffer, 3 * n_cells * sizeof(float));
-    // par->Emax = maxvalf(reinterpret_cast<float *>(fi->E), n_cells * 3);
 #endif
 
 #ifdef Bon_
@@ -537,8 +535,6 @@ int calcEBV(fields *fi, par *par)
     res = clEnqueueNDRangeKernel(vkGPU.commandQueue, maxvalf_kernel, 1, NULL, &n, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
     res = clEnqueueReadBuffer(vkGPU.commandQueue, maxval_buffer, CL_TRUE, 0, sizeof(float) * n, maxval_array, 0, NULL, NULL);
     par->Bmax = maxvalf(maxval_array, n);
-    //   resFFT = transferDataToCPU(&vkGPU, fi->B, &fi->B_buffer, 3 * n_cells * sizeof(float));
-    //   par->Bmax = maxvalf(reinterpret_cast<float *>(fi->B), n_cells * 3);
 #endif
     _aligned_free(maxval_array);
     clReleaseMemObject(maxval_buffer);
