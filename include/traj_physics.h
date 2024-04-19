@@ -9,16 +9,16 @@
 constexpr double weibullb = 4; // b factor for weibull. larger means closer to a shell. ~1 means filled more at the center.
 #define Temp_e 1e7             // in Kelvin 1e7 ~1keV
 #define Temp_d 1e7             // in Kelvin
-constexpr int f1 = 10;         // make bigger to make smaller time steps // 512 is min for sphere slight increase in KE
+constexpr int f1 = 100;         // make bigger to make smaller time steps // 512 is min for sphere slight increase in KE
 constexpr int f2 = f1 * 1.2;
 constexpr float incf = 1.2f;        // increment
 constexpr float decf = 1.0f / incf; // decrement factor
 
-constexpr int n_space = 128; // should be 2 to power of n for faster FFT e.g. 32,64,128,256 (128 is 2 million cells, ~ 1gB of ram, 256 is not practical for systems with 8GB or less GPU ram)
+constexpr int n_space = 64; // should be 2 to power of n for faster FFT e.g. 32,64,128,256 (128 is 2 million cells, ~ 1gB of ram, 256 is not practical for systems with 8GB or less GPU ram)
 
-constexpr size_t n_partd = 16 * 1024 * 1024; // n_space * n_space * n_space * 1 * 16; // must be 2 to power of n
+constexpr size_t n_partd = 1 * 1024 * 1024; // n_space * n_space * n_space * 1 * 16; // must be 2 to power of n
 constexpr size_t n_parte = n_partd;
-constexpr size_t nback = n_partd / 4; // background stationary particles distributed over all cells - improves stability
+constexpr size_t nback = n_partd / 16; // background stationary particles distributed over all cells - improves stability
 
 constexpr float R_s = n_space / 1;                                 // LPF smoothing radius
 constexpr float r0_f[3] = {n_space / 4 + 1, n_space / 4, n_space}; //  radius of sphere or cylinder (electron, ion, plasma)
@@ -48,7 +48,7 @@ constexpr int n_output_part = (n_partd > 9369) ? 9369 : n_partd; // maximum numb
 // const int nprtd=floor(n_partd/n_output_part);
 
 constexpr int ndatapoints = 10; // total number of time steps to print
-constexpr int nc1 = 10;           // f1 * 1;      // number of times to calculate E and B between printouts total number of electron time steps calculated = ndatapoints *nc1*md_me 
+constexpr int nc1 = 100;           // f1 * 1;      // number of times to calculate E and B between printouts total number of electron time steps calculated = ndatapoints *nc1*md_me 
 constexpr int md_me = 60;        // ratio of electron speed/deuteron speed at the same KE. Used to calculate electron motion more often than deuteron motion
 
 #define Hist_n 512
@@ -57,7 +57,7 @@ constexpr int md_me = 60;        // ratio of electron speed/deuteron speed at th
 #define trilinon_
 
 #define Eon_     // whether to calculate the internally generated electric (E) field externally applied fields are always on
-//#define Uon_     // whether to calculate the electric (V) potential and potential energy (U). Needs Eon to be enabled.
+#define Uon_     // whether to calculate the electric (V) potential and potential energy (U). Needs Eon to be enabled.
 #define UE_field //
 #define Bon_     // whether to calculate the internally generated magnetic (B) field
 #define UB_field

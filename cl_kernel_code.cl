@@ -80,23 +80,23 @@ void kernel vector_mul_complex(global float2 *A, global float2 *B,
 }
 
 void kernel copy3Data(global const float *jc, global float *fft_real) {
-  const size_t N0 = NX * 2;
-  const size_t N1 = NY * 2;
-  const size_t N2 = NZ * 2;
-  const size_t NXNYNZ = NX * NY * NZ;
-  const size_t N0N1N2 = N0 * N1 * N2;
-  const size_t N0N1 = N0 * N1;
+  const uint N0 = NX * 2;
+  const uint N1 = NY * 2;
+  const uint N2 = NZ * 2;
+  const uint NXNYNZ = NX * NY * NZ;
+  const uint N0N1N2 = N0 * N1 * N2;
+  const uint N0N1 = N0 * N1;
   // get global indices
-  size_t idx = get_global_id(0);
+  uint idx = get_global_id(0);
   // Compute 3D index for dest array
-  size_t i = idx % N0;
-  size_t j = (idx / N0) % N1;
-  size_t k = (idx / N0N1) % N2;
+  uint i = idx % N0;
+  uint j = (idx / N0) % N1;
+  uint k = (idx / N0N1) % N2;
 
-  size_t in = (i < NX) && (j < NY) && (k < NZ); // Check if in range of source
+  uint in = (i < NX) && (j < NY) && (k < NZ); // Check if in range of source
 
-  size_t s_idx = (in) ? k * NY * NX + j * NX + i
-                      : 0; // Compute global index for source array
+  uint s_idx = (in) ? k * NY * NX + j * NX + i
+                    : 0; // Compute global index for source array
   //  Copy element from source to destination array or with zeroes do for each
   //  component
   fft_real[idx] = (in) ? jc[s_idx] : 0;
@@ -109,28 +109,28 @@ void kernel copy3Data(global const float *jc, global float *fft_real) {
 }
 
 void kernel copyData(global const float *npt, global float *fft_real) {
-  const size_t N0N1 = NX * NY * 4;
-  const size_t N0 = NX * 2;
-  const size_t N1 = NY * 2;
-  const size_t N2 = NZ * 2;
+  const uint N0N1 = NX * NY * 4;
+  const uint N0 = NX * 2;
+  const uint N1 = NY * 2;
+  const uint N2 = NZ * 2;
   // get global indices
-  size_t idx = get_global_id(0);
+  uint idx = get_global_id(0);
   // Compute 3D index for dest array
-  size_t i = idx % N0;
-  size_t j = (idx / N0) % N1;
-  size_t k = (idx / N0N1) % N2;
+  uint i = idx % N0;
+  uint j = (idx / N0) % N1;
+  uint k = (idx / N0N1) % N2;
 
   // Check if in range of source
-  size_t in = (i < NX) && (j < NY) && (k < NZ);
+  uint in = (i < NX) && (j < NY) && (k < NZ);
 
   // Compute global index for source array
-  size_t source_index = (in) ? k * NY * NX + j * NX + i : 0;
+  uint source_index = (in) ? k * NY * NX + j * NX + i : 0;
   //  Copy element from source to destination array or with zeroes
   fft_real[idx] = (in) ? npt[source_index] : 0;
 }
 void kernel NxPrecalc(global const float2 *r3, global float2 *fft_complex) {
-  const size_t n = 4 * NZ * NY * (NX + 1);
-  size_t i = get_global_id(0), j = i + n, k = j + n;
+  const uint n = 4 * NZ * NY * (NX + 1);
+  uint i = get_global_id(0), j = i + n, k = j + n;
   float2 b = fft_complex[i], c = r3[k];
   fft_complex[k] =
       (float2)(b.s0 * c.s0 - b.s1 * c.s1, b.s0 * c.s1 + b.s1 * c.s0);
@@ -144,9 +144,9 @@ void kernel NxPrecalc(global const float2 *r3, global float2 *fft_complex) {
 
 void kernel jcxPrecalc(global const float2 *r3, global float2 *ptr) {
   float2 t1, t2, t3;
-  const size_t n = 4 * NZ * NY * (NX + 1);
-  size_t i = get_global_id(0), j = i + n, k = j + n, i1 = k + n, j1 = i1 + n,
-         k1 = j1 + n;
+  const uint n = 4 * NZ * NY * (NX + 1);
+  uint i = get_global_id(0), j = i + n, k = j + n, i1 = k + n, j1 = i1 + n,
+       k1 = j1 + n;
   t1 = (float2)(ptr[j].s0 * r3[k1].s0 - ptr[j].s1 * r3[k1].s1,
                 ptr[j].s0 * r3[k1].s1 + ptr[j].s1 * r3[k1].s0) -
        (float2)(ptr[k].s0 * r3[j1].s0 - ptr[k].s1 * r3[j1].s1,
@@ -167,8 +167,9 @@ void kernel jcxPrecalc(global const float2 *r3, global float2 *ptr) {
 
 void kernel NxPrecalcr2(global const float2 *r2, global const float2 *r3,
                         global float2 *fft_complex) {
-  const size_t n = 4 * NZ * NY * (NX + 1);
-  size_t i = get_global_id(0), j = i + n, k = j + n;
+  const uint n = 4 * NZ * NY * (NX + 1);
+  // uint n = get_global_size(0);
+  uint i = get_global_id(0), j = i + n, k = j + n;
   float2 b = fft_complex[i], c = r2[i];
   // V is at complex[3]
   fft_complex[n + k] =
@@ -187,13 +188,13 @@ void kernel NxPrecalcr2(global const float2 *r2, global const float2 *r3,
 
 void kernel sumFftFieldo(global const float *fft_real, global const float *Fe,
                          global float *F) {
-  const size_t N0 = NX * 2;
-  const size_t N1 = NY * 2;
-  const size_t N2 = NZ * 2;
-  const size_t NXNY = NX * NY;
-  const size_t NXNYNZ = NXNY * NZ;
-  const size_t N0N1 = N0 * N1;
-  const size_t N0N1N2 = N0N1 * N2;
+  const uint N0 = NX * 2;
+  const uint N1 = NY * 2;
+  const uint N2 = NZ * 2;
+  const uint NXNY = NX * NY;
+  const uint NXNYNZ = NXNY * NZ;
+  const uint N0N1 = N0 * N1;
+  const uint N0N1N2 = N0N1 * N2;
   const float s000[3] = {+1, +1, +1}; // c=0 is x,c=1 is y,c=2 is z
   const float s001[3] = {-1, +1, +1};
   const float s010[3] = {+1, -1, +1};
@@ -204,13 +205,13 @@ void kernel sumFftFieldo(global const float *fft_real, global const float *Fe,
   const float s111[3] = {-1, -1, -1};
 
   // get global indices
-  size_t idx = get_global_id(0);
+  uint idx = get_global_id(0);
   // Compute 3D index for dest array
-  size_t i = idx % NX;
-  size_t j = (idx / NX) % NY;
-  size_t k = (idx / NXNY) % NZ;
+  uint i = idx % NX;
+  uint j = (idx / NX) % NY;
+  uint k = (idx / NXNY) % NZ;
 
-  size_t cdx = 0, cdx8 = 0;
+  uint cdx = 0, cdx8 = 0;
 
   int idx000 = k * N0N1 + j * N0 + i; // idx_kji
   int idx001 = k * N0N1 + j * N0;
@@ -245,13 +246,13 @@ void kernel sumFftFieldo(global const float *fft_real, global const float *Fe,
 
 void kernel sumFftFieldq(global const float *fft_real, global const float *Fe,
                          global float *F) {
-  const size_t N0 = NX * 2;
-  const size_t N1 = NY * 2;
-  const size_t N2 = NZ * 2;
-  const size_t NXNY = NX * NY;
-  const size_t NXNYNZ = NXNY * NZ;
-  const size_t N0N1 = N0 * N1;
-  const size_t N0N1N2 = N0N1 * N2;
+  const uint N0 = NX * 2;
+  const uint N1 = NY * 2;
+  const uint N2 = NZ * 2;
+  const uint NXNY = NX * NY;
+  const uint NXNYNZ = NXNY * NZ;
+  const uint N0N1 = N0 * N1;
+  const uint N0N1N2 = N0N1 * N2;
   const float s000[3] = {+1, +1, +1}; // c=0 is x,c=1 is y,c=2 is z
   const float s001[3] = {-1, +1, +1};
   const float s010[3] = {+1, -1, +1};
@@ -262,13 +263,13 @@ void kernel sumFftFieldq(global const float *fft_real, global const float *Fe,
   // const float s111[3] = {-1, -1, -1};
 
   // get global indices
-  size_t idx = get_global_id(0);
+  uint idx = get_global_id(0);
   // Compute 3D index for dest array
-  size_t i = idx % NX;
-  size_t j = (idx / NX) % NY;
-  size_t k = (idx / NXNY) % NZ;
+  uint i = idx % NX;
+  uint j = (idx / NX) % NY;
+  uint k = (idx / NXNY) % NZ;
 
-  size_t cdx = 0, cdx8 = 0;
+  uint cdx = 0, cdx8 = 0;
 
   int idx000 = k * N0N1 + j * N0 + i; // idx_kji
   int idx001 = k * N0N1 + j * N0;
@@ -303,21 +304,21 @@ void kernel sumFftFieldq(global const float *fft_real, global const float *Fe,
 
 void kernel sumFftField(global const float *fft_real, global const float *Fe,
                         global float *F) {
-  const size_t N0 = NX * 2;
-  const size_t N1 = NY * 2;
-  const size_t N2 = NZ * 2;
-  const size_t NXNY = NX * NY;
-  const size_t NXNYNZ = NXNY * NZ;
-  const size_t N0N1 = N0 * N1;
-  const size_t N0N1N2 = N0N1 * N2;
+  const uint N0 = NX * 2;
+  const uint N1 = NY * 2;
+  const uint N2 = NZ * 2;
+  const uint NXNY = NX * NY;
+  const uint NXNYNZ = NXNY * NZ;
+  const uint N0N1 = N0 * N1;
+  const uint N0N1N2 = N0N1 * N2;
 
   // get global indices
-  size_t idx = get_global_id(0);
+  uint idx = get_global_id(0);
   // Compute 3D index for dest array
-  size_t i = idx % NX;
-  size_t j = (idx / NX) % NY;
-  size_t k = (idx / NXNY) % NZ;
-  size_t cdx = 0, cdx8 = 0;
+  uint i = idx % NX;
+  uint j = (idx / NX) % NY;
+  uint k = (idx / NXNY) % NZ;
+  uint cdx = 0, cdx8 = 0;
   int idx000 = k * N0N1 + j * N0 + i; // idx_kji
   for (int c = 0; c < 3; ++c, cdx += NXNYNZ, cdx8 += N0N1N2) {
     F[cdx + idx] = Fe[cdx + idx] + fft_real[cdx8 + idx000];
@@ -325,20 +326,20 @@ void kernel sumFftField(global const float *fft_real, global const float *Fe,
 }
 
 void kernel sumFftSField(global const float *fft_real, global float *V) {
-  const size_t N0 = NX * 2;
-  const size_t N1 = NY * 2;
-  const size_t N2 = NZ * 2;
-  const size_t NXNY = NX * NY;
-  const size_t NXNYNZ = NXNY * NZ;
-  const size_t N0N1 = N0 * N1;
-  const size_t N0N1N2 = N0N1 * N2;
+  const uint N0 = NX * 2;
+  const uint N1 = NY * 2;
+  const uint N2 = NZ * 2;
+  const uint NXNY = NX * NY;
+  const uint NXNYNZ = NXNY * NZ;
+  const uint N0N1 = N0 * N1;
+  const uint N0N1N2 = N0N1 * N2;
 
   // get global indices
-  size_t idx = get_global_id(0);
+  uint idx = get_global_id(0);
   // Compute 3D index for dest array
-  size_t i = idx % NX;
-  size_t j = (idx / NX) % NY;
-  size_t k = (idx / NXNY) % NZ;
+  uint i = idx % NX;
+  uint j = (idx / NX) % NY;
+  uint k = (idx / NXNY) % NZ;
 
   int idx000 = k * N0N1 + j * N0 + i; // idx_kji
   V[idx] = fft_real[idx000];
@@ -1063,13 +1064,13 @@ void kernel EUEst(global const float4 *V, global const float4 *n,
 
 void kernel dtotal(global const float16 *ne, global const float16 *ni,
                    global const float16 *je, global const float16 *ji,
-                   global float16 *nt, global float16 *jt,
-                   const unsigned long n) {
-  const unsigned long n1 = n / 16;
-  const unsigned long n2 = n1 + n1;
-  const unsigned long i =
-      get_global_id(0);  // Get index of current element processed
-  nt[i] = ne[i] + ni[i]; // Do the operation
+                   global float16 *nt, global float16 *jt, const uint n0) {
+  // uint n = get_global_size(0);
+  const uint n = NZ * NY * NX;
+  const uint n1 = n / 16;
+  const uint n2 = n1 + n1;
+  const uint i = get_global_id(0); // Get index of current element processed
+  nt[i] = ne[i] + ni[i];           // Do the operation
   jt[i] = je[i] + ji[i];
   jt[n + i] = je[n + i] + ji[n + i];
   jt[n2 + i] = je[n2 + i] + ji[n2 + i];
@@ -1077,13 +1078,13 @@ void kernel dtotal(global const float16 *ne, global const float16 *ni,
 
 void kernel copyextField(global const float16 *Fe, global float16 *F) {
   // get global indices
-  size_t idx = get_global_id(0);
+  uint idx = get_global_id(0);
   F[idx] = Fe[idx];
 }
 
 void kernel maxvalf(global const float16 *In, global float *Ou) {
   // get global indices
-  size_t i = get_global_id(0);
+  uint i = get_global_id(0);
   float m = 0;
   float a, v;
   v = In[i].s0;
@@ -1140,9 +1141,9 @@ void kernel maxvalf(global const float16 *In, global float *Ou) {
 
 void kernel maxval3f(global const float16 *In, global float *Ou) {
   // get global indices
-  size_t i = get_global_id(0);
-  size_t n = get_global_size(0);
-  size_t n2 = n + n;
+  uint i = get_global_id(0);
+  uint n = get_global_size(0);
+  uint n2 = n + n;
   float m = 0;
   float a;
   float4 v3;

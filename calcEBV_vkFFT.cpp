@@ -425,18 +425,18 @@ int calcEBV(fields *fi, par *par)
 
 #ifdef Eon_
     {
-        res = clEnqueueNDRangeKernel(vkGPU.commandQueue, copyData_kernel, 1, NULL, &n_cells8, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
+        res = clEnqueueNDRangeKernel(vkGPU.commandQueue, copyData_kernel, 1, NULL, &n_cells8, NULL, 0, NULL, NULL); //  copy density into zero padded double(8x) cube
         res = clFinish(vkGPU.commandQueue);
         //  only density arrn1 = fft(arrn) multiply fft charge with fft of kernel(i.e field associated with 1 charge)
         resFFT = VkFFTAppend(&app1, -1, &launchParams); // -1 = forward transform
         res = clFinish(vkGPU.commandQueue);             //  cout << "execute plan for E" << endl;
 
 #ifdef Uon_
-        res = clEnqueueNDRangeKernel(vkGPU.commandQueue, NxPrecalcr2_kernel, 1, NULL, &n_cells4, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
+        res = clEnqueueNDRangeKernel(vkGPU.commandQueue, NxPrecalcr2_kernel, 1, NULL, &n_cells4, NULL, 0, NULL, NULL); //  multiply FFT of density with precalc for both E[0-2] and V[3]  
         res = clFinish(vkGPU.commandQueue);
         resFFT = VkFFTAppend(&appbac4, 1, &launchParams);                                                              // cout << "inverse transform to get convolution" << endl;                                                             // 1 = inverse FFT//if (resFFT)                cout << "execute plan bac E resFFT = " << resFFT << endl;
         res = clFinish(vkGPU.commandQueue);                                                                            // cout << "execute plan bac E ,clFinish res = " << res << endl;
-        clSetKernelArg(sumFftSField_kernel, 0, sizeof(cl_mem), &fft_real_buffer);                                      // real[0] is V
+        clSetKernelArg(sumFftSField_kernel, 0, sizeof(cl_mem), &fft_real_buffer);                                      // real[3] is V
         clSetKernelArg(sumFftSField_kernel, 1, sizeof(cl_mem), &fi->V_buffer);                                         // copy to ncells8 to ncells
         res = clEnqueueNDRangeKernel(vkGPU.commandQueue, sumFftSField_kernel, 1, NULL, &n_cells, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
         if (res)
@@ -510,7 +510,7 @@ int calcEBV(fields *fi, par *par)
 #endif
 #endif
 
-    size_t n = n_cells / 16;
+    uint64_t n = n_cells / 16;
     maxval_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, n * sizeof(float), 0, &res);
     float *maxval_array = (float *)_aligned_malloc(sizeof(float) * n, par->cl_align);
 #ifdef Eon_
