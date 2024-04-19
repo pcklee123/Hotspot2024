@@ -95,9 +95,12 @@ void changedx(fields *fi, par *par)
             (reinterpret_cast<float *>(fi->precalc_r2))[i] /= a0_ff;
     #endif
     */
+    cl_int res;
     float Bb = 1 / (a0_ff * a0_ff);
-    size_t n = n_cells4 * 3 * 2 * 2;// 2 floats per complex 3 axis, 2 types E and B
-    cl_kernel kernel_buffer_muls = clCreateKernel(program_g(), "buffer_muls", NULL);
+    size_t n = n_cells4 * 3 * 2 * 2; // 2 floats per complex 3 axis, 2 types E and B
+    static cl_kernel kernel_buffer_muls = clCreateKernel(program_g(), "buffer_muls", &res);
+    if (res)
+        cout << "create buffer_muls " << res << endl;
     clSetKernelArg(kernel_buffer_muls, 0, sizeof(cl_mem), &fi->r3_buffer);
     clSetKernelArg(kernel_buffer_muls, 1, sizeof(float), &Bb);
     clEnqueueNDRangeKernel(commandQueue_g(), kernel_buffer_muls, 1, NULL, &n, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
@@ -105,13 +108,13 @@ void changedx(fields *fi, par *par)
     //  buffer_muls(fi->r3_buffer, 1 / (a0_ff * a0_ff), n_cells4 * 2 * 3 * 2); #ifdef Uon_
 #ifdef Uon_
     n = n_cells4 * 3 * 2 * 2;
-    Bb = 1 / ( a0_ff);
-    n = n_cells4  * 2;// 2 floats per complex
+    Bb = 1 / (a0_ff);
+    n = n_cells4 * 2; // 2 floats per complex
     clSetKernelArg(kernel_buffer_muls, 0, sizeof(cl_mem), &fi->r2_buffer);
     clSetKernelArg(kernel_buffer_muls, 1, sizeof(float), &Bb);
     clEnqueueNDRangeKernel(commandQueue_g(), kernel_buffer_muls, 1, NULL, &n, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
     clFinish(commandQueue_g());
-//    buffer_muls(fi->r2_buffer, 1 / (a0_ff), n_cells4 * 2); 
+//    buffer_muls(fi->r2_buffer, 1 / (a0_ff), n_cells4 * 2);
 //  cout << "make cells bigger " << par->nt[0] << " " << nt0prev << ",ao_f = " << par->a0_f << endl;
 #endif
     generateField(fi, par);

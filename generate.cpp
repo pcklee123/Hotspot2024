@@ -221,26 +221,19 @@ void generateConstantBField(fields *fi, par *par)
 void generateZpinchField(fields *fi, par *par)
 {
     // radius of z-pinch
-    //cout << "a0*a0_f" << a0 * par->a0_f << endl;
-    float r0 = r0_f[2] * a0 ;
+    // cout << "a0*a0_f" << a0 * par->a0_f << endl;
+    float r0 = r0_f[2] * a0;
     for (int k = 0; k < n_space_divx; k++)
     {
 
         for (int j = 0; j < n_space_divy; j++)
         {
-#ifdef octant
-            float y = j * a0 * par->a0_f;
-#else
-            float y = (j - n_space_divy / 2) * a0 * par->a0_f;
-#endif
-
+            float y = ((j + 0.5) * a0 + par->posL[1]) * par->a0_f;
+            //    float y = ((j - n_space_divy / 2) * a0) * par->a0_f;
             for (unsigned int i = 0; i < n_space_divx; i++)
             {
-#ifdef octant
-                float x = i * a0 * par->a0_f;
-#else
-                float x = (i - n_space_divx / 2) * a0 * par->a0_f;
-#endif
+                float x = ((i + 0.5) * a0 + par->posL[0]) * par->a0_f;
+                // float x = (i - n_space_divx / 2) * a0 * par->a0_f;
                 float r = sqrtf(pow(x, 2) + pow(y, 2));
                 fi->Ee[0][k][j][i] = 0;   // 1000+i*100;
                 fi->Ee[1][k][j][i] = 0;   // 2000+j*100;

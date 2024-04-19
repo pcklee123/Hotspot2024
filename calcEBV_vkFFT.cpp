@@ -142,6 +142,10 @@ int calcEBV(fields *fi, par *par)
         cl_mem r2_base_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_R, 0, &res);
         r3_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_C6, 0, &res);
         r2_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_C, 0, &res);
+        fi->r3_buffer = r3_buffer;
+#ifdef Uon_
+        fi->r2_buffer = r2_buffer;
+#endif
         // Create memory buffers on the device for each vector
         EUtot_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, n_4 * sizeof(float), 0, &res);
 
