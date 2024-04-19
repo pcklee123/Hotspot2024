@@ -2,19 +2,19 @@
 #define maxcells 32
 #define cldevice 1 // 0 usually means integrated GPU
 #define sphere     // do hot spot  problem
-#define octant     // do hot spot problem 1/8 sphere magnetic fields do not make sense as will break symmetry
+#define octant     // do hot spot problem 1/8 sphere. Magnetic fields do not make sense as will break symmetry
 // #define cylinder //do hot rod problem
 // #define quadrant     // do problem 1/4 sphere or cylinder
 #define Weibull
 constexpr double weibullb = 4; // b factor for weibull. larger means closer to a shell. ~1 means filled more at the center.
 #define Temp_e 1e7             // in Kelvin 1e7 ~1keV
 #define Temp_d 1e7             // in Kelvin
-constexpr int f1 = 128;         // make bigger to make smaller time steps // 128 is min for sphere slight increase in KE
+constexpr int f1 = 512;         // make bigger to make smaller time steps // 512 is min for sphere slight increase in KE
 constexpr int f2 = f1 * 1.2;
 constexpr float incf = 1.2f;        // increment
 constexpr float decf = 1.0f / incf; // decrement factor
 
-constexpr int n_space = 32; // should be 2 to power of n for faster FFT
+constexpr int n_space = 32; // should be 2 to power of n for faster FFT e.g. 32,64,128,256 (128 is 2 million cells, ~ 1gB of ram, 256 is not practical for systems with 8GB or less GPU ram)
 
 constexpr size_t n_partd = 1 * 1024 * 1024; // n_space * n_space * n_space * 1 * 16; // must be 2 to power of n
 constexpr size_t n_parte = n_partd;
@@ -48,7 +48,7 @@ constexpr int n_output_part = (n_partd > 9369) ? 9369 : n_partd; // maximum numb
 // const int nprtd=floor(n_partd/n_output_part);
 
 constexpr int ndatapoints = 100; // total number of time steps to print
-constexpr int nc1 = 1;           // f1 * 1;      // number of times to calculate E and B between printouts
+constexpr int nc1 = 1;           // f1 * 1;      // number of times to calculate E and B between printouts total number of electron time steps calculated = ndatapoints *nc1*md_me 
 constexpr int md_me = 60;        // ratio of electron speed/deuteron speed at the same KE. Used to calculate electron motion more often than deuteron motion
 
 #define Hist_n 512
