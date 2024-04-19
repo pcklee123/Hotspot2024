@@ -243,6 +243,64 @@ void kernel sumFftFieldo(global const float *fft_real, global const float *Fe,
   }
 }
 
+void kernel sumFftFieldq(global const float *fft_real, global const float *Fe,
+                         global float *F) {
+  const size_t N0 = NX * 2;
+  const size_t N1 = NY * 2;
+  const size_t N2 = NZ * 2;
+  const size_t NXNY = NX * NY;
+  const size_t NXNYNZ = NXNY * NZ;
+  const size_t N0N1 = N0 * N1;
+  const size_t N0N1N2 = N0N1 * N2;
+  const float s000[3] = {+1, +1, +1}; // c=0 is x,c=1 is y,c=2 is z
+  const float s001[3] = {-1, +1, +1};
+  const float s010[3] = {+1, -1, +1};
+  const float s011[3] = {-1, -1, +1};
+  //const float s100[3] = {+1, +1, -1};
+  //const float s101[3] = {-1, +1, -1};
+  //const float s110[3] = {+1, -1, -1};
+  //const float s111[3] = {-1, -1, -1};
+
+  // get global indices
+  size_t idx = get_global_id(0);
+  // Compute 3D index for dest array
+  size_t i = idx % NX;
+  size_t j = (idx / NX) % NY;
+  size_t k = (idx / NXNY) % NZ;
+
+  size_t cdx = 0, cdx8 = 0;
+
+  int idx000 = k * N0N1 + j * N0 + i; // idx_kji
+  int idx001 = k * N0N1 + j * N0;
+  int idx010 = k * N0N1 + i;
+  int idx011 = k * N0N1;
+  //int idx100 = j * N0 + i;
+  //int idx101 = j * N0;
+  //int idx110 = i;
+  //int idx111 = 0;
+
+  int odx000 = 0;                          // odx_kji
+  int odx001 = i == 0 ? 0 : N0 - i;        // iskip
+  int odx010 = j == 0 ? 0 : N0 * (N1 - j); // jskip
+  int odx011 = odx001 + odx010;
+  //int odx100 = k == 0 ? 0 : N0 * N1 * (N2 - k); // kskip
+  //int odx101 = odx100 + odx001;
+  //int odx110 = odx100 + odx010;
+  //int odx111 = odx100 + odx011;
+  for (int c = 0; c < 3; ++c, cdx += NXNYNZ, cdx8 += N0N1N2) {
+    F[cdx + idx] = Fe[cdx + idx];
+    F[cdx + idx] += s000[c] * fft_real[cdx8 + odx000 + idx000]; // main octant
+    // add minor effects from other octants
+    F[cdx + idx] += s001[c] * fft_real[cdx8 + odx001 + idx001];
+    F[cdx + idx] += s010[c] * fft_real[cdx8 + odx010 + idx010];
+    F[cdx + idx] += s011[c] * fft_real[cdx8 + odx011 + idx011];
+   // F[cdx + idx] += s100[c] * fft_real[cdx8 + odx100 + idx100];
+   // F[cdx + idx] += s101[c] * fft_real[cdx8 + odx101 + idx101];
+   // F[cdx + idx] += s110[c] * fft_real[cdx8 + odx110 + idx110];
+   // F[cdx + idx] += s111[c] * fft_real[cdx8 + odx111 + idx111];
+  }
+}
+
 void kernel sumFftField(global const float *fft_real, global const float *Fe,
                         global float *F) {
   const size_t N0 = NX * 2;
@@ -669,6 +727,138 @@ void kernel tnp_k_implicito(global const float8 *a1,
   z1[id] = z;
 }
 
+void kernel tnp_k_implicitq(global const float8 *a1,
+                            global const float8 *a2, // E, B coeff
+                            global float *x0, global float *y0,
+                            global float *z0, // prev pos
+                            global float *x1, global float *y1,
+                            global float *z1, // current pos
+                            float Bcoef,
+                            float Ecoef, // Bcoeff, Ecoeff
+                            float a0_f, const unsigned int n,
+                            const unsigned int ncalc, // n, ncalc
+                            global int *q) {
+
+  uint id = get_global_id(0);
+  uint prev_idx = UINT_MAX;
+  float xprev = x0[id], yprev = y0[id], zprev = z0[id], x = x1[id], y = y1[id],
+        z = z1[id];
+  float8 temp, pos;
+  float r1 = 1.0f;
+  float r2 = r1 * r1;
+  float8 store0, store1, store2, store3, store4, store5;
+  const float Bcoeff = Bcoef / r1;
+  const float Ecoeff = Ecoef / r1;
+  const float DX = DXo * a0_f, DY = DYo * a0_f, DZ = DZo * a0_f;
+  const float XLOW = XLOWo * a0_f, YLOW = YLOWo * a0_f, ZLOW = ZLOWo * a0_f;
+  const float XHIGH = XHIGHo * a0_f, YHIGH = YHIGHo * a0_f,
+              ZHIGH = ZHIGHo * a0_f;
+  // const float XL = (XLOW + 1.5f * DX), YL = (YLOW + 1.5f * DY),
+  //             ZL = (ZLOW + 1.5f * DZ);
+  const float XL = (XLOW + 0.5f * DX), YL = (YLOW + 0.5f * DX),
+              ZL = (ZLOW + 0.5f * DX);
+  const float XH = (XHIGH - 1.5f * DX), YH = (YHIGH - 1.5f * DY),
+              ZH = (ZHIGH - 1.5f * DZ);
+  const float ZDZ = ZH - ZL - DZ / 10;
+  const float8 ones = (float8)(1, 1, 1, 1, 1, 1, 1, 1);
+  for (int t = 0; t < ncalc; t++) {
+    float xy = x * y, xz = x * z, yz = y * z, xyz = x * yz;
+    uint idx =
+        ((uint)((z - ZLOW) / DZ) * NZ + (uint)((y - YLOW) / DY)) * NY +
+        (uint)((x - XLOW) / DX); // round down the cells - this is intentional
+    idx *= 3;
+    pos = (float8)(1.f, x, y, z, xy, xz, yz, xyz);
+    // Is there no better way to do this? Why does float8 not have dot()?
+    if (prev_idx != idx) {
+      store0 = a1[idx]; // Ex
+      store1 = a1[idx + 1];
+      store2 = a1[idx + 2];
+      store3 = a2[idx]; // Bx
+      store4 = a2[idx + 1];
+      store5 = a2[idx + 2];
+      prev_idx = idx;
+    }
+    temp = store0 * pos;
+    float xE = temp.s0 + temp.s1 + temp.s2 + temp.s3 + temp.s4 + temp.s5 +
+               temp.s6 + temp.s7;
+    temp = store1 * pos;
+    float yE = temp.s0 + temp.s1 + temp.s2 + temp.s3 + temp.s4 + temp.s5 +
+               temp.s6 + temp.s7;
+    temp = store2 * pos;
+    float zE = temp.s0 + temp.s1 + temp.s2 + temp.s3 + temp.s4 + temp.s5 +
+               temp.s6 + temp.s7;
+    temp = store3 * pos;
+    float xP = temp.s0 + temp.s1 + temp.s2 + temp.s3 + temp.s4 + temp.s5 +
+               temp.s6 + temp.s7;
+    temp = store4 * pos;
+    float yP = temp.s0 + temp.s1 + temp.s2 + temp.s3 + temp.s4 + temp.s5 +
+               temp.s6 + temp.s7;
+    temp = store5 * pos;
+    float zP = temp.s0 + temp.s1 + temp.s2 + temp.s3 + temp.s4 + temp.s5 +
+               temp.s6 + temp.s7;
+
+    xP *= Bcoeff;
+    yP *= Bcoeff;
+    zP *= Bcoeff;
+    xE *= Ecoeff;
+    yE *= Ecoeff;
+    zE *= Ecoeff;
+
+    float xyP = xP * yP, yzP = yP * zP, xzP = xP * zP;
+    float xxP = xP * xP, yyP = yP * yP, zzP = zP * zP;
+    // float b_det = 1.f / (1.f + xxP + yyP + zzP);
+    float b_det = r2 / (r2 + xxP + yyP + zzP);
+
+    float vx = (x - xprev); // / dt -> cancels out in the end
+    float vy = (y - yprev);
+    float vz = (z - zprev);
+
+    xprev = x;
+    yprev = y;
+    zprev = z;
+
+    float vxxe = vx + xE, vyye = vy + yE, vzze = vz + zE;
+
+    x += fma(b_det,
+             fma(-vx, yyP + zzP,
+                 fma(vyye, zP + xyP, fma(vzze, xzP - yP, fma(xxP, xE, xE)))),
+             vx);
+    y += fma(b_det,
+             fma(vxxe, xyP - zP,
+                 fma(-vy, xxP + zzP, fma(vzze, xP + yzP, fma(yyP, yE, yE)))),
+             vy);
+    z += fma(b_det,
+             fma(vxxe, yP + xzP,
+                 fma(vyye, yzP - xP, fma(-vz, xxP + yyP, fma(zzP, zE, zE)))),
+             vz);
+  }
+  float xt, yt, xt1, yt1;
+  xt = x > XL ? xprev : yprev;
+  yt = x > XL ? yprev : -xprev;
+  xt1 = y > XL ? xt : -yt;
+  yt1 = y > XL ? yt : xt;
+  xprev = xt1;
+  yprev = yt1;
+  zprev = z > ZL ? zprev : zprev + ZDZ;
+  zprev = z < ZH ? zprev : zprev - ZDZ;
+  q[id] = (x < XH & y < YH) ? q[id] : 0;
+  xt = x > XL ? x : y;
+  yt = x > XL ? y : -x;
+  xt1 = y > XL ? xt : -yt;
+  yt1 = y > XL ? yt : xt;
+  x = xt1;
+  y = yt1;
+  z = z > ZL ? z : z + ZDZ;
+  z = z < ZH ? z : z - ZDZ;
+
+  x0[id] = xprev;
+  y0[id] = yprev;
+  z0[id] = zprev;
+  x1[id] = x;
+  y1[id] = y;
+  z1[id] = z;
+}
+
 void kernel density(global const float *x0, global const float *y0,
                     global const float *z0, // prev pos
                     global const float *x1, global const float *y1,
@@ -679,10 +869,6 @@ void kernel density(global const float *x0, global const float *y0,
   const float XLOW = XLOWo * a0_f, YLOW = YLOWo * a0_f, ZLOW = ZLOWo * a0_f;
   const float XHIGH = XHIGHo * a0_f, YHIGH = YHIGHo * a0_f,
               ZHIGH = ZHIGHo * a0_f;
-  // const float XL = (XLOW + 1.5f * DX), YL = (YLOW + 1.5f * DY),
-  //             ZL = (ZLOW + 1.5f * DZ);
-  // const float XH = (XHIGH - 1.5f * DX), YH = (YHIGH - 1.5f * DY),
-  //             ZH = (ZHIGH - 1.5f * DZ);
 
   const float invDX = 1.0f / DX, invDY = 1.0f / DY, invDZ = 1.0f / DZ;
   int8 f; // = (1, 0, 0, 0, 0, 0, 0, 0);
@@ -884,11 +1070,13 @@ void kernel EUEst(global const float4 *V, global const float4 *n,
 
 void kernel dtotal(global const float16 *ne, global const float16 *ni,
                    global const float16 *je, global const float16 *ji,
-                   global float16 *nt, global float16 *jt, const unsigned long n) {
+                   global float16 *nt, global float16 *jt,
+                   const unsigned long n) {
   const unsigned long n1 = n / 16;
   const unsigned long n2 = n1 + n1;
-  const unsigned long i = get_global_id(0); // Get index of current element processed
-  nt[i] = ne[i] + ni[i];          // Do the operation
+  const unsigned long i =
+      get_global_id(0);  // Get index of current element processed
+  nt[i] = ne[i] + ni[i]; // Do the operation
   jt[i] = je[i] + ji[i];
   jt[n + i] = je[n + i] + ji[n + i];
   jt[n2 + i] = je[n2 + i] + ji[n2 + i];

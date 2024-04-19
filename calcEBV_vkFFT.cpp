@@ -121,8 +121,16 @@ int calcEBV(fields *fi, par *par)
         NxPrecalc_kernel = clCreateKernel(program_g(), "NxPrecalc", NULL);
         NxPrecalcr2_kernel = clCreateKernel(program_g(), "NxPrecalcr2", NULL);
         jcxPrecalc_kernel = clCreateKernel(program_g(), "jcxPrecalc", NULL);
-        sumFftFieldo_kernel = clCreateKernel(program_g(), "sumFftFieldo", NULL);
+#ifdef octant
+        sumFftField_kernel = clCreateKernel(program_g(), "sumFftFieldo", NULL);
+#else
+#ifdef quadrant
+        sumFftField_kernel = clCreateKernel(program_g(), "sumFftFieldq", NULL);
+#else
         sumFftField_kernel = clCreateKernel(program_g(), "sumFftField", NULL);
+#endif
+#endif
+
         sumFftSField_kernel = clCreateKernel(program_g(), "sumFftSField", NULL);
         copyextField_kernel = clCreateKernel(program_g(), "copyextField", NULL);
         EUEst_kernel = clCreateKernel(program_g(), "EUEst", NULL);
@@ -439,21 +447,13 @@ int calcEBV(fields *fi, par *par)
         res = clFinish(vkGPU.commandQueue);               // cout << "execute plan bac E ,clFinish res = " << res << endl;
 
 #endif
-#ifdef octant
-        clSetKernelArg(sumFftFieldo_kernel, 0, sizeof(cl_mem), &fft_real_buffer); // real[0-2] is E field
-        clSetKernelArg(sumFftFieldo_kernel, 1, sizeof(cl_mem), &fi->Ee_buffer);
-        clSetKernelArg(sumFftFieldo_kernel, 2, sizeof(cl_mem), &fi->E_buffer);                                         // copy to ncells8 to ncells adding External electric field
-        res = clEnqueueNDRangeKernel(vkGPU.commandQueue, sumFftFieldo_kernel, 1, NULL, &n_cells, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
-        if (res)
-            cout << "sumFftFieldo_kernel E  res: " << res << endl;
-        res = clFinish(vkGPU.commandQueue);
-#else
         clSetKernelArg(sumFftField_kernel, 0, sizeof(cl_mem), &fft_real_buffer); // real[0-2] is E field
         clSetKernelArg(sumFftField_kernel, 1, sizeof(cl_mem), &fi->Ee_buffer);
         clSetKernelArg(sumFftField_kernel, 2, sizeof(cl_mem), &fi->E_buffer);
-        res = clEnqueueNDRangeKernel(vkGPU.commandQueue, sumFftField_kernel, 1, NULL, &n_cells, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
+        res = clEnqueueNDRangeKernel(vkGPU.commandQueue, sumFftField_kernel, 1, NULL, &n_cells, NULL, 0, NULL, NULL); //  kernel is different for octant, ... selected in the beginning
+        if (res)
+            cout << "sumFftField_kernel E  res: " << res << endl;
         res = clFinish(vkGPU.commandQueue);
-#endif
     }
 #else
     {
@@ -477,24 +477,11 @@ int calcEBV(fields *fi, par *par)
         resFFT = VkFFTAppend(&appbac3, 1, &launchParams); // 1 = inverse FFT// cout << "execute plan bac E resFFT = " << resFFT << endl;
         res = clFinish(vkGPU.commandQueue);               // cout << "execute plan bac E ,clFinish res = " << res << endl;
                                                           // resFFT = transferDataToCPU(&vkGPU, &fft_real[0][0], &fft_real_buffer, bufferSize_R3);
-
-#ifdef octant
-        clSetKernelArg(sumFftFieldo_kernel, 0, sizeof(cl_mem), &fft_real_buffer); // real[0-3] contains B
-        clSetKernelArg(sumFftFieldo_kernel, 1, sizeof(cl_mem), &fi->Be_buffer);
-        clSetKernelArg(sumFftFieldo_kernel, 2, sizeof(cl_mem), &fi->B_buffer);
-        res = clEnqueueNDRangeKernel(vkGPU.commandQueue, sumFftFieldo_kernel, 1, NULL, &n_cells, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
-        if (res)
-            cout << "sumFftFieldo_kernel B res: " << res << endl;
-        res = clFinish(vkGPU.commandQueue);
-        if (res)
-            cout << "clFinish sumFftFieldo_kernel res: " << res << endl;
-#else
         clSetKernelArg(sumFftField_kernel, 0, sizeof(cl_mem), &fft_real_buffer); // real[0-2] is E field
         clSetKernelArg(sumFftField_kernel, 1, sizeof(cl_mem), &fi->Be_buffer);
         clSetKernelArg(sumFftField_kernel, 2, sizeof(cl_mem), &fi->B_buffer);
         res = clEnqueueNDRangeKernel(vkGPU.commandQueue, sumFftField_kernel, 1, NULL, &n_cells, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
         res = clFinish(vkGPU.commandQueue);
-#endif
     }
 #else
     clSetKernelArg(copyextField_kernel, 1, sizeof(cl_mem), &fi->Be_buffer);
@@ -550,7 +537,7 @@ int calcEBV(fields *fi, par *par)
 
     TE *= 1; // x times larger try to save time but makes it unstable.
 
-    //cout << "Tcyclotron=" << Tcyclotron << ",Bmax= " << par->Bmax << ", TE=" << TE << ",Emax= " << par->Emax << ",dt= " << par->dt[0] * f1 << endl;
+    // cout << "Tcyclotron=" << Tcyclotron << ",Bmax= " << par->Bmax << ", TE=" << TE << ",Emax= " << par->Emax << ",dt= " << par->dt[0] * f1 << endl;
     if (TE < (par->dt[0] * f1)) // if ideal time step is lower than actual timestep
         E_exceeds = 1;
     else if (TE > (par->dt[0] * f2)) // can increase time step

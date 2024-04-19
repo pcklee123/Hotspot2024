@@ -15,7 +15,11 @@ void tnp(fields *fi, particles *pt, par *par)
 #if defined(octant)
    static cl::Kernel kernel_tnp = cl::Kernel(program_g, "tnp_k_implicito"); // select the kernel program to run
 #else
+#if defined(quadrant)
+   static cl::Kernel kernel_tnp = cl::Kernel(program_g, "tnp_k_implicitq"); // select the kernel program to run
+#else
    static cl::Kernel kernel_tnp = cl::Kernel(program_g, "tnp_k_implicit"); // select the kernel program to run
+#endif
 #endif
 #endif
 

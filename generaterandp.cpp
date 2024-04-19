@@ -50,6 +50,10 @@ void generate_rand_sphere(particles *pt, par *par)
             y = abs(y);
             z = abs(z);
 #endif
+#ifdef quadrant
+            x = abs(x);
+            y = abs(y);
+#endif
             pt->pos0x[p][n] = r * x;
             pt->pos1x[p][n] = pt->pos0x[p][n] + (gsl_ran_gaussian(rng, sigma[p]) + v0[p][0] + x * v0_r) * par->dt[p];
             pt->pos0y[p][n] = r * y;

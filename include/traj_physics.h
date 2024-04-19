@@ -2,9 +2,9 @@
 #define maxcells 32
 #define cldevice 1 // 0 usually means integrated GPU
 #define sphere     // do hot spot  problem
-#define octant     // do hot spot problem 1/8 sphere. Magnetic fields do not make sense as will break symmetry
+//#define octant     // do hot spot problem 1/8 sphere. Magnetic fields do not make sense as will break symmetry
 // #define cylinder //do hot rod problem
-// #define quadrant     // do problem 1/4 sphere or cylinder
+#define quadrant     // do problem 1/4 sphere or cylinder
 #define Weibull
 constexpr double weibullb = 4; // b factor for weibull. larger means closer to a shell. ~1 means filled more at the center.
 #define Temp_e 1e7             // in Kelvin 1e7 ~1keV
@@ -47,7 +47,7 @@ constexpr unsigned int ncoeff = 8;
 constexpr int n_output_part = (n_partd > 9369) ? 9369 : n_partd; // maximum number of particles to output to file
 // const int nprtd=floor(n_partd/n_output_part);
 
-constexpr int ndatapoints = 100; // total number of time steps to print
+constexpr int ndatapoints = 2; // total number of time steps to print
 constexpr int nc1 = 1;           // f1 * 1;      // number of times to calculate E and B between printouts total number of electron time steps calculated = ndatapoints *nc1*md_me 
 constexpr int md_me = 60;        // ratio of electron speed/deuteron speed at the same KE. Used to calculate electron motion more often than deuteron motion
 
@@ -59,7 +59,7 @@ constexpr int md_me = 60;        // ratio of electron speed/deuteron speed at th
 #define Eon_     // whether to calculate the internally generated electric (E) field externally applied fields are always on
 //#define Uon_     // whether to calculate the electric (V) potential and potential energy (U). Needs Eon to be enabled.
 #define UE_field //
-#define Bon_     // whether to calculate the internally generated magnetic (B) field
+//#define Bon_     // whether to calculate the internally generated magnetic (B) field
 #define UB_field
 #define EFon_ // whether to apply electric force
 #define BFon_ // whether to apply magnetic force
@@ -125,6 +125,15 @@ struct par // useful parameters
     float posH_15[3] = {a0 * (n_space_divx - 3), a0 *(n_space_divy - 3), a0 *(n_space_divz - 3)};      // Highes position of cells (x,y,z)
     float posL2[3] = {a0 * 1.5, a0 * 1.5, a0 * 1.5};
 #else
+#if defined(quadrant)
+    float posL[3] = {-a0 / 2, -a0 / 2, -a0 *(n_space_divz - 1.0) / 2.0};                                                       // Lowest position of cells (x,y,z)
+    float posH[3] = {a0 * (n_space_divx - 1.5), a0 *(n_space_divy - 1.5), a0 *(n_space_divz - 1.0) / 2.0};   // Highest position of cells (x,y,z)
+    float posL_1[3] = {a0 / 2, a0 / 2, -a0 *(n_space_divz - 3.0) / 2.0};                                                        // Lowest position of cells (x,y,z)
+    float posH_1[3] = {a0 * (n_space_divx - 2.5), a0 *(n_space_divy - 2.5), a0 *(n_space_divz - 3.0) / 2.0}; // Highest position of cells (x,y,z)
+    float posL_15[3] = {a0 * 1, a0 * 1, -a0 *(n_space_divz - 4.0) / 2.0};                                                       // Lowest position of cells (x,y,z)
+    float posH_15[3] = {a0 * (n_space_divx - 3), a0 *(n_space_divy - 3), a0 *(n_space_divz - 4.0) / 2.0};      // Highes position of cells (x,y,z)
+    float posL2[3] = {a0 * 1.5, a0 * 1.5, -a0 *n_space_divz};
+#else
     float posL[3] = {-a0 * (n_space_divx - 1) / 2.0f, -a0 *(n_space_divy - 1.0) / 2.0, -a0 *(n_space_divz - 1.0) / 2.0};    // Lowest position of cells (x,y,z)
     float posH[3] = {a0 * (n_space_divx - 1) / 2.0f, a0 *(n_space_divy - 1.0) / 2.0, a0 *(n_space_divz - 1.0) / 2.0};       // Highes position of cells (x,y,z)
     float posL_1[3] = {-a0 * (n_space_divx - 3) / 2.0f, -a0 *(n_space_divy - 3.0) / 2.0, -a0 *(n_space_divz - 3.0) / 2.0};  // Lowest position of cells (x,y,z)
@@ -132,7 +141,8 @@ struct par // useful parameters
     float posL_15[3] = {-a0 * (n_space_divx - 4) / 2.0f, -a0 *(n_space_divy - 4.0) / 2.0, -a0 *(n_space_divz - 4.0) / 2.0}; // Lowest position of cells (x,y,z)
     float posH_15[3] = {a0 * (n_space_divx - 4) / 2.0f, a0 *(n_space_divy - 4.0) / 2.0, a0 *(n_space_divz - 4.0) / 2.0};    // Highes position of cells (x,y,z)
 
-    float posL2[3] = {-a0 * n_space_divx, -a0 *n_space_divy, a0 *n_space_divz};
+    float posL2[3] = {-a0 * n_space_divx, -a0 *n_space_divy, -a0 *n_space_divz};
+#endif
 #endif
     float dd[3] = {a0, a0, a0}; // cell spacing (x,y,z)
 

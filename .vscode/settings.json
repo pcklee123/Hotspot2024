@@ -3,6 +3,7 @@
         "Makefile.*": "Make",
         "iosfwd": "cpp",
         "optional": "cpp",
-        "variant": "cpp"
+        "variant": "cpp",
+        "cstdlib": "cpp"
     }
 }
