@@ -1138,6 +1138,82 @@ void kernel maxvalf(global const float16 *In, global float *Ou) {
   Ou[i] = m;
 }
 
+void kernel maxval3f(global const float16 *In, global float *Ou) {
+  // get global indices
+  size_t i = get_global_id(0);
+  size_t n = get_global_size(0);
+  size_t n2 = n + n;
+  float m = 0;
+  float a;
+  float4 v3;
+
+  v3 = (float4)(In[i].s0, In[i + n].s0, In[i + n2].s0, 0.0);
+  a = dot(v3, v3);
+  m = m > a ? m : a;
+
+  v3 = (float4)(In[i].s1, In[i + n].s1, In[i + n2].s1, 0.0);
+  a = dot(v3, v3);
+  m = m > a ? m : a;
+
+  v3 = (float4)(In[i].s2, In[i + n].s2, In[i + n2].s2, 0.0);
+  a = dot(v3, v3);
+  m = m > a ? m : a;
+
+  v3 = (float4)(In[i].s3, In[i + n].s3, In[i + n2].s3, 0.0);
+  a = dot(v3, v3);
+  m = m > a ? m : a;
+
+  v3 = (float4)(In[i].s4, In[i + n].s4, In[i + n2].s4, 0.0);
+  a = dot(v3, v3);
+  m = m > a ? m : a;
+
+  v3 = (float4)(In[i].s5, In[i + n].s5, In[i + n2].s5, 0.0);
+  a = dot(v3, v3);
+  m = m > a ? m : a;
+
+  v3 = (float4)(In[i].s6, In[i + n].s6, In[i + n2].s6, 0.0);
+  a = dot(v3, v3);
+  m = m > a ? m : a;
+
+  v3 = (float4)(In[i].s7, In[i + n].s7, In[i + n2].s7, 0.0);
+  a = dot(v3, v3);
+  m = m > a ? m : a;
+
+  v3 = (float4)(In[i].s8, In[i + n].s8, In[i + n2].s8, 0.0);
+  a = dot(v3, v3);
+  m = m > a ? m : a;
+
+  v3 = (float4)(In[i].s9, In[i + n].s9, In[i + n2].s9, 0.0);
+  a = dot(v3, v3);
+  m = m > a ? m : a;
+
+  v3 = (float4)(In[i].sA, In[i + n].sA, In[i + n2].sA, 0.0);
+  a = dot(v3, v3);
+  m = m > a ? m : a;
+
+  v3 = (float4)(In[i].sB, In[i + n].sB, In[i + n2].sB, 0.0);
+  a = dot(v3, v3);
+  m = m > a ? m : a;
+
+  v3 = (float4)(In[i].sC, In[i + n].sC, In[i + n2].sC, 0.0);
+  a = dot(v3, v3);
+  m = m > a ? m : a;
+
+  v3 = (float4)(In[i].sD, In[i + n].sD, In[i + n2].sD, 0.0);
+  a = dot(v3, v3);
+  m = m > a ? m : a;
+
+  v3 = (float4)(In[i].sE, In[i + n].sE, In[i + n2].sE, 0.0);
+  a = dot(v3, v3);
+  m = m > a ? m : a;
+
+  v3 = (float4)(In[i].sF, In[i + n].sF, In[i + n2].sF, 0.0);
+  a = dot(v3, v3);
+  m = m > a ? m : a;
+
+  Ou[i] = m;
+}
+
 void kernel buffer_muls(global float *A, const float Bb) {
   int i = get_global_id(0); // Get index of current element processed
   A[i] = Bb * A[i];         // Do the operation

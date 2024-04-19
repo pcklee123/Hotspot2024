@@ -103,7 +103,7 @@ int main()
         commandQueue_g.enqueueWriteBuffer(pt->buff_q_i[0], CL_TRUE, 0, n_partf, pt->q[1]);
     }
     // generate E and B external fields within limits and spacing of Field cells
-    generateField(fi, par); 
+    generateField(fi, par);
     // write CPU generatedexternal  to opencl buffers
     res = clEnqueueWriteBuffer(commandQueue_g(), fi->Ee_buffer, CL_TRUE, 0, n_cellsf * 3, fi->Ee, 0, NULL, NULL);
     res = clEnqueueWriteBuffer(commandQueue_g(), fi->Be_buffer, CL_TRUE, 0, n_cellsf * 3, fi->Be, 0, NULL, NULL);
@@ -198,19 +198,16 @@ int main()
 
     for (i_time = 1; i_time < ndatapoints; i_time++)
     {
-        timer.mark();     // For timestep
-        timer.mark();     // Work out motion
+        timer.mark();     // For 60 timesteps
         tnp(fi, pt, par); //  calculate the next position par->ncalcp[p] times
                           // float max_jc = maxvalf((reinterpret_cast<float *>(fi->jc)), n_cells * 3);
                           //  cout << "max current density  = " << max_jc << endl;
         for (int p = 0; p < 2; ++p)
             total_ncalc[p] += par->nc * par->ncalcp[p];
-        cout << "motion: " << timer.elapsed() << "s, ";
         t += par->dt[0] * par->ncalcp[0] * par->nc;
-
         cout << i_time << "." << par->nc << " t = " << t << "(compute_time = " << timer.elapsed() << "s) : ";
 
-        timer.mark();                       //      cout << "savefiles" << endl;
+        timer.mark();                       
         save_files(i_time, t, fi, pt, par); // print out all files for paraview also get number of particles in cells.
         if (par->nt[0] > nt0prev)
         {
@@ -222,12 +219,11 @@ int main()
         // cout << "calculate the total potential energy U\n";
         //  timer.mark();// calculate the total potential energy U
         calcU(fi, pt, par);
-        // cout << "calculate the total potential energy U done\n";
         //  cout << "U: " << timer.elapsed() << "s, ";
 #endif
         //        cout << "logentry" << endl;
         log_entry(i_time, 0, cdt, total_ncalc, t, par); // cout<<"log entry done"<<endl;
-        cout << "print data: " << timer.elapsed() << "s (no. of electron time steps calculated: " << total_ncalc[0] << ")\n";
+        cout << "print data: " << timer.elapsed() << "s (no. of e- time steps calc_ed: " << total_ncalc[0] << ")\n";
     }
     cout << "Overall execution time: " << timer.elapsed() << "s";
     logger.close();

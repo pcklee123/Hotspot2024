@@ -63,6 +63,7 @@ int calcEBV(fields *fi, par *par)
     static cl_kernel copyextField_kernel;
     static cl_kernel EUEst_kernel;
     static cl_kernel maxvalf_kernel;
+    static cl_kernel maxval3f_kernel;
 
     static VkFFTApplication app1 = {};
     static VkFFTApplication app3 = {};
@@ -134,6 +135,7 @@ int calcEBV(fields *fi, par *par)
         copyextField_kernel = clCreateKernel(program_g(), "copyextField", NULL);
         EUEst_kernel = clCreateKernel(program_g(), "EUEst", NULL);
         maxvalf_kernel = clCreateKernel(program_g(), "maxvalf", NULL);
+        maxval3f_kernel = clCreateKernel(program_g(), "maxval3f", NULL);
 
         fft_real_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_R4, 0, &res);
         fft_complex_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, bufferSize_C4, 0, &res);
@@ -511,23 +513,23 @@ int calcEBV(fields *fi, par *par)
 #endif
 #endif
 
-    size_t n = n_cells * 3 / 16;
+    size_t n = n_cells / 16;
     maxval_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, n * sizeof(float), 0, &res);
     float *maxval_array = (float *)_aligned_malloc(sizeof(float) * n, par->cl_align);
 #ifdef Eon_
-    clSetKernelArg(maxvalf_kernel, 0, sizeof(cl_mem), &fi->E_buffer);
-    clSetKernelArg(maxvalf_kernel, 1, sizeof(cl_mem), &maxval_buffer);
-    res = clEnqueueNDRangeKernel(vkGPU.commandQueue, maxvalf_kernel, 1, NULL, &n, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
+    clSetKernelArg(maxval3f_kernel, 0, sizeof(cl_mem), &fi->E_buffer);
+    clSetKernelArg(maxval3f_kernel, 1, sizeof(cl_mem), &maxval_buffer);
+    res = clEnqueueNDRangeKernel(vkGPU.commandQueue, maxval3f_kernel, 1, NULL, &n, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
     res = clEnqueueReadBuffer(vkGPU.commandQueue, maxval_buffer, CL_TRUE, 0, sizeof(float) * n, maxval_array, 0, NULL, NULL);
-    par->Emax = maxvalf(maxval_array, n);
+    par->Emax = sqrtf(maxvalf(maxval_array, n));
 #endif
 
 #ifdef Bon_
-    clSetKernelArg(maxvalf_kernel, 0, sizeof(cl_mem), &fi->B_buffer);
-    clSetKernelArg(maxvalf_kernel, 1, sizeof(cl_mem), &maxval_buffer);
-    res = clEnqueueNDRangeKernel(vkGPU.commandQueue, maxvalf_kernel, 1, NULL, &n, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
+    clSetKernelArg(maxval3f_kernel, 0, sizeof(cl_mem), &fi->B_buffer);
+    clSetKernelArg(maxval3f_kernel, 1, sizeof(cl_mem), &maxval_buffer);
+    res = clEnqueueNDRangeKernel(vkGPU.commandQueue, maxval3f_kernel, 1, NULL, &n, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
     res = clEnqueueReadBuffer(vkGPU.commandQueue, maxval_buffer, CL_TRUE, 0, sizeof(float) * n, maxval_array, 0, NULL, NULL);
-    par->Bmax = maxvalf(maxval_array, n);
+    par->Bmax = sqrtf(maxvalf(maxval_array, n));
 #endif
     _aligned_free(maxval_array);
     clReleaseMemObject(maxval_buffer);
