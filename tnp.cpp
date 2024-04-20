@@ -5,7 +5,7 @@ void tnp(fields *fi, particles *pt, par *par)
    /** IMPORTANT: do not use CL_MEM_USE_HOST_PTR if on dGPU **/
    /** HOST_PTR is only used so that memory is not copied, but instead shared between CPU and iGPU in RAM**/
    // Note that special alignment has been given to Ea, Ba, y0, z0, x0, x1, y1 in order to actually do this properly
-
+   float nt0prev = par->nt[0];
    // Assume buffers A, B, I, J (Ea, Ba, ci, cf) will always be the same. Then we save a bit of time.
    static cl::Buffer buff_Ea(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cells3x8f, fastIO ? fi->Ea : NULL);
    static cl::Buffer buff_Ba(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cells3x8f, fastIO ? fi->Ba : NULL);
@@ -102,6 +102,12 @@ void tnp(fields *fi, particles *pt, par *par)
       commandQueue_g.finish();
 
       get_densityfields(fi, pt, par);
+      // check if particles are moving out
+      if (par->nt[0] > nt0prev)
+      {
+         changedx(fi, par); // particles are moving out of bounds. make cells bigger.
+         nt0prev = par->nt[0];
+      }
 
       // timer.mark();
       // set externally applied fields this is inside time loop so we can set time varying E and B field
@@ -116,6 +122,23 @@ void tnp(fields *fi, particles *pt, par *par)
       */
       cdt = calcEBV(fi, par);
       // cout << "\nEBV: " << timer.elapsed() << "s, \n";
+      if (changedt(pt, cdt, par))
+      {
+         commandQueue_g.enqueueWriteBuffer(pt->buff_x0_e[0], CL_TRUE, 0, n_partf, pt->pos0x[0]);
+         commandQueue_g.enqueueWriteBuffer(pt->buff_y0_e[0], CL_TRUE, 0, n_partf, pt->pos0y[0]);
+         commandQueue_g.enqueueWriteBuffer(pt->buff_z0_e[0], CL_TRUE, 0, n_partf, pt->pos0z[0]);
+         commandQueue_g.enqueueWriteBuffer(pt->buff_x1_e[0], CL_TRUE, 0, n_partf, pt->pos1x[0]);
+         commandQueue_g.enqueueWriteBuffer(pt->buff_y1_e[0], CL_TRUE, 0, n_partf, pt->pos1y[0]);
+         commandQueue_g.enqueueWriteBuffer(pt->buff_z1_e[0], CL_TRUE, 0, n_partf, pt->pos1z[0]);
+
+         commandQueue_g.enqueueWriteBuffer(pt->buff_x0_i[0], CL_TRUE, 0, n_partf, pt->pos0x[1]);
+         commandQueue_g.enqueueWriteBuffer(pt->buff_y0_i[0], CL_TRUE, 0, n_partf, pt->pos0y[1]);
+         commandQueue_g.enqueueWriteBuffer(pt->buff_z0_i[0], CL_TRUE, 0, n_partf, pt->pos0z[1]);
+         commandQueue_g.enqueueWriteBuffer(pt->buff_x1_i[0], CL_TRUE, 0, n_partf, pt->pos1x[1]);
+         commandQueue_g.enqueueWriteBuffer(pt->buff_y1_i[0], CL_TRUE, 0, n_partf, pt->pos1y[1]);
+         commandQueue_g.enqueueWriteBuffer(pt->buff_z1_i[0], CL_TRUE, 0, n_partf, pt->pos1z[1]);
+         // cout<<"change_dt done"<<endl;
+      }
    }
 
    if (!fastIO)
@@ -149,22 +172,5 @@ void tnp(fields *fi, particles *pt, par *par)
 
       commandQueue_g.enqueueReadBuffer(fi->buff_currentj_e[0], CL_TRUE, 0, n_cellsf * 3, fi->currentj[0]);
       commandQueue_g.enqueueReadBuffer(fi->buff_currentj_i[0], CL_TRUE, 0, n_cellsf * 3, fi->currentj[1]);
-   }
-   if (changedt(pt, cdt, par))
-   {
-      commandQueue_g.enqueueWriteBuffer(pt->buff_x0_e[0], CL_TRUE, 0, n_partf, pt->pos0x[0]);
-      commandQueue_g.enqueueWriteBuffer(pt->buff_y0_e[0], CL_TRUE, 0, n_partf, pt->pos0y[0]);
-      commandQueue_g.enqueueWriteBuffer(pt->buff_z0_e[0], CL_TRUE, 0, n_partf, pt->pos0z[0]);
-      commandQueue_g.enqueueWriteBuffer(pt->buff_x1_e[0], CL_TRUE, 0, n_partf, pt->pos1x[0]);
-      commandQueue_g.enqueueWriteBuffer(pt->buff_y1_e[0], CL_TRUE, 0, n_partf, pt->pos1y[0]);
-      commandQueue_g.enqueueWriteBuffer(pt->buff_z1_e[0], CL_TRUE, 0, n_partf, pt->pos1z[0]);
-
-      commandQueue_g.enqueueWriteBuffer(pt->buff_x0_i[0], CL_TRUE, 0, n_partf, pt->pos0x[1]);
-      commandQueue_g.enqueueWriteBuffer(pt->buff_y0_i[0], CL_TRUE, 0, n_partf, pt->pos0y[1]);
-      commandQueue_g.enqueueWriteBuffer(pt->buff_z0_i[0], CL_TRUE, 0, n_partf, pt->pos0z[1]);
-      commandQueue_g.enqueueWriteBuffer(pt->buff_x1_i[0], CL_TRUE, 0, n_partf, pt->pos1x[1]);
-      commandQueue_g.enqueueWriteBuffer(pt->buff_y1_i[0], CL_TRUE, 0, n_partf, pt->pos1y[1]);
-      commandQueue_g.enqueueWriteBuffer(pt->buff_z1_i[0], CL_TRUE, 0, n_partf, pt->pos1z[1]);
-      // cout<<"change_dt done"<<endl;
    }
 }

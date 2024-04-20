@@ -209,11 +209,7 @@ int main()
 
         timer.mark();                       
         save_files(i_time, t, fi, pt, par); // print out all files for paraview also get number of particles in cells.
-        if (par->nt[0] > nt0prev)
-        {
-            changedx(fi, par); // particles are moving out of bounds. make cells bigger.
-            nt0prev = par->nt[0];
-        }
+
 
 #ifdef Uon_
         // cout << "calculate the total potential energy U\n";

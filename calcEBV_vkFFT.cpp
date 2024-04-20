@@ -111,7 +111,7 @@ int calcEBV(fields *fi, par *par)
         vkGPU.device = default_device_g();
         vkGPU.context = context_g();
         vkGPU.commandQueue = commandQueue_g();
-//        vkGPU.commandQueue = clCreateCommandQueue(vkGPU.context, vkGPU.device, 0, &res);
+        //        vkGPU.commandQueue = clCreateCommandQueue(vkGPU.context, vkGPU.device, 0, &res);
         launchParams.commandQueue = &vkGPU.commandQueue;
         // Create the OpenCL kernel
         copyData_kernel = clCreateKernel(program_g(), "copyData", NULL);
@@ -432,7 +432,7 @@ int calcEBV(fields *fi, par *par)
         res = clFinish(vkGPU.commandQueue);             //  cout << "execute plan for E" << endl;
 
 #ifdef Uon_
-        res = clEnqueueNDRangeKernel(vkGPU.commandQueue, NxPrecalcr2_kernel, 1, NULL, &n_cells4, NULL, 0, NULL, NULL); //  multiply FFT of density with precalc for both E[0-2] and V[3]  
+        res = clEnqueueNDRangeKernel(vkGPU.commandQueue, NxPrecalcr2_kernel, 1, NULL, &n_cells4, NULL, 0, NULL, NULL); //  multiply FFT of density with precalc for both E[0-2] and V[3]
         res = clFinish(vkGPU.commandQueue);
         resFFT = VkFFTAppend(&appbac4, 1, &launchParams);                                                              // cout << "inverse transform to get convolution" << endl;                                                             // 1 = inverse FFT//if (resFFT)                cout << "execute plan bac E resFFT = " << resFFT << endl;
         res = clFinish(vkGPU.commandQueue);                                                                            // cout << "execute plan bac E ,clFinish res = " << res << endl;
@@ -503,6 +503,7 @@ int calcEBV(fields *fi, par *par)
     clSetKernelArg(EUEst_kernel, 1, sizeof(cl_mem), &fi->npt_buffer);
     clSetKernelArg(EUEst_kernel, 2, sizeof(cl_mem), &EUtot_buffer);
     res = clEnqueueNDRangeKernel(vkGPU.commandQueue, EUEst_kernel, 1, NULL, &n_4, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
+    res = clFinish(commandQueue_g());
     res = clEnqueueReadBuffer(vkGPU.commandQueue, EUtot_buffer, CL_TRUE, 0, sizeof(float) * n_4, EUtot, 0, NULL, NULL);
     for (int i = 0; i < n_4; ++i)
         EUtot1 += EUtot[i];
@@ -517,6 +518,7 @@ int calcEBV(fields *fi, par *par)
     clSetKernelArg(maxval3f_kernel, 0, sizeof(cl_mem), &fi->E_buffer);
     clSetKernelArg(maxval3f_kernel, 1, sizeof(cl_mem), &maxval_buffer);
     res = clEnqueueNDRangeKernel(vkGPU.commandQueue, maxval3f_kernel, 1, NULL, &n, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
+    res = clFinish(commandQueue_g());
     res = clEnqueueReadBuffer(vkGPU.commandQueue, maxval_buffer, CL_TRUE, 0, sizeof(float) * n, maxval_array, 0, NULL, NULL);
     par->Emax = sqrtf(maxvalf(maxval_array, n));
 #endif
@@ -525,6 +527,7 @@ int calcEBV(fields *fi, par *par)
     clSetKernelArg(maxval3f_kernel, 0, sizeof(cl_mem), &fi->B_buffer);
     clSetKernelArg(maxval3f_kernel, 1, sizeof(cl_mem), &maxval_buffer);
     res = clEnqueueNDRangeKernel(vkGPU.commandQueue, maxval3f_kernel, 1, NULL, &n, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
+    res = clFinish(commandQueue_g());
     res = clEnqueueReadBuffer(vkGPU.commandQueue, maxval_buffer, CL_TRUE, 0, sizeof(float) * n, maxval_array, 0, NULL, NULL);
     par->Bmax = sqrtf(maxvalf(maxval_array, n));
 #endif
