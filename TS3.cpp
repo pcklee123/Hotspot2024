@@ -188,7 +188,7 @@ int main()
     save_files(i_time, t, fi, pt, par);
 
     //    cout << "logentry" << endl;
-    log_headers();                             // log file start with headers
+    log_headers();                        // log file start with headers
     log_entry(0, 0, total_ncalc, t, par); // Write everything to log
     nt0prev = par->nt[0];
     //  cout << par->nt[0] << " " << nt0prev << endl;
@@ -207,15 +207,14 @@ int main()
         t += par->dt[0] * par->ncalcp[0] * par->nc;
         cout << i_time << "." << par->nc << " t = " << t << "(compute_time = " << timer.elapsed() << "s) : ";
 
-        timer.mark();                       
+        timer.mark();
         save_files(i_time, t, fi, pt, par); // print out all files for paraview also get number of particles in cells.
 
-
 #ifdef Uon_
-         cout << "calculate the total potential energy U\n";
+        //     cout << "calculate the total potential energy U\n";
         //  timer.mark();// calculate the total potential energy U
         calcU(fi, pt, par);
-          cout << "U: " << timer.elapsed() << "s, ";
+        //        cout << "U: " << timer.elapsed() << "s, ";
 #endif
         //        cout << "logentry" << endl;
         log_entry(i_time, 0, total_ncalc, t, par); // cout<<"log entry done"<<endl;

@@ -429,7 +429,9 @@ int calcEBV(fields *fi, par *par)
         res = clFinish(vkGPU.commandQueue);
         //  only density arrn1 = fft(arrn) multiply fft charge with fft of kernel(i.e field associated with 1 charge)
         resFFT = VkFFTAppend(&app1, -1, &launchParams); // -1 = forward transform
-        res = clFinish(vkGPU.commandQueue);             //  cout << "execute plan for E" << endl;
+        if (resFFT)
+            cout << "app1 resFFT: " << resFFT << endl;
+        res = clFinish(vkGPU.commandQueue); //  cout << "execute plan for E" << endl;
 
 #ifdef Uon_
         res = clEnqueueNDRangeKernel(vkGPU.commandQueue, NxPrecalcr2_kernel, 1, NULL, &n_cells4, NULL, 0, NULL, NULL); //  multiply FFT of density with precalc for both E[0-2] and V[3]
@@ -476,7 +478,9 @@ int calcEBV(fields *fi, par *par)
 
         res = clEnqueueNDRangeKernel(vkGPU.commandQueue, jcxPrecalc_kernel, 1, NULL, &n_cells8, NULL, 0, NULL, NULL);
         res = clFinish(vkGPU.commandQueue);
-        resFFT = VkFFTAppend(&appbac3, 1, &launchParams);                        // 1 = inverse FFT// cout << "execute plan bac E resFFT = " << resFFT << endl;
+        resFFT = VkFFTAppend(&appbac3, 1, &launchParams); // 1 = inverse FFT// cout << "execute plan bac E resFFT = " << resFFT << endl;
+        if (resFFT)
+            cout << "appbac3 resFFT: " << resFFT << endl;
         res = clFinish(vkGPU.commandQueue);                                      // cout << "execute plan bac E ,clFinish res = " << res << endl;
                                                                                  // resFFT = transferDataToCPU(&vkGPU, &fft_real[0][0], &fft_real_buffer, bufferSize_R3);
         clSetKernelArg(sumFftField_kernel, 0, sizeof(cl_mem), &fft_real_buffer); // real[0-2] is E field
@@ -485,7 +489,6 @@ int calcEBV(fields *fi, par *par)
         res = clEnqueueNDRangeKernel(vkGPU.commandQueue, sumFftField_kernel, 1, NULL, &n_cells, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
         if (res)
             cout << "sumFftField_kernel B  res: " << res << endl;
-        res = clFinish(vkGPU.commandQueue);
         res = clFinish(vkGPU.commandQueue);
     }
 #else
@@ -503,6 +506,8 @@ int calcEBV(fields *fi, par *par)
     clSetKernelArg(EUEst_kernel, 1, sizeof(cl_mem), &fi->npt_buffer);
     clSetKernelArg(EUEst_kernel, 2, sizeof(cl_mem), &EUtot_buffer);
     res = clEnqueueNDRangeKernel(vkGPU.commandQueue, EUEst_kernel, 1, NULL, &n_4, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
+    if (res)
+        cout << "EUEst_kernel   res: " << res << endl;
     res = clFinish(commandQueue_g());
     res = clEnqueueReadBuffer(vkGPU.commandQueue, EUtot_buffer, CL_TRUE, 0, sizeof(float) * n_4, EUtot, 0, NULL, NULL);
     for (int i = 0; i < n_4; ++i)
