@@ -3,7 +3,7 @@ int changedt(particles *pt, int cdt, par *par)
 {
     float inc = 0;
     //   cout << endl<< cdt << " ";
-    switch (cdt)
+    switch (par->cdt)
     {
 
     case 1: //
@@ -48,10 +48,31 @@ int changedt(particles *pt, int cdt, par *par)
         //   cout << "no change dt" << endl;
         return 0;
     }
+    /*
 #pragma omp parallel for simd
     for (int n = 0; n < par->n_part[0] * 3 * 2; n++)
         pt->pos0[n] = pt->pos1[n] - (pt->pos1[n] - pt->pos0[n]) * inc;
     //   cout << "dt changed" << endl;
+    */
+    static cl::Kernel kernel_recalcposchangedt = cl::Kernel(program_g, "recalcposchangedt");
+    kernel_recalcposchangedt.setArg(2, pt->buff_x0_e[0]);     // x0
+    kernel_recalcposchangedt.setArg(3, pt->buff_y0_e[0]);     // y0
+    kernel_recalcposchangedt.setArg(4, pt->buff_z0_e[0]);     // z0
+    kernel_recalcposchangedt.setArg(5, pt->buff_x1_e[0]);     // x1
+    kernel_recalcposchangedt.setArg(6, pt->buff_y1_e[0]);     // y1
+    kernel_recalcposchangedt.setArg(7, pt->buff_z1_e[0]);     // z1
+    kernel_recalcposchangedt.setArg(10, sizeof(float), &inc); // scale factor
+    commandQueue_g.enqueueNDRangeKernel(kernel_recalcposchangedt, cl::NullRange, cl::NDRange(par->n_part[0]), cl::NullRange);
+    commandQueue_g.finish();
+    kernel_recalcposchangedt.setArg(2, pt->buff_x0_i[0]);     // x0
+    kernel_recalcposchangedt.setArg(3, pt->buff_y0_i[0]);     // y0
+    kernel_recalcposchangedt.setArg(4, pt->buff_z0_i[0]);     // z0
+    kernel_recalcposchangedt.setArg(5, pt->buff_x1_i[0]);     // x1
+    kernel_recalcposchangedt.setArg(6, pt->buff_y1_i[0]);     // y1
+    kernel_recalcposchangedt.setArg(7, pt->buff_z1_i[0]);     // z1
+    kernel_recalcposchangedt.setArg(10, sizeof(float), &inc); // scale factor
+    commandQueue_g.enqueueNDRangeKernel(kernel_recalcposchangedt, cl::NullRange, cl::NDRange(par->n_part[1]), cl::NullRange);
+    commandQueue_g.finish();
     return 1;
 }
 
@@ -83,18 +104,6 @@ void changedx(fields *fi, par *par)
     par->dd[1] *= a0_ff;
     par->dd[2] *= a0_ff;
 
-    // const size_t n_cells4 = n_space_divx2 * n_space_divy2 * (n_space_divz2 / 2 + 1);
-    //  NOTE: This is not actually n_cells * 4, there is an additional buffer that fftw requires.
-    /*
-    #pragma omp parallel for simd num_threads(nthreads)
-        for (size_t i = 0; i < n_cells4 * 3 * 2 * 2; i++) // 3 components, E & B, complex = 2 floats
-            (reinterpret_cast<float *>(fi->precalc_r3))[i] /= (a0_ff * a0_ff);
-    #ifdef Uon_
-    #pragma omp parallel for simd num_threads(nthreads)
-        for (size_t i = 0; i < n_cells4 * 2; i++)
-            (reinterpret_cast<float *>(fi->precalc_r2))[i] /= a0_ff;
-    #endif
-    */
     cl_int res;
     float Bb = 1 / (a0_ff * a0_ff);
     size_t n = n_cells4 * 3 * 2 * 2; // 2 floats per complex 3 axis, 2 types E and B
@@ -105,7 +114,6 @@ void changedx(fields *fi, par *par)
     clSetKernelArg(kernel_buffer_muls, 1, sizeof(float), &Bb);
     clEnqueueNDRangeKernel(commandQueue_g(), kernel_buffer_muls, 1, NULL, &n, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
     clFinish(commandQueue_g());
-    //  buffer_muls(fi->r3_buffer, 1 / (a0_ff * a0_ff), n_cells4 * 2 * 3 * 2); #ifdef Uon_
 #ifdef Uon_
     n = n_cells4 * 3 * 2 * 2;
     Bb = 1 / (a0_ff);
@@ -114,8 +122,6 @@ void changedx(fields *fi, par *par)
     clSetKernelArg(kernel_buffer_muls, 1, sizeof(float), &Bb);
     clEnqueueNDRangeKernel(commandQueue_g(), kernel_buffer_muls, 1, NULL, &n, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
     clFinish(commandQueue_g());
-//    buffer_muls(fi->r2_buffer, 1 / (a0_ff), n_cells4 * 2);
-//  cout << "make cells bigger " << par->nt[0] << " " << nt0prev << ",ao_f = " << par->a0_f << endl;
 #endif
     generateField(fi, par);
 }

@@ -189,7 +189,7 @@ int main()
 
     //    cout << "logentry" << endl;
     log_headers();                             // log file start with headers
-    log_entry(0, 0, cdt, total_ncalc, t, par); // Write everything to log
+    log_entry(0, 0, total_ncalc, t, par); // Write everything to log
     nt0prev = par->nt[0];
     //  cout << par->nt[0] << " " << nt0prev << endl;
 #pragma omp barrier
@@ -212,13 +212,13 @@ int main()
 
 
 #ifdef Uon_
-        // cout << "calculate the total potential energy U\n";
+         cout << "calculate the total potential energy U\n";
         //  timer.mark();// calculate the total potential energy U
         calcU(fi, pt, par);
-        //  cout << "U: " << timer.elapsed() << "s, ";
+          cout << "U: " << timer.elapsed() << "s, ";
 #endif
         //        cout << "logentry" << endl;
-        log_entry(i_time, 0, cdt, total_ncalc, t, par); // cout<<"log entry done"<<endl;
+        log_entry(i_time, 0, total_ncalc, t, par); // cout<<"log entry done"<<endl;
         cout << "print data: " << timer.elapsed() << "s (no. of e- time steps calc_ed: " << total_ncalc[0] << ")\n";
     }
     cout << "Overall execution time: " << timer.elapsed() << "s";

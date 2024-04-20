@@ -2,14 +2,14 @@
 #define maxcells 32
 #define cldevice 1 // 0 usually means integrated GPU
 #define sphere     // do hot spot  problem
-//#define octant     // do hot spot problem 1/8 sphere. Magnetic fields do not make sense as will break symmetry
-// #define cylinder //do hot rod problem
-#define quadrant     // do problem 1/4 sphere or cylinder
+// #define octant     // do hot spot problem 1/8 sphere. Magnetic fields do not make sense as will break symmetry
+//  #define cylinder //do hot rod problem
+#define quadrant // do problem 1/4 sphere or cylinder
 #define Weibull
 constexpr double weibullb = 4; // b factor for weibull. larger means closer to a shell. ~1 means filled more at the center.
 #define Temp_e 1e7             // in Kelvin 1e7 ~1keV
 #define Temp_d 1e7             // in Kelvin
-constexpr int f1 = 100;         // make bigger to make smaller time steps // 512 is min for sphere slight increase in KE
+constexpr int f1 = 100;        // make bigger to make smaller time steps // 512 is min for sphere slight increase in KE
 constexpr int f2 = f1 * 1.2;
 constexpr float incf = 1.2f;        // increment
 constexpr float decf = 1.0f / incf; // decrement factor
@@ -25,7 +25,7 @@ constexpr float r0_f[3] = {n_space / 4 + 1, n_space / 4, n_space}; //  radius of
 
 constexpr float Bz0 = 10.0001;     // in T, static constant fields
 constexpr float Btheta0 = 10.0001; // in T, static constant fields
-constexpr float Ez0 = 0.0f;       // in V/m
+constexpr float Ez0 = 0.0f;        // in V/m
 constexpr float vz0 = 0.0f;
 constexpr float a0 = 0.25e-6; // typical dimensions of a cell in m This needs to be smaller than debye length otherwise energy is not conserved if a particle moves across a cell
 constexpr float a0_ff = 1.0 + 8.0 / (float)n_space;
@@ -47,8 +47,8 @@ constexpr unsigned int ncoeff = 8;
 constexpr int n_output_part = (n_partd > 9369) ? 9369 : n_partd; // maximum number of particles to output to file
 // const int nprtd=floor(n_partd/n_output_part);
 
-constexpr int ndatapoints = 10; // total number of time steps to print
-constexpr int nc1 = 10;           // f1 * 1;      // number of times to calculate E and B between printouts total number of electron time steps calculated = ndatapoints *nc1*md_me 
+constexpr int ndatapoints = 100; // total number of time steps to print
+constexpr int nc1 = 1;           // f1 * 1;      // number of times to calculate E and B between printouts total number of electron time steps calculated = ndatapoints *nc1*md_me
 constexpr int md_me = 60;        // ratio of electron speed/deuteron speed at the same KE. Used to calculate electron motion more often than deuteron motion
 
 #define Hist_n 512
@@ -126,12 +126,12 @@ struct par // useful parameters
     float posL2[3] = {a0 * 1.5, a0 * 1.5, a0 * 1.5};
 #else
 #if defined(quadrant)
-    float posL[3] = {-a0 / 2, -a0 / 2, -a0 *(n_space_divz - 1.0) / 2.0};                                                       // Lowest position of cells (x,y,z)
+    float posL[3] = {-a0 / 2, -a0 / 2, -a0 *(n_space_divz - 1.0) / 2.0};                                     // Lowest position of cells (x,y,z)
     float posH[3] = {a0 * (n_space_divx - 1.5), a0 *(n_space_divy - 1.5), a0 *(n_space_divz - 1.0) / 2.0};   // Highest position of cells (x,y,z)
-    float posL_1[3] = {a0 / 2, a0 / 2, -a0 *(n_space_divz - 3.0) / 2.0};                                                        // Lowest position of cells (x,y,z)
+    float posL_1[3] = {a0 / 2, a0 / 2, -a0 *(n_space_divz - 3.0) / 2.0};                                     // Lowest position of cells (x,y,z)
     float posH_1[3] = {a0 * (n_space_divx - 2.5), a0 *(n_space_divy - 2.5), a0 *(n_space_divz - 3.0) / 2.0}; // Highest position of cells (x,y,z)
-    float posL_15[3] = {a0 * 1, a0 * 1, -a0 *(n_space_divz - 4.0) / 2.0};                                                       // Lowest position of cells (x,y,z)
-    float posH_15[3] = {a0 * (n_space_divx - 3), a0 *(n_space_divy - 3), a0 *(n_space_divz - 4.0) / 2.0};      // Highes position of cells (x,y,z)
+    float posL_15[3] = {a0 * 1, a0 * 1, -a0 *(n_space_divz - 4.0) / 2.0};                                    // Lowest position of cells (x,y,z)
+    float posH_15[3] = {a0 * (n_space_divx - 3), a0 *(n_space_divy - 3), a0 *(n_space_divz - 4.0) / 2.0};    // Highes position of cells (x,y,z)
     float posL2[3] = {a0 * 1.5, a0 * 1.5, -a0 *n_space_divz};
 #else
     float posL[3] = {-a0 * (n_space_divx - 1) / 2.0f, -a0 *(n_space_divy - 1.0) / 2.0, -a0 *(n_space_divz - 1.0) / 2.0};    // Lowest position of cells (x,y,z)
@@ -160,8 +160,9 @@ struct par // useful parameters
     unsigned int cl_align = 4096;
     std::string outpath;
     float a0_f = 1.0; // factor to scale cell size
-                      // cl_mem buff_E = 0;
-                      // cl_mem buff_B = 0;
+    // cl_mem buff_E = 0;
+    // cl_mem buff_B = 0;
+    int cdt = 0;
 };
 
 struct particles // particles

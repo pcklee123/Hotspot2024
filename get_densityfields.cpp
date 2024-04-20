@@ -45,7 +45,6 @@ void get_densityfields(fields *fi, particles *pt, par *par)
    for (int i = 0; i < n; ++i)
       nt += nt_array[i];
    par->nt[0] = nt;
-   //cout << "nt (e) = " << nt << ", n = " << n << endl;
 
    kernel_df.setArg(0, fi->buff_np_e[0]);          // np ion
    kernel_df.setArg(1, fi->buff_npi[0]);           // np ion temp integer
@@ -82,7 +81,8 @@ void get_densityfields(fields *fi, particles *pt, par *par)
    for (int i = 0; i < n; ++i)
       nt += nt_array[i];
    par->nt[1] = nt;
-   //cout << "nt (i) = " << nt << endl;
+   cout << "nt (e) = " << par->nt[0] << ", nt (i) = " << par->nt[1] << ", n = " << n << endl;
+   // cout << "nt (i) = " << nt << endl;
    _aligned_free(nt_array);
    clReleaseMemObject(nt_buffer);
 

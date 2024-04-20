@@ -1076,9 +1076,9 @@ void kernel dtotal(global const float16 *ne, global const float16 *ni,
   jt[n2 + i] = je[n2 + i] + ji[n2 + i];
 }
 
-void kernel nsumi(global const int *npi, global int *n0 , const uint n) {
+void kernel nsumi(global const int *npi, global int *n0, const uint n) {
   const uint n1 = get_global_size(0);
-//  const uint n = NZ * NY * NX;
+  //  const uint n = NZ * NY * NX;
   const uint n2 = n / n1; // make sure n is divisible by n1 from calling code
   const uint i = get_global_id(0); // Get index of current element processed
   const uint j0 = i * n2;
@@ -1230,4 +1230,16 @@ void kernel maxval3f(global const float16 *In, global float *Ou) {
 void kernel buffer_muls(global float *A, const float Bb) {
   int i = get_global_id(0); // Get index of current element processed
   A[i] = Bb * A[i];         // Do the operation
+}
+
+void kernel recalcposchangedt(global float *x0, global float *y0,
+                              global float *z0, // prev pos
+                              global const float *x1, global const float *y1,
+                              global const float *z1, // current pos
+                              float const inc         // increment
+) {
+ int n = get_global_id(0); 
+    x0[n] = x1[n] - (x1[n] - x0[n]) * inc;
+    y0[n] = y1[n] - (y1[n] - y0[n]) * inc;
+    z0[n] = z1[n] - (z1[n] - z0[n]) * inc;
 }

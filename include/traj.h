@@ -99,7 +99,7 @@ static Time timer;
 static Log logger;
 
 extern ofstream info_file;
-void log_entry(int i_time, int ntime, int cdt, int total_ncalc[2], double t, par *par);
+void log_entry(int i_time, int ntime, int total_ncalc[2], double t, par *par);
 void log_headers();
 
 void cl_start(fields *fi, particles *pt, par *par);

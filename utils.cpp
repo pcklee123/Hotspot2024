@@ -77,12 +77,12 @@ void log_headers()
     logger.newline();
 }
 
-void log_entry(int i_time, int ntime, int cdt, int total_ncalc[2], double t, par *par)
+void log_entry(int i_time, int ntime, int total_ncalc[2], double t, par *par)
 {
     float ntall = par->nt[1] - par->nt[0];
     logger.write(i_time);
     logger.write(ntime);
-    logger.write(cdt);
+    logger.write(par->cdt);
     logger.write(total_ncalc[0]);
     logger.write(total_ncalc[1]);
     logger.write(par->dt[0] * 1e15); // in fs
