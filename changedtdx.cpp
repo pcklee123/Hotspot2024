@@ -55,22 +55,22 @@ int changedt(particles *pt, int cdt, par *par)
     //   cout << "dt changed" << endl;
     */
     static cl::Kernel kernel_recalcposchangedt = cl::Kernel(program_g, "recalcposchangedt");
-    kernel_recalcposchangedt.setArg(2, pt->buff_x0_e[0]);     // x0
-    kernel_recalcposchangedt.setArg(3, pt->buff_y0_e[0]);     // y0
-    kernel_recalcposchangedt.setArg(4, pt->buff_z0_e[0]);     // z0
-    kernel_recalcposchangedt.setArg(5, pt->buff_x1_e[0]);     // x1
-    kernel_recalcposchangedt.setArg(6, pt->buff_y1_e[0]);     // y1
-    kernel_recalcposchangedt.setArg(7, pt->buff_z1_e[0]);     // z1
-    kernel_recalcposchangedt.setArg(10, sizeof(float), &inc); // scale factor
+    kernel_recalcposchangedt.setArg(0, pt->buff_x0_e[0]);     // x0
+    kernel_recalcposchangedt.setArg(1, pt->buff_y0_e[0]);     // y0
+    kernel_recalcposchangedt.setArg(2, pt->buff_z0_e[0]);     // z0
+    kernel_recalcposchangedt.setArg(3, pt->buff_x1_e[0]);     // x1
+    kernel_recalcposchangedt.setArg(4, pt->buff_y1_e[0]);     // y1
+    kernel_recalcposchangedt.setArg(5, pt->buff_z1_e[0]);     // z1
+    kernel_recalcposchangedt.setArg(6, sizeof(float), &inc); // scale factor
     commandQueue_g.enqueueNDRangeKernel(kernel_recalcposchangedt, cl::NullRange, cl::NDRange(par->n_part[0]), cl::NullRange);
     commandQueue_g.finish();
-    kernel_recalcposchangedt.setArg(2, pt->buff_x0_i[0]);     // x0
-    kernel_recalcposchangedt.setArg(3, pt->buff_y0_i[0]);     // y0
-    kernel_recalcposchangedt.setArg(4, pt->buff_z0_i[0]);     // z0
-    kernel_recalcposchangedt.setArg(5, pt->buff_x1_i[0]);     // x1
-    kernel_recalcposchangedt.setArg(6, pt->buff_y1_i[0]);     // y1
-    kernel_recalcposchangedt.setArg(7, pt->buff_z1_i[0]);     // z1
-    kernel_recalcposchangedt.setArg(10, sizeof(float), &inc); // scale factor
+    kernel_recalcposchangedt.setArg(0, pt->buff_x0_i[0]);     // x0
+    kernel_recalcposchangedt.setArg(1, pt->buff_y0_i[0]);     // y0
+    kernel_recalcposchangedt.setArg(2, pt->buff_z0_i[0]);     // z0
+    kernel_recalcposchangedt.setArg(3, pt->buff_x1_i[0]);     // x1
+    kernel_recalcposchangedt.setArg(4, pt->buff_y1_i[0]);     // y1
+    kernel_recalcposchangedt.setArg(5, pt->buff_z1_i[0]);     // z1
+    kernel_recalcposchangedt.setArg(6, sizeof(float), &inc); // scale factor
     commandQueue_g.enqueueNDRangeKernel(kernel_recalcposchangedt, cl::NullRange, cl::NDRange(par->n_part[1]), cl::NullRange);
     commandQueue_g.finish();
     return 1;
