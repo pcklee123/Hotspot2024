@@ -55,21 +55,21 @@ int changedt(particles *pt, int cdt, par *par)
     //   cout << "dt changed" << endl;
     */
     static cl::Kernel kernel_recalcposchangedt = cl::Kernel(program_g, "recalcposchangedt");
-    kernel_recalcposchangedt.setArg(0, pt->buff_x0_e[0]);     // x0
-    kernel_recalcposchangedt.setArg(1, pt->buff_y0_e[0]);     // y0
-    kernel_recalcposchangedt.setArg(2, pt->buff_z0_e[0]);     // z0
-    kernel_recalcposchangedt.setArg(3, pt->buff_x1_e[0]);     // x1
-    kernel_recalcposchangedt.setArg(4, pt->buff_y1_e[0]);     // y1
-    kernel_recalcposchangedt.setArg(5, pt->buff_z1_e[0]);     // z1
+    kernel_recalcposchangedt.setArg(0, pt->buff_x0_e[0]);    // x0
+    kernel_recalcposchangedt.setArg(1, pt->buff_y0_e[0]);    // y0
+    kernel_recalcposchangedt.setArg(2, pt->buff_z0_e[0]);    // z0
+    kernel_recalcposchangedt.setArg(3, pt->buff_x1_e[0]);    // x1
+    kernel_recalcposchangedt.setArg(4, pt->buff_y1_e[0]);    // y1
+    kernel_recalcposchangedt.setArg(5, pt->buff_z1_e[0]);    // z1
     kernel_recalcposchangedt.setArg(6, sizeof(float), &inc); // scale factor
     commandQueue_g.enqueueNDRangeKernel(kernel_recalcposchangedt, cl::NullRange, cl::NDRange(par->n_part[0]), cl::NullRange);
     commandQueue_g.finish();
-    kernel_recalcposchangedt.setArg(0, pt->buff_x0_i[0]);     // x0
-    kernel_recalcposchangedt.setArg(1, pt->buff_y0_i[0]);     // y0
-    kernel_recalcposchangedt.setArg(2, pt->buff_z0_i[0]);     // z0
-    kernel_recalcposchangedt.setArg(3, pt->buff_x1_i[0]);     // x1
-    kernel_recalcposchangedt.setArg(4, pt->buff_y1_i[0]);     // y1
-    kernel_recalcposchangedt.setArg(5, pt->buff_z1_i[0]);     // z1
+    kernel_recalcposchangedt.setArg(0, pt->buff_x0_i[0]);    // x0
+    kernel_recalcposchangedt.setArg(1, pt->buff_y0_i[0]);    // y0
+    kernel_recalcposchangedt.setArg(2, pt->buff_z0_i[0]);    // z0
+    kernel_recalcposchangedt.setArg(3, pt->buff_x1_i[0]);    // x1
+    kernel_recalcposchangedt.setArg(4, pt->buff_y1_i[0]);    // y1
+    kernel_recalcposchangedt.setArg(5, pt->buff_z1_i[0]);    // z1
     kernel_recalcposchangedt.setArg(6, sizeof(float), &inc); // scale factor
     commandQueue_g.enqueueNDRangeKernel(kernel_recalcposchangedt, cl::NullRange, cl::NDRange(par->n_part[1]), cl::NullRange);
     commandQueue_g.finish();
@@ -78,6 +78,7 @@ int changedt(particles *pt, int cdt, par *par)
 
 void changedx(fields *fi, par *par)
 {
+    static bool first = true;
     par->a0_f *= a0_ff; // Lowest position of cells (x,y,z)
     par->posL[0] *= a0_ff;
     par->posL[1] *= a0_ff;
@@ -105,17 +106,20 @@ void changedx(fields *fi, par *par)
     par->dd[2] *= a0_ff;
 
     cl_int res;
+    static cl_kernel kernel_buffer_muls;
     float Bb = 1 / (a0_ff * a0_ff);
     size_t n = n_cells4 * 3 * 2 * 2; // 2 floats per complex 3 axis, 2 types E and B
-    static cl_kernel kernel_buffer_muls = clCreateKernel(program_g(), "buffer_muls", &res);
-    if (res)
-        cout << "create buffer_muls " << res << endl;
+    if (first)
+    {
+        kernel_buffer_muls = clCreateKernel(program_g(), "buffer_muls", &res);
+        if (res)
+            cout << "create buffer_muls " << res << endl;
+    }
     clSetKernelArg(kernel_buffer_muls, 0, sizeof(cl_mem), &fi->r3_buffer);
     clSetKernelArg(kernel_buffer_muls, 1, sizeof(float), &Bb);
     clEnqueueNDRangeKernel(commandQueue_g(), kernel_buffer_muls, 1, NULL, &n, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
     clFinish(commandQueue_g());
 #ifdef Uon_
-    n = n_cells4 * 3 * 2 * 2;
     Bb = 1 / (a0_ff);
     n = n_cells4 * 2; // 2 floats per complex
     clSetKernelArg(kernel_buffer_muls, 0, sizeof(cl_mem), &fi->r2_buffer);
@@ -123,5 +127,7 @@ void changedx(fields *fi, par *par)
     clEnqueueNDRangeKernel(commandQueue_g(), kernel_buffer_muls, 1, NULL, &n, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
     clFinish(commandQueue_g());
 #endif
+
     generateField(fi, par);
+    first = false;
 }

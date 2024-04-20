@@ -5,28 +5,36 @@ void tnp(fields *fi, particles *pt, par *par)
    /** IMPORTANT: do not use CL_MEM_USE_HOST_PTR if on dGPU **/
    /** HOST_PTR is only used so that memory is not copied, but instead shared between CPU and iGPU in RAM**/
    // Note that special alignment has been given to Ea, Ba, y0, z0, x0, x1, y1 in order to actually do this properly
-   float nt0prev = par->nt[0];
-   // Assume buffers A, B, I, J (Ea, Ba, ci, cf) will always be the same. Then we save a bit of time.
-   static cl::Buffer buff_Ea(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cells3x8f, fastIO ? fi->Ea : NULL);
-   static cl::Buffer buff_Ba(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cells3x8f, fastIO ? fi->Ba : NULL);
+   static int nt0prev;
+   static bool first = true;
+   static cl::Buffer buff_Ea, buff_Ba;
+   static cl::Kernel kernel_tnp, kernel_trilin;
+   if (first)
+   {
+      nt0prev = -(int)n_partd;
+      // Assume buffers A, B, I, J (Ea, Ba, ci, cf) will always be the same. Then we save a bit of time.
+      cl::Buffer buff_Ea(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cells3x8f, fastIO ? fi->Ea : NULL);
+      cl::Buffer buff_Ba(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cells3x8f, fastIO ? fi->Ba : NULL);
 
 #if defined(sphere)
 #if defined(octant)
-   static cl::Kernel kernel_tnp = cl::Kernel(program_g, "tnp_k_implicito"); // select the kernel program to run
+      cl::Kernel kernel_tnp = cl::Kernel(program_g, "tnp_k_implicito"); // select the kernel program to run
 #else
 #if defined(quadrant)
-   static cl::Kernel kernel_tnp = cl::Kernel(program_g, "tnp_k_implicitq"); // select the kernel program to run
+      cl::Kernel kernel_tnp = cl::Kernel(program_g, "tnp_k_implicitq"); // select the kernel program to run
 #else
-   static cl::Kernel kernel_tnp = cl::Kernel(program_g, "tnp_k_implicit"); // select the kernel program to run
+      cl::Kernel kernel_tnp = cl::Kernel(program_g, "tnp_k_implicit"); // select the kernel program to run
 #endif
 #endif
 #endif
 
 #if defined(cylinder)
-   static cl::Kernel kernel_tnp = cl::Kernel(program_g, "tnp_k_implicitz"); // select the kernel program to run
+      cl::Kernel kernel_tnp = cl::Kernel(program_g, "tnp_k_implicitz"); // select the kernel program to run
 #endif
 
-   static cl::Kernel kernel_trilin = cl::Kernel(program_g, "trilin_k"); // select the kernel program to run
+      cl::Kernel kernel_trilin = cl::Kernel(program_g, "trilin_k"); // select the kernel program to run
+      first = false;
+   }
 
 #ifdef BFon_
    // check minus sign
@@ -103,8 +111,10 @@ void tnp(fields *fi, particles *pt, par *par)
 
       get_densityfields(fi, pt, par);
       // check if particles are moving out
+      //      cout << "change dx : " << nt0prev << ", " << par->nt[0] - nt0prev << endl;
       if (par->nt[0] > nt0prev)
       {
+         //        cout << "change dx : " << nt0prev << ", " << par->nt[0] << endl;
          changedx(fi, par); // particles are moving out of bounds. make cells bigger.
          nt0prev = par->nt[0];
       }
@@ -122,6 +132,8 @@ void tnp(fields *fi, particles *pt, par *par)
       */
       par->cdt = calcEBV(fi, par);
       changedt(pt, par->cdt, par);
+      // cout << changedt(pt, par->cdt, par) << ", ";
+      // cout << "change dt: " << par->cdt << ",  dt= " << par->dt[0] << endl;
       // cout << "\nEBV: " << timer.elapsed() << "s, \n";
    }
    if (!fastIO)

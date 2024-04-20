@@ -81,7 +81,7 @@ void get_densityfields(fields *fi, particles *pt, par *par)
    for (int i = 0; i < n; ++i)
       nt += nt_array[i];
    par->nt[1] = nt;
-   cout << "nt (e) = " << par->nt[0] << ", nt (i) = " << par->nt[1] << ", n = " << n << endl;
+   //cout << "nt (e) = " << par->nt[0] << ", nt (i) = " << par->nt[1] << ", n = " << n << endl;
    // cout << "nt (i) = " << nt << endl;
    _aligned_free(nt_array);
    clReleaseMemObject(nt_buffer);

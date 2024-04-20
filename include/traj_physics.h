@@ -114,7 +114,7 @@ struct par // useful parameters
     float dt[2] = {1e-12, 1e-12}; // time step electron,deuteron
     float Emax = Emax0;
     float Bmax = Bmax0;
-    float nt[2];    // total number of particles
+    int nt[2];    // total number of particles
     float KEtot[2]; // Total KE of particles
 #if defined(octant)
     float posL[3] = {-a0 / 2, -a0 / 2, -a0 / 2};                                                       // Lowest position of cells (x,y,z)
