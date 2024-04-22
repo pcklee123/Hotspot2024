@@ -189,7 +189,7 @@ void tnp(fields *fi, particles *pt, par *par)
       // commandQueue_g.enqueueReadBuffer(fi->buff_E[0], CL_TRUE, 0, n_cellsf * 3, fi->E);
       res = clEnqueueReadBuffer(commandQueue_g(), fi->buff_E[0](), CL_TRUE, 0, n_cellsf * 3, fi->E, 0, NULL, NULL);
       res = clEnqueueReadBuffer(commandQueue_g(), fi->buff_B[0](), CL_TRUE, 0, n_cellsf * 3, fi->B, 0, NULL, NULL);
-      commandQueue_g.enqueueReadBuffer(fi->buff_B[0], CL_TRUE, 0, n_cellsf * 3, fi->B);
+      //commandQueue_g.enqueueReadBuffer(fi->buff_B[0], CL_TRUE, 0, n_cellsf * 3, fi->B);
 
       // commandQueue_g.enqueueReadBuffer(fi->buff_np_e[0], CL_TRUE, 0, n_cellsf, fi->np[0]);
       commandQueue_g.enqueueReadBuffer(fi->buff_np_i[0], CL_TRUE, 0, n_cellsf, fi->np[1]);
