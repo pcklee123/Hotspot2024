@@ -54,7 +54,7 @@ void tnp(fields *fi, particles *pt, par *par)
    // cout << " Bconst=" << par->Bcoef[0] << ", Econst=" << par->Ecoef[0] << endl;
 
    int cdt;
-   for (int ntime = 0; ntime < par->nc; ntime++)
+   for (uint32_t ntime = 0; ntime < par->nc; ntime++)
    {
       // timer.mark();
       kernel_trilin.setArg(0, buff_Ea);                   // the 1st argument to the kernel program Ea
@@ -80,8 +80,8 @@ void tnp(fields *fi, particles *pt, par *par)
       kernel_tnp.setArg(8, sizeof(float), &par->Bcoef[0]);  // Bconst
       kernel_tnp.setArg(9, sizeof(float), &par->Ecoef[0]);  // Econst
       kernel_tnp.setArg(10, sizeof(float), &par->a0_f);     // scale factor
-      kernel_tnp.setArg(11, sizeof(int), &par->n_partp[0]); // npart
-      kernel_tnp.setArg(12, sizeof(int), &par->ncalcp[0]);  // ncalc
+      kernel_tnp.setArg(11, sizeof(uint32_t), &par->n_partp[0]); // npart
+      kernel_tnp.setArg(12, sizeof(uint32_t), &par->ncalcp[0]);  // ncalc
       kernel_tnp.setArg(13, pt->buff_q_e[0]);               // q
       // cout << "run kernel_tnp for electron" << endl;
       //  timer.mark();
@@ -101,8 +101,8 @@ void tnp(fields *fi, particles *pt, par *par)
       kernel_tnp.setArg(8, sizeof(float), &par->Bcoef[1]);  // Bconst
       kernel_tnp.setArg(9, sizeof(float), &par->Ecoef[1]);  // Econst
       kernel_tnp.setArg(10, sizeof(float), &par->a0_f);     // scale factor
-      kernel_tnp.setArg(11, sizeof(int), &par->n_partp[1]); // npart
-      kernel_tnp.setArg(12, sizeof(int), &par->ncalcp[1]);  //
+      kernel_tnp.setArg(11, sizeof(uint32_t), &par->n_partp[1]); // npart
+      kernel_tnp.setArg(12, sizeof(uint32_t), &par->ncalcp[1]);  //
       kernel_tnp.setArg(13, pt->buff_q_i[0]);               // q
 
       // cout << "run kernel for ions" << endl;

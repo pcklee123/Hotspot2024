@@ -339,7 +339,7 @@ int calcEBV(fields *fi, par *par)
         // Multiply by the respective constants here, since it is faster to parallelize it
         const float Vconst = kc * e_charge * r_part_spart / n_cells8;
         const float Aconst = 1e-7 * e_charge * r_part_spart / n_cells8;
-//    const size_t n_cells4 = n_space_divx2 * n_space_divy2 * (n_space_divz2 / 2 + 1); // NOTE: This is not actually n_cells * 4, there is an additional buffer that fftw requires.
+
 #pragma omp parallel for simd num_threads(nthreads)
         for (size_t i = 0; i < n_cells8 * 3; i++)
             reinterpret_cast<float *>(precalc_r3_base[0])[i] *= Vconst;
@@ -516,7 +516,7 @@ int calcEBV(fields *fi, par *par)
 #endif
 #endif
 
-    uint64_t n = n_cells / 16;
+    size_t n = n_cells / 16;
     maxval_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, n * sizeof(float), 0, &res);
     float *maxval_array = (float *)_aligned_malloc(sizeof(float) * n, par->cl_align);
 #ifdef Eon_

@@ -9,7 +9,7 @@
 constexpr double weibullb = 4; // b factor for weibull. larger means closer to a shell. ~1 means filled more at the center.
 #define Temp_e 1e7             // in Kelvin 1e7 ~1keV
 #define Temp_d 1e7             // in Kelvin
-constexpr int f1 = 100;        // make bigger to make smaller time steps // 512 is min for sphere slight increase in KE
+constexpr int f1 = 2;         // make bigger to make smaller time steps // 512 is min for sphere slight increase in KE
 constexpr int f2 = f1 * 1.2;
 constexpr float incf = 1.2f;        // increment
 constexpr float decf = 1.0f / incf; // decrement factor
@@ -114,7 +114,7 @@ struct par // useful parameters
     float dt[2] = {1e-12, 1e-12}; // time step electron,deuteron
     float Emax = Emax0;
     float Bmax = Bmax0;
-    int nt[2];    // total number of particles
+    int nt[2];      // total number of particles
     float KEtot[2]; // Total KE of particles
 #if defined(octant)
     float posL[3] = {-a0 / 2, -a0 / 2, -a0 / 2};                                                       // Lowest position of cells (x,y,z)
@@ -154,9 +154,9 @@ struct par // useful parameters
     // for tnp
     float Ecoef[2] = {0, 0};
     float Bcoef[2] = {0, 0};
-    unsigned int ncalcp[2] = {md_me, 1};
-    unsigned int nc = nc1;
-    unsigned int n_partp[2] = {n_parte, n_partd}; // 0,number of "super" electrons, electron +deuteriom ions, total
+    uint32_t ncalcp[2] = {md_me, 1};
+    uint32_t nc = nc1;
+    uint32_t n_partp[2] = {n_parte, n_partd}; // 0,number of "super" electrons, electron +deuteriom ions, total
     unsigned int cl_align = 4096;
     std::string outpath;
     float a0_f = 1.0; // factor to scale cell size
@@ -176,8 +176,8 @@ struct particles // particles
     float (*pos1x)[n_partd];
     float (*pos1y)[n_partd];
     float (*pos1z)[n_partd];
-    int (*q)[n_partd];
-    int (*m)[n_partd];
+    int32_t (*q)[n_partd];
+    int32_t (*m)[n_partd];
 
     cl::Buffer *buff_x0_e;
     cl::Buffer *buff_y0_e;
@@ -208,12 +208,12 @@ struct fields                                                      // particles
                                                                    //    float (*V)[n_space_divz][n_space_divy][n_space_divx];
     float (*V)[n_space_divy][n_space_divx];
     float (*np)[n_space_divz][n_space_divy][n_space_divx];
-    int (*npi)[n_space_divy][n_space_divx];
-    int (*np_centeri)[n_space_divz][n_space_divy][n_space_divx];
+    int32_t (*npi)[n_space_divy][n_space_divx];
+    int32_t (*np_centeri)[n_space_divz][n_space_divy][n_space_divx];
     float (*npt)[n_space_divy][n_space_divx];
     float (*currentj)[3][n_space_divz][n_space_divy][n_space_divx];
-    int (*cji)[n_space_divz][n_space_divy][n_space_divx]; //[3][z][y][x]
-    int (*cj_centeri)[3][n_space_divz][n_space_divy][n_space_divx];
+    int32_t (*cji)[n_space_divz][n_space_divy][n_space_divx]; //[3][z][y][x]
+    int32_t (*cj_centeri)[3][n_space_divz][n_space_divy][n_space_divx];
     float (*jc)[n_space_divz][n_space_divy][n_space_divx];
 
     float *precalc_r3; //  pre-calculate 1/ r3 to make it faster to calculate electric and magnetic fields
