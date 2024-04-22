@@ -5,6 +5,8 @@
         "optional": "cpp",
         "variant": "cpp",
         "cstdlib": "cpp",
-        "iostream": "cpp"
+        "iostream": "cpp",
+        "ostream": "cpp",
+        "complex": "cpp"
     }
 }

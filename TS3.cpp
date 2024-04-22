@@ -82,32 +82,8 @@ int main()
 #else
     generateParticles(pt, par);
 #endif
-    if (!fastIO) // write CPU generated particle positions to opencl buffers
-    {            //  electrons
-        commandQueue_g.enqueueWriteBuffer(pt->buff_x0_e[0], CL_TRUE, 0, n_partf, pt->pos0x[0]);
-        commandQueue_g.enqueueWriteBuffer(pt->buff_y0_e[0], CL_TRUE, 0, n_partf, pt->pos0y[0]);
-        commandQueue_g.enqueueWriteBuffer(pt->buff_z0_e[0], CL_TRUE, 0, n_partf, pt->pos0z[0]);
-        commandQueue_g.enqueueWriteBuffer(pt->buff_x1_e[0], CL_TRUE, 0, n_partf, pt->pos1x[0]);
-        commandQueue_g.enqueueWriteBuffer(pt->buff_y1_e[0], CL_TRUE, 0, n_partf, pt->pos1y[0]);
-        commandQueue_g.enqueueWriteBuffer(pt->buff_z1_e[0], CL_TRUE, 0, n_partf, pt->pos1z[0]);
-
-        commandQueue_g.enqueueWriteBuffer(pt->buff_q_e[0], CL_TRUE, 0, n_partf, pt->q[0]);
-        //  ions
-        commandQueue_g.enqueueWriteBuffer(pt->buff_x0_i[0], CL_TRUE, 0, n_partf, pt->pos0x[1]);
-        commandQueue_g.enqueueWriteBuffer(pt->buff_y0_i[0], CL_TRUE, 0, n_partf, pt->pos0y[1]);
-        commandQueue_g.enqueueWriteBuffer(pt->buff_z0_i[0], CL_TRUE, 0, n_partf, pt->pos0z[1]);
-        commandQueue_g.enqueueWriteBuffer(pt->buff_x1_i[0], CL_TRUE, 0, n_partf, pt->pos1x[1]);
-        commandQueue_g.enqueueWriteBuffer(pt->buff_y1_i[0], CL_TRUE, 0, n_partf, pt->pos1y[1]);
-        commandQueue_g.enqueueWriteBuffer(pt->buff_z1_i[0], CL_TRUE, 0, n_partf, pt->pos1z[1]);
-
-        commandQueue_g.enqueueWriteBuffer(pt->buff_q_i[0], CL_TRUE, 0, n_partf, pt->q[1]);
-    }
     // generate E and B external fields within limits and spacing of Field cells
     generateField(fi, par);
-    // write CPU generatedexternal  to opencl buffers
-    res = clEnqueueWriteBuffer(commandQueue_g(), fi->Ee_buffer, CL_TRUE, 0, n_cellsf * 3, fi->Ee, 0, NULL, NULL);
-    res = clEnqueueWriteBuffer(commandQueue_g(), fi->Be_buffer, CL_TRUE, 0, n_cellsf * 3, fi->Be, 0, NULL, NULL);
-    cout << timer.replace() << "s\n"; // cout << "Set initial random positions: ";
 
     int i_time = 0;
     // cout << "get_densityfields: ";

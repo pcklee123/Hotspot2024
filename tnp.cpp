@@ -8,7 +8,8 @@ void tnp(fields *fi, particles *pt, par *par)
    static int nt0prev;
    static bool first = true;
    static cl::Buffer buff_Ea, buff_Ba;
-   static cl::Kernel kernel_tnp, kernel_trilin;
+   // static cl::Kernel kernel_tnp, kernel_trilin;
+   cl_int res = 0;
    if (first)
    {
       nt0prev = -(int)n_partd;
@@ -16,24 +17,33 @@ void tnp(fields *fi, particles *pt, par *par)
       cl::Buffer buff_Ea(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cells3x8f, fastIO ? fi->Ea : NULL);
       cl::Buffer buff_Ba(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cells3x8f, fastIO ? fi->Ba : NULL);
 
+      first = false;
+   }
 #if defined(sphere)
 #if defined(octant)
-      cl::Kernel kernel_tnp = cl::Kernel(program_g, "tnp_k_implicito"); // select the kernel program to run
+   cl::Kernel kernel_tnp = cl::Kernel(program_g, "tnp_k_implicito"); // select the kernel program to run
 #else
 #if defined(quadrant)
-      cl::Kernel kernel_tnp = cl::Kernel(program_g, "tnp_k_implicitq"); // select the kernel program to run
+   cl::Kernel kernel_tnp = cl::Kernel(program_g, "tnp_k_implicitq", &res); // select the kernel program to run
 #else
-      cl::Kernel kernel_tnp = cl::Kernel(program_g, "tnp_k_implicit"); // select the kernel program to run
+   cl::Kernel kernel_tnp = cl::Kernel(program_g, "tnp_k_implicit"); // select the kernel program to run
 #endif
 #endif
 #endif
-
+   if (res)
+   {
+      cout << "kernel_tnp progrem  res: " << res << endl;
+      exit(1);
+   }
 #if defined(cylinder)
-      cl::Kernel kernel_tnp = cl::Kernel(program_g, "tnp_k_implicitz"); // select the kernel program to run
+   cl::Kernel kernel_tnp = cl::Kernel(program_g, "tnp_k_implicitz"); // select the kernel program to run
 #endif
 
-      cl::Kernel kernel_trilin = cl::Kernel(program_g, "trilin_k"); // select the kernel program to run
-      first = false;
+   cl::Kernel kernel_trilin = cl::Kernel(program_g, "trilin_k"); // select the kernel program to run
+   if (res)
+   {
+      cout << "kernel_trilin progrem  res: " << res << endl;
+      exit(1);
    }
 
 #ifdef BFon_
@@ -60,53 +70,59 @@ void tnp(fields *fi, particles *pt, par *par)
       kernel_trilin.setArg(0, buff_Ea);                   // the 1st argument to the kernel program Ea
       kernel_trilin.setArg(1, fi->buff_E[0]);             // Ba
       kernel_trilin.setArg(2, sizeof(float), &par->a0_f); // scale
-      commandQueue_g.enqueueNDRangeKernel(kernel_trilin, cl::NullRange, cl::NDRange(n_cells), cl::NullRange);
+      res = commandQueue_g.enqueueNDRangeKernel(kernel_trilin, cl::NullRange, cl::NDRange(n_cells), cl::NullRange);
+      if (res)
+         cout << "kernel_trilin E  res: " << res << endl;
       commandQueue_g.finish(); // wait for the end of the kernel program
 
       kernel_trilin.setArg(0, buff_Ba);                   // the 1st argument to the kernel program Ea
       kernel_trilin.setArg(1, fi->buff_B[0]);             // Ba
       kernel_trilin.setArg(2, sizeof(float), &par->a0_f); // scale
-      commandQueue_g.enqueueNDRangeKernel(kernel_trilin, cl::NullRange, cl::NDRange(n_cells), cl::NullRange);
+      res = commandQueue_g.enqueueNDRangeKernel(kernel_trilin, cl::NullRange, cl::NDRange(n_cells), cl::NullRange);
+      if (res)
+         cout << "kernel_trilin B  res: " << res << endl;
       commandQueue_g.finish(); //      cout << "\ntrilin " << timer.elapsed() << "s, \n";
 
-      kernel_tnp.setArg(0, buff_Ea);                        // the 1st argument to the kernel program Ea
-      kernel_tnp.setArg(1, buff_Ba);                        // Ba
-      kernel_tnp.setArg(2, pt->buff_x0_e[0]);               // x0
-      kernel_tnp.setArg(3, pt->buff_y0_e[0]);               // y0
-      kernel_tnp.setArg(4, pt->buff_z0_e[0]);               // z0
-      kernel_tnp.setArg(5, pt->buff_x1_e[0]);               // x1
-      kernel_tnp.setArg(6, pt->buff_y1_e[0]);               // y1
-      kernel_tnp.setArg(7, pt->buff_z1_e[0]);               // z1
-      kernel_tnp.setArg(8, sizeof(float), &par->Bcoef[0]);  // Bconst
-      kernel_tnp.setArg(9, sizeof(float), &par->Ecoef[0]);  // Econst
-      kernel_tnp.setArg(10, sizeof(float), &par->a0_f);     // scale factor
+      kernel_tnp.setArg(0, buff_Ea);                             // the 1st argument to the kernel program Ea
+      kernel_tnp.setArg(1, buff_Ba);                             // Ba
+      kernel_tnp.setArg(2, pt->buff_x0_e[0]);                    // x0
+      kernel_tnp.setArg(3, pt->buff_y0_e[0]);                    // y0
+      kernel_tnp.setArg(4, pt->buff_z0_e[0]);                    // z0
+      kernel_tnp.setArg(5, pt->buff_x1_e[0]);                    // x1
+      kernel_tnp.setArg(6, pt->buff_y1_e[0]);                    // y1
+      kernel_tnp.setArg(7, pt->buff_z1_e[0]);                    // z1
+      kernel_tnp.setArg(8, sizeof(float), &par->Bcoef[0]);       // Bconst
+      kernel_tnp.setArg(9, sizeof(float), &par->Ecoef[0]);       // Econst
+      kernel_tnp.setArg(10, sizeof(float), &par->a0_f);          // scale factor
       kernel_tnp.setArg(11, sizeof(uint32_t), &par->n_partp[0]); // npart
       kernel_tnp.setArg(12, sizeof(uint32_t), &par->ncalcp[0]);  // ncalc
-      kernel_tnp.setArg(13, pt->buff_q_e[0]);               // q
+      kernel_tnp.setArg(13, pt->buff_q_e[0]);                    // q
       // cout << "run kernel_tnp for electron" << endl;
       //  timer.mark();
-      commandQueue_g.enqueueNDRangeKernel(kernel_tnp, cl::NullRange, cl::NDRange(par->n_part[1]), cl::NullRange);
-
+      res = commandQueue_g.enqueueNDRangeKernel(kernel_tnp, cl::NullRange, cl::NDRange(par->n_part[1]), cl::NullRange);
+      if (res)
+         cout << "kernel_tnp e  res: " << res << endl;
       commandQueue_g.finish();
 
       //  set arguments to be fed into the kernel program
-      kernel_tnp.setArg(0, buff_Ea);                        // the 1st argument to the kernel program Ea
-      kernel_tnp.setArg(1, buff_Ba);                        // Ba
-      kernel_tnp.setArg(2, pt->buff_x0_i[0]);               // x0
-      kernel_tnp.setArg(3, pt->buff_y0_i[0]);               // y0
-      kernel_tnp.setArg(4, pt->buff_z0_i[0]);               // z0
-      kernel_tnp.setArg(5, pt->buff_x1_i[0]);               // x1
-      kernel_tnp.setArg(6, pt->buff_y1_i[0]);               // y1
-      kernel_tnp.setArg(7, pt->buff_z1_i[0]);               // z1
-      kernel_tnp.setArg(8, sizeof(float), &par->Bcoef[1]);  // Bconst
-      kernel_tnp.setArg(9, sizeof(float), &par->Ecoef[1]);  // Econst
-      kernel_tnp.setArg(10, sizeof(float), &par->a0_f);     // scale factor
+      kernel_tnp.setArg(0, buff_Ea);                             // the 1st argument to the kernel program Ea
+      kernel_tnp.setArg(1, buff_Ba);                             // Ba
+      kernel_tnp.setArg(2, pt->buff_x0_i[0]);                    // x0
+      kernel_tnp.setArg(3, pt->buff_y0_i[0]);                    // y0
+      kernel_tnp.setArg(4, pt->buff_z0_i[0]);                    // z0
+      kernel_tnp.setArg(5, pt->buff_x1_i[0]);                    // x1
+      kernel_tnp.setArg(6, pt->buff_y1_i[0]);                    // y1
+      kernel_tnp.setArg(7, pt->buff_z1_i[0]);                    // z1
+      kernel_tnp.setArg(8, sizeof(float), &par->Bcoef[1]);       // Bconst
+      kernel_tnp.setArg(9, sizeof(float), &par->Ecoef[1]);       // Econst
+      kernel_tnp.setArg(10, sizeof(float), &par->a0_f);          // scale factor
       kernel_tnp.setArg(11, sizeof(uint32_t), &par->n_partp[1]); // npart
       kernel_tnp.setArg(12, sizeof(uint32_t), &par->ncalcp[1]);  //
-      kernel_tnp.setArg(13, pt->buff_q_i[0]);               // q
-
+      kernel_tnp.setArg(13, pt->buff_q_i[0]);                    // q
       // cout << "run kernel for ions" << endl;
-      commandQueue_g.enqueueNDRangeKernel(kernel_tnp, cl::NullRange, cl::NDRange(par->n_part[1]), cl::NullRange);
+      res = commandQueue_g.enqueueNDRangeKernel(kernel_tnp, cl::NullRange, cl::NDRange(par->n_part[1]), cl::NullRange);
+      if (res)
+         cout << "kernel_tnp i  res: " << res << endl;
       commandQueue_g.finish();
 
       get_densityfields(fi, pt, par);
@@ -138,8 +154,8 @@ void tnp(fields *fi, particles *pt, par *par)
    }
    if (!fastIO)
    {
-      // for saving to disk
-      commandQueue_g.enqueueReadBuffer(pt->buff_x0_e[0], CL_TRUE, 0, n_partf, pt->pos0x[0]);
+      // cout << "for saving to disk"<<endl;
+      /*commandQueue_g.enqueueReadBuffer(pt->buff_x0_e[0], CL_TRUE, 0, n_partf, pt->pos0x[0]);
       commandQueue_g.enqueueReadBuffer(pt->buff_y0_e[0], CL_TRUE, 0, n_partf, pt->pos0y[0]);
       commandQueue_g.enqueueReadBuffer(pt->buff_z0_e[0], CL_TRUE, 0, n_partf, pt->pos0z[0]);
       commandQueue_g.enqueueReadBuffer(pt->buff_x1_e[0], CL_TRUE, 0, n_partf, pt->pos1x[0]);
@@ -151,19 +167,33 @@ void tnp(fields *fi, particles *pt, par *par)
       commandQueue_g.enqueueReadBuffer(pt->buff_z0_i[0], CL_TRUE, 0, n_partf, pt->pos0z[1]);
       commandQueue_g.enqueueReadBuffer(pt->buff_x1_i[0], CL_TRUE, 0, n_partf, pt->pos1x[1]);
       commandQueue_g.enqueueReadBuffer(pt->buff_y1_i[0], CL_TRUE, 0, n_partf, pt->pos1y[1]);
-      commandQueue_g.enqueueReadBuffer(pt->buff_z1_i[0], CL_TRUE, 0, n_partf, pt->pos1z[1]);
+      commandQueue_g.enqueueReadBuffer(pt->buff_z1_i[0], CL_TRUE, 0, n_partf, pt->pos1z[1]);*/
+
+      res = clEnqueueReadBuffer(commandQueue_g(), pt->buff_x0_e[0](), CL_TRUE, 0, n_partf, pt->pos0x[0], 0, NULL, NULL);
+      res = clEnqueueReadBuffer(commandQueue_g(), pt->buff_y0_e[0](), CL_TRUE, 0, n_partf, pt->pos0y[0], 0, NULL, NULL);
+      res = clEnqueueReadBuffer(commandQueue_g(), pt->buff_z0_e[0](), CL_TRUE, 0, n_partf, pt->pos0z[0], 0, NULL, NULL);
+      res = clEnqueueReadBuffer(commandQueue_g(), pt->buff_x1_e[0](), CL_TRUE, 0, n_partf, pt->pos1x[0], 0, NULL, NULL);
+      res = clEnqueueReadBuffer(commandQueue_g(), pt->buff_y1_e[0](), CL_TRUE, 0, n_partf, pt->pos1y[0], 0, NULL, NULL);
+      res = clEnqueueReadBuffer(commandQueue_g(), pt->buff_z1_e[0](), CL_TRUE, 0, n_partf, pt->pos1z[0], 0, NULL, NULL);
+
+      res = clEnqueueReadBuffer(commandQueue_g(), pt->buff_x0_i[0](), CL_TRUE, 0, n_partf, pt->pos0x[1], 0, NULL, NULL);
+      res = clEnqueueReadBuffer(commandQueue_g(), pt->buff_y0_i[0](), CL_TRUE, 0, n_partf, pt->pos0y[1], 0, NULL, NULL);
+      res = clEnqueueReadBuffer(commandQueue_g(), pt->buff_z0_i[0](), CL_TRUE, 0, n_partf, pt->pos0z[1], 0, NULL, NULL);
+      res = clEnqueueReadBuffer(commandQueue_g(), pt->buff_x1_i[0](), CL_TRUE, 0, n_partf, pt->pos1x[1], 0, NULL, NULL);
+      res = clEnqueueReadBuffer(commandQueue_g(), pt->buff_y1_i[0](), CL_TRUE, 0, n_partf, pt->pos1y[1], 0, NULL, NULL);
+      res = clEnqueueReadBuffer(commandQueue_g(), pt->buff_z1_i[0](), CL_TRUE, 0, n_partf, pt->pos1z[1], 0, NULL, NULL);
 
       commandQueue_g.enqueueReadBuffer(pt->buff_q_e[0], CL_TRUE, 0, n_partf, pt->q[0]);
       commandQueue_g.enqueueReadBuffer(pt->buff_q_i[0], CL_TRUE, 0, n_partf, pt->q[1]);
 
-      commandQueue_g.enqueueReadBuffer(pt->buff_q_e[0], CL_TRUE, 0, n_partf, pt->q[0]);
-      commandQueue_g.enqueueReadBuffer(pt->buff_q_i[0], CL_TRUE, 0, n_partf, pt->q[1]);
-
-      commandQueue_g.enqueueReadBuffer(fi->buff_E[0], CL_TRUE, 0, n_cellsf * 3, fi->E);
+      // commandQueue_g.enqueueReadBuffer(fi->buff_E[0], CL_TRUE, 0, n_cellsf * 3, fi->E);
+      res = clEnqueueReadBuffer(commandQueue_g(), fi->buff_E[0](), CL_TRUE, 0, n_cellsf * 3, fi->E, 0, NULL, NULL);
+      res = clEnqueueReadBuffer(commandQueue_g(), fi->buff_B[0](), CL_TRUE, 0, n_cellsf * 3, fi->B, 0, NULL, NULL);
       commandQueue_g.enqueueReadBuffer(fi->buff_B[0], CL_TRUE, 0, n_cellsf * 3, fi->B);
 
-      commandQueue_g.enqueueReadBuffer(fi->buff_np_e[0], CL_TRUE, 0, n_cellsf, fi->np[0]);
+      // commandQueue_g.enqueueReadBuffer(fi->buff_np_e[0], CL_TRUE, 0, n_cellsf, fi->np[0]);
       commandQueue_g.enqueueReadBuffer(fi->buff_np_i[0], CL_TRUE, 0, n_cellsf, fi->np[1]);
+      res = clEnqueueReadBuffer(commandQueue_g(), fi->buff_np_e[0](), CL_TRUE, 0, n_cellsf, fi->np[0], 0, NULL, NULL);
 
       commandQueue_g.enqueueReadBuffer(fi->buff_currentj_e[0], CL_TRUE, 0, n_cellsf * 3, fi->currentj[0]);
       commandQueue_g.enqueueReadBuffer(fi->buff_currentj_i[0], CL_TRUE, 0, n_cellsf * 3, fi->currentj[1]);

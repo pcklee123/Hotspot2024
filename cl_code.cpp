@@ -52,6 +52,7 @@ void cl_start(fields *fi, particles *pt, par *par)
     cl::vector<cl::Device> devices;
     int platform_id = 0;
     int device_id;
+    cl_int res = 0;
 
     info_file << "Number of Platforms: " << platforms.size() << std::endl;
 
@@ -188,6 +189,20 @@ void cl_start(fields *fi, particles *pt, par *par)
     static cl::Buffer buff_x1_i(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n4, fastIO ? pt->pos1x[1] : NULL); // x1
     static cl::Buffer buff_y1_i(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n4, fastIO ? pt->pos1y[1] : NULL); // y1
     static cl::Buffer buff_z1_i(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n4, fastIO ? pt->pos1z[1] : NULL); // z1
+
+    static cl_mem r3_buffer = clCreateBuffer(context_g(), CL_MEM_READ_WRITE, (uint64_t)sizeof(complex<float>) * n_cells4 * 6, 0, &res);
+    fi->r3_buffer = r3_buffer;
+#ifdef Uon_
+    static cl_mem r2_buffer = clCreateBuffer(context_g(), CL_MEM_READ_WRITE, (uint64_t)sizeof(complex<float>) * n_cells4, 0, &res);
+    fi->r2_buffer = r2_buffer;
+#endif
+    static cl_mem fft_real_buffer = clCreateBuffer(context_g(), CL_MEM_READ_WRITE, (uint64_t)sizeof(float) * n_cells8 * 4, 0, &res);
+    static cl_mem fft_complex_buffer = clCreateBuffer(context_g(), CL_MEM_READ_WRITE, (uint64_t)sizeof(complex<float>) * n_cells4 * 4, 0, &res);
+    static cl_mem fft_p_buffer = clCreateBuffer(context_g(), CL_MEM_READ_WRITE, (uint64_t)sizeof(complex<float>) * n_cells4 * 4, 0, &res);
+    fi->fft_real_buffer = fft_real_buffer;
+    fi->fft_complex_buffer = fft_complex_buffer;
+    fi->fft_p_buffer = fft_p_buffer;
+
     if (cl_err)
         cout << cl_err << endl;
 
@@ -225,7 +240,7 @@ void cl_start(fields *fi, particles *pt, par *par)
     pt->buff_z1_i = &buff_z1_i;
 
     // because some code is in C not C++
-    fi->E_buffer = fi->buff_E[0](); // buff_E();
+    fi->E_buffer = buff_E();
     fi->B_buffer = buff_B();
     fi->Ee_buffer = buff_Ee();
     fi->Be_buffer = buff_Be();

@@ -9,7 +9,7 @@
 constexpr double weibullb = 4; // b factor for weibull. larger means closer to a shell. ~1 means filled more at the center.
 #define Temp_e 1e7             // in Kelvin 1e7 ~1keV
 #define Temp_d 1e7             // in Kelvin
-constexpr int f1 = 2;         // make bigger to make smaller time steps // 512 is min for sphere slight increase in KE
+constexpr int f1 = 100;        // make bigger to make smaller time steps // 512 is min for sphere slight increase in KE
 constexpr int f2 = f1 * 1.2;
 constexpr float incf = 1.2f;        // increment
 constexpr float decf = 1.0f / incf; // decrement factor
@@ -23,9 +23,9 @@ constexpr size_t nback = n_partd / 16; // background stationary particles distri
 constexpr float R_s = n_space / 1;                                 // LPF smoothing radius
 constexpr float r0_f[3] = {n_space / 4 + 1, n_space / 4, n_space}; //  radius of sphere or cylinder (electron, ion, plasma)
 
-constexpr float Bz0 = 10.0001;     // in T, static constant fields
-constexpr float Btheta0 = 10.0001; // in T, static constant fields
-constexpr float Ez0 = 0.0f;        // in V/m
+constexpr float Bz0 = 0.0001;     // in T, static constant fields
+constexpr float Btheta0 = 0.0001; // in T, static constant fields
+constexpr float Ez0 = 0.0f;       // in V/m
 constexpr float vz0 = 0.0f;
 constexpr float a0 = 0.25e-6; // typical dimensions of a cell in m This needs to be smaller than debye length otherwise energy is not conserved if a particle moves across a cell
 constexpr float a0_ff = 1.0 + 8.0 / (float)n_space;
@@ -56,10 +56,10 @@ constexpr int md_me = 60;        // ratio of electron speed/deuteron speed at th
 #define Hist_max 50000 // 50keV
 #define trilinon_
 
-#define Eon_     // whether to calculate the internally generated electric (E) field externally applied fields are always on
-#define Uon_     // whether to calculate the electric (V) potential and potential energy (U). Needs Eon to be enabled.
+#define Eon_ // whether to calculate the internally generated electric (E) field externally applied fields are always on
+// #define Uon_     // whether to calculate the electric (V) potential and potential energy (U). Needs Eon to be enabled.
 #define UE_field //
-#define Bon_     // whether to calculate the internally generated magnetic (B) field
+// #define Bon_     // whether to calculate the internally generated magnetic (B) field
 #define UB_field
 #define EFon_ // whether to apply electric force
 #define BFon_ // whether to apply magnetic force
@@ -229,7 +229,10 @@ struct fields                                                      // particles
     cl_mem Be_buffer = 0;
     cl_mem npt_buffer = 0;
     cl_mem jc_buffer = 0;
-
+    cl_mem fft_p_buffer = 0;
+    cl_mem fft_real_buffer = 0;
+    cl_mem fft_complex_buffer = 0;
+    
     cl::Buffer *buff_E;
     cl::Buffer *buff_B;
     cl::Buffer *buff_Ee;
