@@ -99,9 +99,9 @@ void cl_start(fields *fi, particles *pt, par *par)
     // cout << "getdevice\n";
     default_platform.getDevices(CL_DEVICE_TYPE_ALL, &devices);
     cl::Device default_device;
-    // device_id--;
-    cout << "device_id = " << device_id << ", " << devices.size() << endl;
-    device_id = (device_id >= cldevice) ? cldevice : device_id; // use dGPU only if available
+    device_id--;
+    device_id = (device_id >= cldevice) ? cldevice : (device_id >= 0 ? device_id : 0); // use dGPU only if available
+    cout << "device_id = " << device_id << ", devices.size = " << devices.size() << ", cl_align = " << par->cl_align << endl;
     default_device = devices[device_id];
     info_file << "\t\tDevice Name: " << default_device.getInfo<CL_DEVICE_NAME>() << "\ndevice_id =" << device_id << endl;
     info_file << "OpenCL Version: " << default_device.getInfo<CL_DEVICE_VERSION>() << std::endl;
