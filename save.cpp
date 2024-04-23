@@ -1,4 +1,10 @@
 #include "include/traj.h"
+// #include <iostream>
+// #include <vtkSmartPointer.h>
+#include <vtkStructuredGrid.h>
+// #include <vtkPoints.h>
+// #include <vtkDoubleArray.h>
+#include <vtkXMLStructuredGridWriter.h>
 
 void save_hist(int i_time, double t, particles *pt, par *par)
 {
@@ -77,12 +83,103 @@ void save_hist(int i_time, double t, particles *pt, par *par)
   writer->Write();
 }
 
-/**
- * This corrects the order of dimensions for view in paraview, as opposed to save_vti which prints the raw data.
- */
+// void save_vti_c(string filename, int i,
+//               int ncomponents, double t,
+//             float (*data1)[n_space_divz][n_space_divy][n_space_divz], par *par){
 void save_vti_c(string filename, int i,
                 int ncomponents, double t,
-                float (*data1)[n_space_divz][n_space_divy][n_space_divz], par *par)
+                float (*data1)[n_space_divz][n_space_divy][n_space_divx], par *par)
+//(const std::string& filename, int nx, int ny, int nz, double spacing, double origin[3], double (*electricVector)[3])
+{
+  // Create structured grid
+  vtkSmartPointer<vtkStructuredGrid> structuredGrid = vtkSmartPointer<vtkStructuredGrid>::New();
+  int xi = (par->n_space_div[0] - 1) / maxcells + 1;
+  int yj = (par->n_space_div[0] - 1) / maxcells + 1;
+  int zk = (par->n_space_div[0] - 1) / maxcells + 1;
+  int nx = par->n_space_div[0] / xi;
+  int ny = par->n_space_div[1] / yj;
+  int nz = par->n_space_div[2] / zk;
+  // Set dimensions
+  structuredGrid->SetDimensions(nx, ny, nz);
+
+  // Set points
+  vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
+  for (int k = 0; k < nz; ++k)
+  {
+    for (int j = 0; j < ny; ++j)
+    {
+      for (int i = 0; i < nx; ++i)
+      {
+        double point[3];
+        point[0] = par->posL[0] + i * par->dd[0] * xi;
+        point[1] = par->posL[1] + j * par->dd[1] * yj;
+        point[2] = par->posL[2] + k * par->dd[2] * zk;
+        points->InsertNextPoint(point);
+      }
+    }
+  }
+  structuredGrid->SetPoints(points);
+
+  // Set electric vector data
+  vtkSmartPointer<vtkDoubleArray> FieldVectorArray = vtkSmartPointer<vtkDoubleArray>::New();
+  FieldVectorArray->SetName(filename.c_str());
+  FieldVectorArray->SetNumberOfComponents(3); // Three components (Ex, Ey, Ez)
+  FieldVectorArray->SetNumberOfTuples(nx * ny * nz);
+  for (int k = 0; k < nz; ++k)
+  {
+    for (int j = 0; j < ny; ++j)
+    {
+      for (int i = 0; i < nx; ++i)
+      {
+        int index = k * ny * nx + j * nx + i;
+        FieldVectorArray->SetTuple3(index, data1[0][i][j][k], data1[1][i][j][k], data1[2][i][j][k]);
+      }
+    }
+  }
+  structuredGrid->GetCellData()->AddArray(FieldVectorArray);
+
+  // Write to XML file
+  vtkSmartPointer<vtkXMLStructuredGridWriter> writer = vtkSmartPointer<vtkXMLStructuredGridWriter>::New();
+  writer->SetFileName((par->outpath + filename + "_" + to_string(i) + ".vti").c_str());
+  //    writer->SetFileName(filename.c_str());
+  writer->SetInputData(structuredGrid);
+  writer->Write();
+}
+/*
+int main() {
+    const int nx = 10;
+    const int ny = 10;
+    const int nz = 10;
+    const double spacing = 1.0; // Regular spacing between grid points
+    double origin[3] = {0.0, 0.0, 0.0}; // Origin of the grid
+
+    // Example electric vector data (Ex, Ey, Ez) for each grid point
+    double electricVector[nx][ny][nz][3];
+    // Initialize electric vector data (example)
+    for (int i = 0; i < nx; ++i) {
+        for (int j = 0; j < ny; ++j) {
+            for (int k = 0; k < nz; ++k) {
+                electricVector[i][j][k][0] = 1.0; // Example value for Ex
+                electricVector[i][j][k][1] = 0.0; // Example value for Ey
+                electricVector[i][j][k][2] = 0.0; // Example value for Ez
+            }
+        }
+    }
+
+    std::string filename = "electric_vector.vts";
+    saveElectricVector(filename, nx, ny, nz, spacing, origin, electricVector);
+
+    std::cout << "Electric vector data saved to " << filename << std::endl;
+
+    return 0;
+}
+*/
+/**
+ * This corrects the order of dimensions for view in paraview, as opposed to save_vti which prints the raw data.
+
+void save_vti_c(string filename, int i,
+                int ncomponents, double t,
+                float(*data1)[n_space_divz][n_space_divy][n_space_divz], par *par)
 {
   if (ncomponents > 3)
   {
@@ -104,7 +201,6 @@ void save_vti_c(string filename, int i,
   imageData->AllocateScalars(VTK_FLOAT, ncomponents);
   imageData->GetPointData()->GetScalars()->SetName(filename.c_str());
   float *data2 = static_cast<float *>(imageData->GetScalarPointer()); // Get a pointer to the density field array
-
   for (int k = 0; k < nz; ++k)
     for (int j = 0; j < ny; ++j)
       for (int i = 0; i < nx; ++i)
@@ -131,7 +227,7 @@ void save_vti_c(string filename, int i,
                                      // Set the time step value
   writer->Write();                   // Write the output file
 }
-
+*/
 void save_vtp(string filename, int i, uint64_t num, double t, int p, particles *pt, par *par)
 {
   // cout << "save_vti_p"<<endl;
@@ -173,7 +269,7 @@ void save_vtp(string filename, int i, uint64_t num, double t, int p, particles *
     dpos *= dpos;
     dpos2 += dpos;
     KE = 0.5 * mp[p] * (dpos2) / (e_charge_mass * par->dt[p] * par->dt[p]);
-     if (KE>=0)
+    if (KE >= 0)
     {
       kineticEnergy->InsertNextValue(KE);
       // in units of eV
