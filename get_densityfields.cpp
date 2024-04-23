@@ -13,7 +13,7 @@ void get_densityfields(fields *fi, particles *pt, par *par)
 
    commandQueue_g.enqueueFillBuffer(fi->buff_npi[0], 0, 0, n_cellsi);
    commandQueue_g.enqueueFillBuffer(fi->buff_cji[0], 0, 0, n_cellsi * 3);
-
+   res = clFinish(commandQueue_g());
    //  set arguments to be fed into the kernel program
    // cout << "kernel arguments for electron" << endl;
 
@@ -63,7 +63,7 @@ void get_densityfields(fields *fi, particles *pt, par *par)
 
    commandQueue_g.enqueueFillBuffer(fi->buff_npi[0], 0, 0, n_cellsi);
    commandQueue_g.enqueueFillBuffer(fi->buff_cji[0], 0, 0, n_cellsi * 3);
-
+   res = clFinish(commandQueue_g());
    kernel_density.setArg(0, pt->buff_x0_i[0]);          // x0
    kernel_density.setArg(1, pt->buff_y0_i[0]);          // y0
    kernel_density.setArg(2, pt->buff_z0_i[0]);          // z0
