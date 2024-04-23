@@ -1,6 +1,6 @@
 #define RamDisk // whether to use RamDisk if no ramdisk files will be in temp directory
 #define maxcells 32
-#define cldevice 1 // 0 usually means integrated GPU
+#define cldevice 0 // 0 usually means integrated GPU
 #define sphere     // do hot spot  problem
 // #define octant     // do hot spot problem 1/8 sphere. Magnetic fields do not make sense as will break symmetry
 //  #define cylinder //do hot rod problem

@@ -68,7 +68,7 @@ void cl_start(fields *fi, particles *pt, par *par)
         //     platform.getDevices(CL_DEVICE_TYPE_GPU | CL_DEVICE_TYPE_CPU, &devices);
         platform.getDevices(CL_DEVICE_TYPE_GPU, &devices);
         //       platform.getDevices(CL_DEVICE_TYPE_GPU, &devices);
-        int i=0;
+        int i = 0;
         for (cl::vector<cl::Device>::iterator it2 = devices.begin(); it2 != devices.end(); ++it2)
         {
             cl::Device device(*it2);
@@ -78,8 +78,8 @@ void cl_start(fields *fi, particles *pt, par *par)
             info_file << "\t\tDevice Type: " << device.getInfo<CL_DEVICE_TYPE>();
             info_file << " (GPU: " << CL_DEVICE_TYPE_GPU << ", CPU: " << CL_DEVICE_TYPE_CPU << ")" << std::endl;
             info_file << "\t\tDevice Vendor: " << device.getInfo<CL_DEVICE_VENDOR>() << std::endl;
-            par->maxcomputeunits[i]=device.getInfo<CL_DEVICE_MAX_COMPUTE_UNITS>();
-            info_file << "\t\tDevice Max Compute Units: " <<  par->maxcomputeunits[i] << std::endl;
+            par->maxcomputeunits[i] = device.getInfo<CL_DEVICE_MAX_COMPUTE_UNITS>();
+            info_file << "\t\tDevice Max Compute Units: " << par->maxcomputeunits[i] << std::endl;
             info_file << "\t\tDevice Global Memory: MB " << device.getInfo<CL_DEVICE_GLOBAL_MEM_SIZE>() / 1024 / 1024 << std::endl;
             info_file << "\t\tDevice Max Clock Frequency: MHz " << device.getInfo<CL_DEVICE_MAX_CLOCK_FREQUENCY>() << std::endl;
             info_file << "\t\tDevice Max Allocateable Memory MB: " << device.getInfo<CL_DEVICE_MAX_MEM_ALLOC_SIZE>() / 1024 / 1024 << std::endl;
@@ -96,11 +96,11 @@ void cl_start(fields *fi, particles *pt, par *par)
 
     cl::Platform default_platform = platforms[0];
     info_file << "Using platform: " << default_platform.getInfo<CL_PLATFORM_NAME>() << "\n";
-     //cout << "getdevice\n";
+    // cout << "getdevice\n";
     default_platform.getDevices(CL_DEVICE_TYPE_ALL, &devices);
     cl::Device default_device;
-    //device_id--;
-     cout << "device_id = " << device_id << endl;
+    // device_id--;
+    cout << "device_id = " << device_id << ", " << devices.size() << endl;
     device_id = (device_id >= cldevice) ? cldevice : device_id; // use dGPU only if available
     default_device = devices[device_id];
     info_file << "\t\tDevice Name: " << default_device.getInfo<CL_DEVICE_NAME>() << "\ndevice_id =" << device_id << endl;
@@ -194,7 +194,8 @@ void cl_start(fields *fi, particles *pt, par *par)
     static cl::Buffer buff_z1_i(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n4, fastIO ? pt->pos1z[1] : NULL); // z1
 
     static cl_mem r3_buffer = clCreateBuffer(context_g(), CL_MEM_READ_WRITE, (uint64_t)sizeof(complex<float>) * n_cells4 * 6, 0, &res);
-    if (res) cout << "r3_buffer" <<endl;
+    if (res)
+        cout << "r3_buffer" << endl;
     fi->r3_buffer = r3_buffer;
 #ifdef Uon_
     static cl_mem r2_buffer = clCreateBuffer(context_g(), CL_MEM_READ_WRITE, (uint64_t)sizeof(complex<float>) * n_cells4, 0, &res);
