@@ -138,13 +138,7 @@ void tnp(fields *fi, particles *pt, par *par)
       // timer.mark();
       // set externally applied fields this is inside time loop so we can set time varying E and B field
       /*
-      calcEeBe(Ee, Be, t); // find E field must work out every i,j,k depends on charge in every other cell
-   #ifdef Eon_
-      resFFT = transferDataFromCPU(&vkGPU, fi->Ee, &fi->Ee_buffer, 3 * n_cells * sizeof(float));
-   #endif
-   #ifdef Bon_
-      resFFT = transferDataFromCPU(&vkGPU, fi->Be, &fi->Be_buffer, 3 * n_cells * sizeof(float));
-   #endif
+      generateField(fi, par); // find E field must work out every i,j,k depends on charge in every other cell
       */
       par->cdt = calcEBV(fi, par);
       changedt(pt, par->cdt, par);
@@ -155,7 +149,7 @@ void tnp(fields *fi, particles *pt, par *par)
    if (!fastIO)
    {
       // cout << "for saving to disk"<<endl;
-      /*commandQueue_g.enqueueReadBuffer(pt->buff_x0_e[0], CL_TRUE, 0, n_partf, pt->pos0x[0]);
+      commandQueue_g.enqueueReadBuffer(pt->buff_x0_e[0], CL_TRUE, 0, n_partf, pt->pos0x[0]);
       commandQueue_g.enqueueReadBuffer(pt->buff_y0_e[0], CL_TRUE, 0, n_partf, pt->pos0y[0]);
       commandQueue_g.enqueueReadBuffer(pt->buff_z0_e[0], CL_TRUE, 0, n_partf, pt->pos0z[0]);
       commandQueue_g.enqueueReadBuffer(pt->buff_x1_e[0], CL_TRUE, 0, n_partf, pt->pos1x[0]);
@@ -167,7 +161,8 @@ void tnp(fields *fi, particles *pt, par *par)
       commandQueue_g.enqueueReadBuffer(pt->buff_z0_i[0], CL_TRUE, 0, n_partf, pt->pos0z[1]);
       commandQueue_g.enqueueReadBuffer(pt->buff_x1_i[0], CL_TRUE, 0, n_partf, pt->pos1x[1]);
       commandQueue_g.enqueueReadBuffer(pt->buff_y1_i[0], CL_TRUE, 0, n_partf, pt->pos1y[1]);
-      commandQueue_g.enqueueReadBuffer(pt->buff_z1_i[0], CL_TRUE, 0, n_partf, pt->pos1z[1]);*/
+      commandQueue_g.enqueueReadBuffer(pt->buff_z1_i[0], CL_TRUE, 0, n_partf, pt->pos1z[1]);
+      /*
 
       res = clEnqueueReadBuffer(commandQueue_g(), pt->buff_x0_e[0](), CL_TRUE, 0, n_partf, pt->pos0x[0], 0, NULL, NULL);
       res = clEnqueueReadBuffer(commandQueue_g(), pt->buff_y0_e[0](), CL_TRUE, 0, n_partf, pt->pos0y[0], 0, NULL, NULL);
@@ -182,18 +177,19 @@ void tnp(fields *fi, particles *pt, par *par)
       res = clEnqueueReadBuffer(commandQueue_g(), pt->buff_x1_i[0](), CL_TRUE, 0, n_partf, pt->pos1x[1], 0, NULL, NULL);
       res = clEnqueueReadBuffer(commandQueue_g(), pt->buff_y1_i[0](), CL_TRUE, 0, n_partf, pt->pos1y[1], 0, NULL, NULL);
       res = clEnqueueReadBuffer(commandQueue_g(), pt->buff_z1_i[0](), CL_TRUE, 0, n_partf, pt->pos1z[1], 0, NULL, NULL);
+      */
 
       commandQueue_g.enqueueReadBuffer(pt->buff_q_e[0], CL_TRUE, 0, n_partf, pt->q[0]);
       commandQueue_g.enqueueReadBuffer(pt->buff_q_i[0], CL_TRUE, 0, n_partf, pt->q[1]);
 
-      // commandQueue_g.enqueueReadBuffer(fi->buff_E[0], CL_TRUE, 0, n_cellsf * 3, fi->E);
-      res = clEnqueueReadBuffer(commandQueue_g(), fi->buff_E[0](), CL_TRUE, 0, n_cellsf * 3, fi->E, 0, NULL, NULL);
-      res = clEnqueueReadBuffer(commandQueue_g(), fi->buff_B[0](), CL_TRUE, 0, n_cellsf * 3, fi->B, 0, NULL, NULL);
-      //commandQueue_g.enqueueReadBuffer(fi->buff_B[0], CL_TRUE, 0, n_cellsf * 3, fi->B);
+      commandQueue_g.enqueueReadBuffer(fi->buff_E[0], CL_TRUE, 0, n_cellsf * 3, fi->E);
+      commandQueue_g.enqueueReadBuffer(fi->buff_B[0], CL_TRUE, 0, n_cellsf * 3, fi->B);
+      // res = clEnqueueReadBuffer(commandQueue_g(), fi->buff_E[0](), CL_TRUE, 0, n_cellsf * 3, fi->E, 0, NULL, NULL);
+      // res = clEnqueueReadBuffer(commandQueue_g(), fi->buff_B[0](), CL_TRUE, 0, n_cellsf * 3, fi->B, 0, NULL, NULL);
 
-      // commandQueue_g.enqueueReadBuffer(fi->buff_np_e[0], CL_TRUE, 0, n_cellsf, fi->np[0]);
+      commandQueue_g.enqueueReadBuffer(fi->buff_np_e[0], CL_TRUE, 0, n_cellsf, fi->np[0]);
       commandQueue_g.enqueueReadBuffer(fi->buff_np_i[0], CL_TRUE, 0, n_cellsf, fi->np[1]);
-      res = clEnqueueReadBuffer(commandQueue_g(), fi->buff_np_e[0](), CL_TRUE, 0, n_cellsf, fi->np[0], 0, NULL, NULL);
+      // res = clEnqueueReadBuffer(commandQueue_g(), fi->buff_np_e[0](), CL_TRUE, 0, n_cellsf, fi->np[0], 0, NULL, NULL);
 
       commandQueue_g.enqueueReadBuffer(fi->buff_currentj_e[0], CL_TRUE, 0, n_cellsf * 3, fi->currentj[0]);
       commandQueue_g.enqueueReadBuffer(fi->buff_currentj_i[0], CL_TRUE, 0, n_cellsf * 3, fi->currentj[1]);

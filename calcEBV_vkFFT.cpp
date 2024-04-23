@@ -399,18 +399,12 @@ int calcEBV(fields *fi, par *par)
         */
         // Set the arguments of the kernel
 
-#ifdef Uon_
-
-#else
-
-#endif
-
         first = 0; //      cout << "precalc done\n";
     }
 
 #ifdef Eon_
     {
-        clSetKernelArg(copyData_kernel, 0, sizeof(cl_mem), &fi->npt_buffer);
+        clSetKernelArg(copyData_kernel, 0, sizeof(cl_mem), &fi->npt_buffer); // Set the arguments of the kernel must be done every time. not just on first run
         clSetKernelArg(copyData_kernel, 1, sizeof(cl_mem), &fi->fft_real_buffer);
         res = clEnqueueNDRangeKernel(vkGPU.commandQueue, copyData_kernel, 1, NULL, &n_cells8, NULL, 0, NULL, NULL); //  copy density into zero padded double(8x) cube
         if (res)
