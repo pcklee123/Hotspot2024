@@ -136,12 +136,26 @@ void save_vti_c(string filename, int i,
         if (ncomponents == 3)
           FieldVectorArray->SetTuple3(index, data1[0][k * zk][j * yj][i * xi], data1[1][k * zk][j * yj][i * xi], data1[2][k * zk][j * yj][i * xi]);
         if (ncomponents == 1)
-          FieldVectorArray->SetTuple1(index, data1[0][k * zk][j * yj][i * xi]);
+        {
+          double data = 0;
+          for (int kk = 0; kk < zk; ++kk)
+          {
+            for (int jj = 0; jj < yj; ++jj)
+            {
+              for (int ii = 0; ii < xi; ++ii)
+              {
+                data+= data1[0][k * zk+kk][j * yj+jj][i * xi+ii];
+              }
+            }
+          }
+          data /= xi * yj * zk;
+          FieldVectorArray->SetTuple1(index, data);
+        }
       }
     }
   }
   structuredGrid->GetCellData()->AddArray(FieldVectorArray);
-    // Create a vtkDoubleArray to hold the field data
+  // Create a vtkDoubleArray to hold the field data
   vtkSmartPointer<vtkDoubleArray> timeArray = vtkSmartPointer<vtkDoubleArray>::New();
   timeArray->SetName("TimeValue");
   timeArray->SetNumberOfTuples(1);
@@ -152,7 +166,6 @@ void save_vti_c(string filename, int i,
   fieldData->AddArray(timeArray);
   // Write to XML file
   vtkSmartPointer<vtkXMLStructuredGridWriter> writer = vtkSmartPointer<vtkXMLStructuredGridWriter>::New();
-
 
   writer->SetFileName((par->outpath + filename + "_" + to_string(i) + ".vts").c_str());
   writer->SetDataModeToBinary();
