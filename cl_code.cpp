@@ -68,6 +68,7 @@ void cl_start(fields *fi, particles *pt, par *par)
         //     platform.getDevices(CL_DEVICE_TYPE_GPU | CL_DEVICE_TYPE_CPU, &devices);
         platform.getDevices(CL_DEVICE_TYPE_GPU, &devices);
         //       platform.getDevices(CL_DEVICE_TYPE_GPU, &devices);
+        int i=0;
         for (cl::vector<cl::Device>::iterator it2 = devices.begin(); it2 != devices.end(); ++it2)
         {
             cl::Device device(*it2);
@@ -77,7 +78,8 @@ void cl_start(fields *fi, particles *pt, par *par)
             info_file << "\t\tDevice Type: " << device.getInfo<CL_DEVICE_TYPE>();
             info_file << " (GPU: " << CL_DEVICE_TYPE_GPU << ", CPU: " << CL_DEVICE_TYPE_CPU << ")" << std::endl;
             info_file << "\t\tDevice Vendor: " << device.getInfo<CL_DEVICE_VENDOR>() << std::endl;
-            info_file << "\t\tDevice Max Compute Units: " << device.getInfo<CL_DEVICE_MAX_COMPUTE_UNITS>() << std::endl;
+            par->maxcomputeunits[i]=device.getInfo<CL_DEVICE_MAX_COMPUTE_UNITS>();
+            info_file << "\t\tDevice Max Compute Units: " <<  par->maxcomputeunits[i] << std::endl;
             info_file << "\t\tDevice Global Memory: MB " << device.getInfo<CL_DEVICE_GLOBAL_MEM_SIZE>() / 1024 / 1024 << std::endl;
             info_file << "\t\tDevice Max Clock Frequency: MHz " << device.getInfo<CL_DEVICE_MAX_CLOCK_FREQUENCY>() << std::endl;
             info_file << "\t\tDevice Max Allocateable Memory MB: " << device.getInfo<CL_DEVICE_MAX_MEM_ALLOC_SIZE>() / 1024 / 1024 << std::endl;
@@ -85,6 +87,7 @@ void cl_start(fields *fi, particles *pt, par *par)
             info_file << "\t\tDevice addr_align: kB " << device.getInfo<CL_DEVICE_MEM_BASE_ADDR_ALIGN>() << std::endl;
             info_file << "\t\tDevice Local Memory: kB " << device.getInfo<CL_DEVICE_LOCAL_MEM_SIZE>() / 1024 << std::endl;
             info_file << "\t\tDevice Available: " << device.getInfo<CL_DEVICE_AVAILABLE>() << std::endl;
+            ++i;
         }
         info_file << std::endl;
     }

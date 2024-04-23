@@ -9,7 +9,7 @@
 constexpr double weibullb = 4; // b factor for weibull. larger means closer to a shell. ~1 means filled more at the center.
 #define Temp_e 1e7             // in Kelvin 1e7 ~1keV
 #define Temp_d 1e7             // in Kelvin
-constexpr int f1 = 20;       // make bigger to make smaller time steps // 100 is min for sphere slight increase in KE
+constexpr int f1 = 20;         // make bigger to make smaller time steps // 100 is min for sphere slight increase in KE
 constexpr int f2 = f1 * 1.2;
 constexpr float incf = 1.2f;        // increment
 constexpr float decf = 1.0f / incf; // decrement factor
@@ -29,7 +29,7 @@ constexpr float Ez0 = 0.0f;       // in V/m
 constexpr float vz0 = 0.0f;
 constexpr float a0 = 0.25e-6; // typical dimensions of a cell in m This needs to be smaller than debye length otherwise energy is not conserved if a particle moves across a cell
 constexpr float a0_ff = 1.0 + 8.0 / (float)n_space;
-constexpr float target_part = 1e6; // 3.5e22 particles per m^3 per torr of ideal gas. 7e22 electrons for 1 torr of deuterium
+constexpr float target_part = 1e8; // 3.5e22 particles per m^3 per torr of ideal gas. 7e22 electrons for 1 torr of deuterium
 constexpr float v0_r = 0;          // initial directed radial velocity outwards is positive
 
 // The maximum expected E and B fields. If fields go beyond this, the the time step, cell size etc will be wrong. Should adjust and recalculate.
@@ -56,12 +56,12 @@ constexpr int md_me = 60;        // ratio of electron speed/deuteron speed at th
 #define Hist_max 50000 // 50keV
 #define trilinon_
 
-#define Eon_     // whether to calculate the internally generated electric (E) field externally applied fields are always on
-//#define Uon_     // whether to calculate the electric (V) potential and potential energy (U). Needs Eon to be enabled.
-//#define UE_field // whether to calculate the total energy due to electric energy density
-//#define UE_cell // whether to calculate the EPE due to particles within a cell
-#define Bon_     // whether to calculate the internally generated magnetic (B) field
-//#define UB_field // whether to calculate the total energy due to magnetic energy density
+#define Eon_ // whether to calculate the internally generated electric (E) field externally applied fields are always on
+// #define Uon_     // whether to calculate the electric (V) potential and potential energy (U). Needs Eon to be enabled.
+// #define UE_field // whether to calculate the total energy due to electric energy density
+// #define UE_cell // whether to calculate the EPE due to particles within a cell
+#define Bon_ // whether to calculate the internally generated magnetic (B) field
+// #define UB_field // whether to calculate the total energy due to magnetic energy density
 #define EFon_ // whether to apply electric force
 #define BFon_ // whether to apply magnetic force
 #define printDensity
@@ -164,6 +164,7 @@ struct par // useful parameters
     // cl_mem buff_E = 0;
     // cl_mem buff_B = 0;
     int cdt = 0;
+    unsigned int maxcomputeunits[10];
 };
 
 struct particles // particles

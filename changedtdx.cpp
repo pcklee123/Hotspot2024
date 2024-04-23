@@ -5,7 +5,6 @@ int changedt(particles *pt, int cdt, par *par)
     //   cout << endl<< cdt << " ";
     switch (par->cdt)
     {
-
     case 1: //
         inc = decf;
         par->dt[0] *= decf;
@@ -48,12 +47,7 @@ int changedt(particles *pt, int cdt, par *par)
         //   cout << "no change dt" << endl;
         return 0;
     }
-    /*
-#pragma omp parallel for simd
-    for (int n = 0; n < par->n_part[0] * 3 * 2; n++)
-        pt->pos0[n] = pt->pos1[n] - (pt->pos1[n] - pt->pos0[n]) * inc;
     //   cout << "dt changed" << endl;
-    */
     static cl::Kernel kernel_recalcposchangedt = cl::Kernel(program_g, "recalcposchangedt");
     kernel_recalcposchangedt.setArg(0, pt->buff_x0_e[0]);    // x0
     kernel_recalcposchangedt.setArg(1, pt->buff_y0_e[0]);    // y0
