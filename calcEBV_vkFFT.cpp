@@ -51,24 +51,10 @@ int calcEBV(fields *fi, par *par)
     static const size_t n_4 = n_cells / 4;
     static auto EUtot = new float[n_4];
     static float posL2[3];
-    /*   cl_kernel copyData_kernel;
-    cl_kernel copy3Data_kernel;
-    cl_kernel NxPrecalc_kernel;
-    cl_kernel NxPrecalcnU_kernel;
-    cl_kernel NxPrecalcr2_kernel;
-    cl_kernel jcxPrecalc_kernel;
-    cl_kernel sumFftFieldo_kernel;
-    cl_kernel sumFftField_kernel;
-    cl_kernel sumFftSField_kernel;
-    cl_kernel copyextField_kernel;
-    cl_kernel EUEst_kernel;
-    cl_kernel maxvalf_kernel;
-    cl_kernel maxval3f_kernel;*/
+
     static cl_kernel copyData_kernel;
     static cl_kernel copy3Data_kernel;
-   static  cl_kernel NxPrecalc_kernel;
-//    static cl_kernel NxPrecalcnU_kernel;
-    static cl_kernel NxPrecalcr2_kernel;
+
     static cl_kernel jcxPrecalc_kernel;
     static cl_kernel sumFftFieldo_kernel;
     static cl_kernel sumFftField_kernel;
@@ -77,7 +63,11 @@ int calcEBV(fields *fi, par *par)
     static cl_kernel EUEst_kernel;
     static cl_kernel maxvalf_kernel;
     static cl_kernel maxval3f_kernel;
-
+#ifdef Uon_
+    static cl_kernel NxPrecalc_kernel;
+#else
+    static cl_kernel NxPrecalcr2_kernel;
+#endif
     static VkFFTApplication app1 = {};
     static VkFFTApplication app3 = {};
     static VkFFTApplication appbac3 = {};
@@ -115,8 +105,14 @@ int calcEBV(fields *fi, par *par)
     // Create the OpenCL kernel
     copyData_kernel = clCreateKernel(program_g(), "copyData", NULL);
     copy3Data_kernel = clCreateKernel(program_g(), "copy3Data", NULL);
-    NxPrecalc_kernel = clCreateKernel(program_g(), "NxPrecalc", NULL);
-    NxPrecalcr2_kernel = clCreateKernel(program_g(), "NxPrecalcr2", NULL);
+#ifdef Uon_
+    //  static cl_kernel NxPrecalcr2_kernel;
+    static cl_kernel NxPrecalcr2_kernel = clCreateKernel(program_g(), "NxPrecalcr2", NULL);
+#else
+    // static cl_kernel NxPrecalc_kernel;
+    static cl_kernel NxPrecalc_kernel = clCreateKernel(program_g(), "NxPrecalc", NULL);
+#endif
+
     jcxPrecalc_kernel = clCreateKernel(program_g(), "jcxPrecalc", NULL);
 #ifdef octant
     sumFftField_kernel = clCreateKernel(program_g(), "sumFftFieldo", NULL); // want rollover fields in x,y,z
@@ -408,16 +404,17 @@ int calcEBV(fields *fi, par *par)
         clSetKernelArg(copy3Data_kernel, 0, sizeof(cl_mem), &fi->jc_buffer);
         clSetKernelArg(copy3Data_kernel, 1, sizeof(cl_mem), &fi->fft_real_buffer);
 
-        res = clSetKernelArg(NxPrecalc_kernel, 0, sizeof(cl_mem), &fi->r3_buffer);
-                if (res)
-            cout << "clSetKernelArg NxPrecalc_kernel 0 res: " << resFFT << endl;
-        res = clSetKernelArg(NxPrecalc_kernel, 1, sizeof(cl_mem), &fi->fft_complex_buffer);
-                        if (res)
-            cout << "clSetKernelArg NxPrecalc_kernel 1 res: " << resFFT << endl;
 #ifdef Uon_
         clSetKernelArg(NxPrecalcr2_kernel, 0, sizeof(cl_mem), &fi->r2_buffer);
         clSetKernelArg(NxPrecalcr2_kernel, 1, sizeof(cl_mem), &fi->r3_buffer);
         clSetKernelArg(NxPrecalcr2_kernel, 2, sizeof(cl_mem), &fi->fft_complex_buffer);
+#else
+        res = clSetKernelArg(NxPrecalc_kernel, 0, sizeof(cl_mem), &fi->r3_buffer);
+        if (res)
+            cout << "clSetKernelArg NxPrecalc_kernel 0 res: " << resFFT << endl;
+        res = clSetKernelArg(NxPrecalc_kernel, 1, sizeof(cl_mem), &fi->fft_complex_buffer);
+        if (res)
+            cout << "clSetKernelArg NxPrecalc_kernel 1 res: " << resFFT << endl;
 #endif
 
         clSetKernelArg(jcxPrecalc_kernel, 0, sizeof(cl_mem), &fi->r3_buffer);
@@ -438,7 +435,7 @@ int calcEBV(fields *fi, par *par)
 
 #ifdef Uon_
         res = clEnqueueNDRangeKernel(vkGPU.commandQueue, NxPrecalcr2_kernel, 1, NULL, &n_cells4, NULL, 0, NULL, NULL); //  multiply FFT of density with precalc for both E[0-2] and V[3]
-                if (res)
+        if (res)
             cout << "NxPrecalcr2_kernel res: " << res << endl;
         res = clFinish(vkGPU.commandQueue);
         resFFT = VkFFTAppend(&appbac4, 1, &launchParams);                                                              // cout << "inverse transform to get convolution" << endl;                                                             // 1 = inverse FFT//if (resFFT)                cout << "execute plan bac E resFFT = " << resFFT << endl;

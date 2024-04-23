@@ -191,6 +191,7 @@ void cl_start(fields *fi, particles *pt, par *par)
     static cl::Buffer buff_z1_i(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n4, fastIO ? pt->pos1z[1] : NULL); // z1
 
     static cl_mem r3_buffer = clCreateBuffer(context_g(), CL_MEM_READ_WRITE, (uint64_t)sizeof(complex<float>) * n_cells4 * 6, 0, &res);
+    if (res) cout << "r3_buffer" <<endl;
     fi->r3_buffer = r3_buffer;
 #ifdef Uon_
     static cl_mem r2_buffer = clCreateBuffer(context_g(), CL_MEM_READ_WRITE, (uint64_t)sizeof(complex<float>) * n_cells4, 0, &res);
