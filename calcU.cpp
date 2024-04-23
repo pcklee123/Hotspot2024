@@ -25,6 +25,9 @@ void calcU(fields *fi, particles *pt, par *par)
 #pragma omp parallel for reduction(+ : EUtot)
         for (int n = 0; n < par->n_part[p]; ++n)
         {
+            pt->pos1x[p][n] = (pt->pos1x[p][n] > par->posL[0]) ? ((pt->pos1x[p][n] < par->posH[0]) ? pt->pos1x[p][n] : par->posH[0]) : par->posL[0];
+            pt->pos1y[p][n] = (pt->pos1y[p][n] > par->posL[1]) ? ((pt->pos1y[p][n] < par->posH[1]) ? pt->pos1y[p][n] : par->posH[1]) : par->posL[1];
+            pt->pos1z[p][n] = (pt->pos1z[p][n] > par->posL[2]) ? ((pt->pos1z[p][n] < par->posH[2]) ? pt->pos1z[p][n] : par->posH[2]) : par->posL[2];
             float dx = (pt->pos1x[p][n] - par->posL[0]) * dd0; // Get the cell positions in decimal
             float dy = (pt->pos1y[p][n] - par->posL[1]) * dd1;
             float dz = (pt->pos1z[p][n] - par->posL[2]) * dd2;
@@ -55,23 +58,23 @@ void calcU(fields *fi, particles *pt, par *par)
 // Calculate energy between particles when they are in the same cell
 #ifdef UE_cell
     static auto pos = new position[n_partd * 2];
-    const int limit = n_part[0] + n_part[1];
+    const int limit = par->n_part[0] + par->n_part[1];
     if (limit > 1)
     {
         // Set the position data
         int idx = 0;
         for (int p = 0; p < 2; ++p)
         {
-            for (int n = 0; n < n_part[p]; ++n)
+            for (int n = 0; n < par->n_part[p]; ++n)
             {
                 position *curr = &pos[idx++];
-                curr->x = posx[p][n];
-                curr->y = posy[p][n];
-                curr->z = posz[p][n];
-                curr->charge = q[p][n];
-                unsigned int dx = (posx[p][n] - posL[0]) * dd0;
-                unsigned int dy = (posy[p][n] - posL[1]) * dd1;
-                unsigned int dz = (posz[p][n] - posL[2]) * dd2;
+                curr->x = pt->pos1x[p][n];
+                curr->y = pt->pos1y[p][n];
+                curr->z = pt->pos1z[p][n];
+                curr->charge = pt->q[p][n];
+                unsigned int dx = (pt->pos1x[p][n] - par->posL[0]) * dd0;
+                unsigned int dy = (pt->pos1y[p][n] - par->posL[1]) * dd1;
+                unsigned int dz = (pt->pos1z[p][n] - par->posL[2]) * dd2;
                 curr->cell = (dz * n_space_divy + dy) * n_space_divx + dx;
             }
         }

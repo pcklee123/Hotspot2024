@@ -2,7 +2,18 @@
 void get_densityfields(fields *fi, particles *pt, par *par)
 {
    static bool first = true;
+   uint32_t np = n_partd;
+   size_t n = n_partd / 2048;
+   static cl_mem nt_buffer;
+   static int *nt_array;
    cl_int res = 0;
+   if (first)
+   {
+      nt_buffer = clCreateBuffer(context_g(), CL_MEM_READ_WRITE, n * sizeof(int), 0, &res);
+      nt_array = (int *)_aligned_malloc(sizeof(int) * n, par->cl_align);
+      first = false;
+   }
+
    // static cl::Kernel kernel_density, kernel_df, kernel_dtotal;
 
    cl::Kernel kernel_density = cl::Kernel(program_g, "density"); // select the kernel program to run
@@ -32,11 +43,6 @@ void get_densityfields(fields *fi, particles *pt, par *par)
    if (res)
       cout << "kernel_density e  res: " << res << endl; // cout << "run kernel for electron done" << endl;
    commandQueue_g.finish();
-
-   uint32_t np = n_partd;
-   size_t n = n_partd / 2048;
-   cl_mem nt_buffer = clCreateBuffer(context_g(), CL_MEM_READ_WRITE, n * sizeof(int), 0, &res);
-   int *nt_array = (int *)_aligned_malloc(sizeof(int) * n, par->cl_align);
 
    clSetKernelArg(nsumi_kernel, 0, sizeof(cl_mem), &(pt->buff_q_e[0]()));
    clSetKernelArg(nsumi_kernel, 1, sizeof(cl_mem), &nt_buffer);
@@ -93,8 +99,6 @@ void get_densityfields(fields *fi, particles *pt, par *par)
    par->nt[1] = nt;
    // cout << "nt (e) = " << par->nt[0] << ", nt (i) = " << par->nt[1] << ", n = " << n << endl;
    //  cout << "nt (i) = " << nt << endl;
-   _aligned_free(nt_array);
-   clReleaseMemObject(nt_buffer);
 
    kernel_df.setArg(0, fi->buff_np_i[0]);          // np ion
    kernel_df.setArg(1, fi->buff_npi[0]);           // np ion temp integer

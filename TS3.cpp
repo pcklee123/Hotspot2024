@@ -156,6 +156,7 @@ int main()
 #ifdef Uon_
     // cout << "calculate the total potential energy U\n";
     //                  timer.mark();
+    commandQueue_g.enqueueReadBuffer(fi->buff_V[0], CL_TRUE, 0, n_cellsf, fi->V);
     calcU(fi, pt, par);
 // cout << "U: " << timer.elapsed() << "s, ";
 #endif

@@ -9,7 +9,7 @@
 constexpr double weibullb = 4; // b factor for weibull. larger means closer to a shell. ~1 means filled more at the center.
 #define Temp_e 1e7             // in Kelvin 1e7 ~1keV
 #define Temp_d 1e7             // in Kelvin
-constexpr int f1 = 40;       // make bigger to make smaller time steps // 100 is min for sphere slight increase in KE
+constexpr int f1 = 20;       // make bigger to make smaller time steps // 100 is min for sphere slight increase in KE
 constexpr int f2 = f1 * 1.2;
 constexpr float incf = 1.2f;        // increment
 constexpr float decf = 1.0f / incf; // decrement factor
@@ -57,10 +57,11 @@ constexpr int md_me = 60;        // ratio of electron speed/deuteron speed at th
 #define trilinon_
 
 #define Eon_     // whether to calculate the internally generated electric (E) field externally applied fields are always on
-#define Uon_     // whether to calculate the electric (V) potential and potential energy (U). Needs Eon to be enabled.
-#define UE_field //
+//#define Uon_     // whether to calculate the electric (V) potential and potential energy (U). Needs Eon to be enabled.
+//#define UE_field // whether to calculate the total energy due to electric energy density
+//#define UE_cell // whether to calculate the EPE due to particles within a cell
 #define Bon_     // whether to calculate the internally generated magnetic (B) field
-#define UB_field
+//#define UB_field // whether to calculate the total energy due to magnetic energy density
 #define EFon_ // whether to apply electric force
 #define BFon_ // whether to apply magnetic force
 #define printDensity
