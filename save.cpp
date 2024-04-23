@@ -100,15 +100,15 @@ void save_vti_c(string filename, int i,
   int ny = par->n_space_div[1] / yj;
   int nz = par->n_space_div[2] / zk;
   // Set dimensions
-  structuredGrid->SetDimensions(nx, ny, nz);
+  structuredGrid->SetDimensions(nx + 1, ny + 1, nz + 1);
 
-  // Set points
+  // Set points at the vertices
   vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
-  for (int k = 0; k < nz; ++k)
+  for (int k = 0; k <= nz; ++k)
   {
-    for (int j = 0; j < ny; ++j)
+    for (int j = 0; j <= ny; ++j)
     {
-      for (int i = 0; i < nx; ++i)
+      for (int i = 0; i <= nx; ++i)
       {
         double point[3];
         point[0] = par->posL[0] + i * par->dd[0] * xi;
@@ -123,8 +123,9 @@ void save_vti_c(string filename, int i,
   // Set electric vector data
   vtkSmartPointer<vtkDoubleArray> FieldVectorArray = vtkSmartPointer<vtkDoubleArray>::New();
   FieldVectorArray->SetName(filename.c_str());
-  FieldVectorArray->SetNumberOfComponents(3); // Three components (Ex, Ey, Ez)
-  FieldVectorArray->SetNumberOfTuples(nx * ny * nz);
+  // cout << filename << ", " <<nx*ny*nz << endl;
+  FieldVectorArray->SetNumberOfComponents(ncomponents); // Three components (Ex, Ey, Ez)
+  FieldVectorArray->SetNumberOfTuples((nx) * (ny) * (nz));
   for (int k = 0; k < nz; ++k)
   {
     for (int j = 0; j < ny; ++j)
@@ -132,48 +133,36 @@ void save_vti_c(string filename, int i,
       for (int i = 0; i < nx; ++i)
       {
         int index = k * ny * nx + j * nx + i;
-        FieldVectorArray->SetTuple3(index, data1[0][i][j][k], data1[1][i][j][k], data1[2][i][j][k]);
+        if (ncomponents == 3)
+          FieldVectorArray->SetTuple3(index, data1[0][k * zk][j * yj][i * xi], data1[1][k * zk][j * yj][i * xi], data1[2][k * zk][j * yj][i * xi]);
+        if (ncomponents == 1)
+          FieldVectorArray->SetTuple1(index, data1[0][k * zk][j * yj][i * xi]);
       }
     }
   }
   structuredGrid->GetCellData()->AddArray(FieldVectorArray);
+    // Create a vtkDoubleArray to hold the field data
+  vtkSmartPointer<vtkDoubleArray> timeArray = vtkSmartPointer<vtkDoubleArray>::New();
+  timeArray->SetName("TimeValue");
+  timeArray->SetNumberOfTuples(1);
+  timeArray->SetValue(0, t);
 
+  // Add the field data to the FieldVectorArray data
+  vtkSmartPointer<vtkFieldData> fieldData = structuredGrid->GetFieldData();
+  fieldData->AddArray(timeArray);
   // Write to XML file
   vtkSmartPointer<vtkXMLStructuredGridWriter> writer = vtkSmartPointer<vtkXMLStructuredGridWriter>::New();
-  writer->SetFileName((par->outpath + filename + "_" + to_string(i) + ".vti").c_str());
-  //    writer->SetFileName(filename.c_str());
+
+
+  writer->SetFileName((par->outpath + filename + "_" + to_string(i) + ".vts").c_str());
+  writer->SetDataModeToBinary();
+  // writer->SetCompressorTypeToLZ4();
+  writer->SetCompressorTypeToZLib(); // Enable compression
+  writer->SetCompressionLevel(9);    // Set the level of compression (0-9)
   writer->SetInputData(structuredGrid);
   writer->Write();
 }
-/*
-int main() {
-    const int nx = 10;
-    const int ny = 10;
-    const int nz = 10;
-    const double spacing = 1.0; // Regular spacing between grid points
-    double origin[3] = {0.0, 0.0, 0.0}; // Origin of the grid
 
-    // Example electric vector data (Ex, Ey, Ez) for each grid point
-    double electricVector[nx][ny][nz][3];
-    // Initialize electric vector data (example)
-    for (int i = 0; i < nx; ++i) {
-        for (int j = 0; j < ny; ++j) {
-            for (int k = 0; k < nz; ++k) {
-                electricVector[i][j][k][0] = 1.0; // Example value for Ex
-                electricVector[i][j][k][1] = 0.0; // Example value for Ey
-                electricVector[i][j][k][2] = 0.0; // Example value for Ez
-            }
-        }
-    }
-
-    std::string filename = "electric_vector.vts";
-    saveElectricVector(filename, nx, ny, nz, spacing, origin, electricVector);
-
-    std::cout << "Electric vector data saved to " << filename << std::endl;
-
-    return 0;
-}
-*/
 /**
  * This corrects the order of dimensions for view in paraview, as opposed to save_vti which prints the raw data.
 
@@ -228,6 +217,7 @@ void save_vti_c(string filename, int i,
   writer->Write();                   // Write the output file
 }
 */
+
 void save_vtp(string filename, int i, uint64_t num, double t, int p, particles *pt, par *par)
 {
   // cout << "save_vti_p"<<endl;
