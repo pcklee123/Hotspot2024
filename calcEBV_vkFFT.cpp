@@ -471,7 +471,7 @@ int calcEBV(fields *fi, par *par)
 
 #ifdef Bon_
     {
-        clSetKernelArg(copy3Data_kernel, 0, sizeof(cl_mem), &fi->jc_buffer);
+        clSetKernelArg(copy3Data_kernel, 0, sizeof(cl_mem), &(fi->buff_jc[0]()));
         clSetKernelArg(copy3Data_kernel, 1, sizeof(cl_mem), &fi->fft_real_buffer);
         res = clEnqueueNDRangeKernel(vkGPU.commandQueue, copy3Data_kernel, 1, NULL, &n_cells8, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
         if (res)
