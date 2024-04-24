@@ -128,6 +128,7 @@ void kernel copyData(global const float *npt, global float *fft_real) {
   //  Copy element from source to destination array or with zeroes
   fft_real[idx] = (in) ? npt[source_index] : 0;
 }
+
 void kernel NxPrecalc(global const float2 *r3, global float2 *fft_complex) {
   const uint n = 4 * NZ * NY * (NX + 1);
   uint i = get_global_id(0), j = i + n, k = j + n;
@@ -142,27 +143,26 @@ void kernel NxPrecalc(global const float2 *r3, global float2 *fft_complex) {
       (float2)(b.s0 * c.s0 - b.s1 * c.s1, b.s0 * c.s1 + b.s1 * c.s0);
 }
 
-void kernel jcxPrecalc(global const float2 *r3, global float2 *ptr) {
+void kernel jcxPrecalc(global const float2 *r3, global float2 *jc) {
   float2 t1, t2, t3;
   const uint n = 4 * NZ * NY * (NX + 1);
-  uint i = get_global_id(0), j = i + n, k = j + n, i1 = k + n, j1 = i1 + n,
-       k1 = j1 + n;
-  t1 = (float2)(ptr[j].s0 * r3[k1].s0 - ptr[j].s1 * r3[k1].s1,
-                ptr[j].s0 * r3[k1].s1 + ptr[j].s1 * r3[k1].s0) -
-       (float2)(ptr[k].s0 * r3[j1].s0 - ptr[k].s1 * r3[j1].s1,
-                ptr[k].s0 * r3[j1].s1 + ptr[k].s1 * r3[j1].s0);
-  t2 = (float2)(ptr[k].s0 * r3[i1].s0 - ptr[i].s1 * r3[k1].s1,
-                ptr[k].s0 * r3[i1].s1 + ptr[i].s1 * r3[k1].s0) -
-       (float2)(ptr[i].s0 * r3[k1].s0 - ptr[k].s1 * r3[i1].s1,
-                ptr[i].s0 * r3[k1].s1 + ptr[k].s1 * r3[i1].s0);
-  t3 = (float2)(ptr[i].s0 * r3[j1].s0 - ptr[i].s1 * r3[j1].s1,
-                ptr[i].s0 * r3[j1].s1 + ptr[i].s1 * r3[j1].s0) -
-       (float2)(ptr[j].s0 * r3[i1].s0 - ptr[j].s1 * r3[i1].s1,
-                ptr[j].s0 * r3[i1].s1 + ptr[j].s1 * r3[i1].s0);
-  // ptr[i] * r3[j1] - ptr[j] * r3[i1];
-  ptr[i] = t1;
-  ptr[j] = t2;
-  ptr[k] = t3;
+  uint x = get_global_id(0), y = x + n, z = y + n, x1 = k + n, y1 = x1 + n,
+       z1 = k1 + n;
+  t1 = (float2)(jc[y].s0 * r3[z1].s0 - jc[y].s1 * r3[z1].s1,
+                jc[y].s0 * r3[z1].s1 + jc[y].s1 * r3[z1].s0) -
+       (float2)(jc[z].s0 * r3[y1].s0 - jc[z].s1 * r3[y1].s1,
+                jc[z].s0 * r3[y1].s1 + jc[z].s1 * r3[y1].s0);
+  t2 = (float2)(jc[z].s0 * r3[x1].s0 - jc[x].s1 * r3[z1].s1,
+                jc[z].s0 * r3[x1].s1 + jc[x].s1 * r3[z1].s0) -
+       (float2)(jc[x].s0 * r3[z1].s0 - jc[z].s1 * r3[x1].s1,
+                jc[x].s0 * r3[z1].s1 + jc[z].s1 * r3[x1].s0);
+  t3 = (float2)(jc[x].s0 * r3[y1].s0 - jc[x].s1 * r3[y1].s1,
+                jc[x].s0 * r3[y1].s1 + jc[x].s1 * r3[y1].s0) -
+       (float2)(jc[y].s0 * r3[x1].s0 - jc[y].s1 * r3[x1].s1,
+                jc[y].s0 * r3[x1].s1 + jc[y].s1 * r3[x1].s0);
+  jc[x] = t1;
+  jc[y] = t2;
+  jc[z] = t3;
 }
 
 void kernel NxPrecalcr2(global const float2 *r2, global const float2 *r3,

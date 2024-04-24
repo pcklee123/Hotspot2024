@@ -56,7 +56,7 @@ int calcEBV(fields *fi, par *par)
     static cl_kernel copy3Data_kernel;
 
     static cl_kernel jcxPrecalc_kernel;
-    static cl_kernel sumFftFieldo_kernel;
+    // static cl_kernel sumFftFieldo_kernel;
     static cl_kernel sumFftField_kernel;
     static cl_kernel sumFftSField_kernel;
     static cl_kernel copyextField_kernel;
@@ -330,8 +330,8 @@ int calcEBV(fields *fi, par *par)
         }
         // Multiply by the respective constants here, since it is faster to parallelize it
         const float Vconst = kc * e_charge * r_part_spart / n_cells8;
+        // const float Aconst = 1e-7 * e_charge * r_part_spart / n_cells8;
         const float Aconst = 1e-7 * e_charge * r_part_spart / n_cells8;
-
 #pragma omp parallel for simd num_threads(nthreads)
         for (size_t i = 0; i < n_cells8 * 3; i++)
             reinterpret_cast<float *>(precalc_r3_base[0])[i] *= Vconst;
@@ -446,7 +446,9 @@ int calcEBV(fields *fi, par *par)
             cout << "NxPrecalc_kernel res: " << res << endl;
         res = clFinish(vkGPU.commandQueue);
         resFFT = VkFFTAppend(&appbac3, 1, &launchParams); // 1 = inverse FFT//if (resFFT) // cout << "inverse transform to get convolution" << endl;               cout << "execute plan bac E resFFT = " << resFFT << endl;
-        res = clFinish(vkGPU.commandQueue);               // cout << "execute plan bac E ,clFinish res = " << res << endl;
+        if (resFFT)
+            cout << "appbac3 resFFT: " << resFFT << endl;
+        res = clFinish(vkGPU.commandQueue); // cout << "execute plan bac E ,clFinish res = " << res << endl;
 
 #endif
         clSetKernelArg(sumFftField_kernel, 0, sizeof(cl_mem), &fi->fft_real_buffer); // real[0-2] is E field
@@ -472,16 +474,22 @@ int calcEBV(fields *fi, par *par)
         clSetKernelArg(copy3Data_kernel, 0, sizeof(cl_mem), &fi->jc_buffer);
         clSetKernelArg(copy3Data_kernel, 1, sizeof(cl_mem), &fi->fft_real_buffer);
         res = clEnqueueNDRangeKernel(vkGPU.commandQueue, copy3Data_kernel, 1, NULL, &n_cells8, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
+        if (res)
+            cout << "copy3Data_kernel B  res: " << res << endl;
         res = clFinish(vkGPU.commandQueue);
         resFFT = VkFFTAppend(&app3, -1, &launchParams); // -1 = forward transform // cout << "execute plan for E resFFT = " << resFFT << endl;
-        res = clFinish(vkGPU.commandQueue);             //  cout << "execute plan for E" << endl;
+        if (resFFT)
+            cout << "app3 B resFFT: " << resFFT << endl;
+        res = clFinish(vkGPU.commandQueue); //  cout << "execute plan for E" << endl;
         clSetKernelArg(jcxPrecalc_kernel, 0, sizeof(cl_mem), &fi->r3_buffer);
         clSetKernelArg(jcxPrecalc_kernel, 1, sizeof(cl_mem), &fi->fft_complex_buffer);
-        res = clEnqueueNDRangeKernel(vkGPU.commandQueue, jcxPrecalc_kernel, 1, NULL, &n_cells8, NULL, 0, NULL, NULL);
+        res = clEnqueueNDRangeKernel(vkGPU.commandQueue, jcxPrecalc_kernel, 1, NULL, &n_cells4, NULL, 0, NULL, NULL);
+        if (res)
+            cout << "jcxPrecalc_kernel B  res: " << res << endl;
         res = clFinish(vkGPU.commandQueue);
         resFFT = VkFFTAppend(&appbac3, 1, &launchParams); // 1 = inverse FFT// cout << "execute plan bac E resFFT = " << resFFT << endl;
         if (resFFT)
-            cout << "appbac3 resFFT: " << resFFT << endl;
+            cout << "appbac3 B resFFT: " << resFFT << endl;
         res = clFinish(vkGPU.commandQueue);                                          // cout << "execute plan bac E ,clFinish res = " << res << endl;
                                                                                      // resFFT = transferDataToCPU(&vkGPU, &fft_real[0][0], &fi->fft_real_buffer, bufferSize_R3);
         clSetKernelArg(sumFftField_kernel, 0, sizeof(cl_mem), &fi->fft_real_buffer); // real[0-2] is E field

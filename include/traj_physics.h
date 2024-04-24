@@ -23,12 +23,12 @@ constexpr size_t nback = n_partd / 16; // background stationary particles distri
 constexpr float R_s = n_space / 1;                                 // LPF smoothing radius
 constexpr float r0_f[3] = {n_space / 8 - 1, n_space / 8, n_space/2}; //  radius of sphere or cylinder (electron, ion, plasma)
 
-constexpr float Bz0 = 10.0001;     // in T, static constant fields
-constexpr float Btheta0 = 100.0001; // in T, static constant fields
-constexpr float Ez0 = 0.0f;       // in V/m
-constexpr float vz0 = 0.0f;
+constexpr float Bz0 = 0.00001;     // in T, static constant fields
+constexpr float Btheta0 = 0.00001; // in T, static constant fields
+constexpr float Ez0 = 1.0e8;       // in V/m
+constexpr float vz0 = 3.0e7f;
 constexpr float a0 = 1e-6; // typical dimensions of a cell in m This needs to be smaller than debye length otherwise energy is not conserved if a particle moves across a cell
-constexpr float a0_ff = 1.0 + 8.0 / (float)n_space;
+constexpr float a0_ff = 1.0 + 2.0 / (float)n_space;
 constexpr float target_part = 1e10; // 3.5e22 particles per m^3 per torr of ideal gas. 7e22 electrons for 1 torr of deuterium
 constexpr float v0_r = 0;          // initial directed radial velocity outwards is positive
 
@@ -47,8 +47,8 @@ constexpr unsigned int ncoeff = 8;
 constexpr int n_output_part = (n_partd > 9369) ? 9369 : n_partd; // maximum number of particles to output to file
 // const int nprtd=floor(n_partd/n_output_part);
 
-constexpr int ndatapoints = 100; // total number of time steps to print
-constexpr int nc1 = 100;           // f1 * 1;      // number of times to calculate E and B between printouts total number of electron time steps calculated = ndatapoints *nc1*md_me
+constexpr int ndatapoints = 10; // total number of time steps to print
+constexpr int nc1 = 20;           // f1 * 1;      // number of times to calculate E and B between printouts total number of electron time steps calculated = ndatapoints *nc1*md_me
 constexpr int md_me = 60;        // ratio of electron speed/deuteron speed at the same KE. Used to calculate electron motion more often than deuteron motion
 
 #define Hist_n 512
@@ -94,7 +94,7 @@ constexpr size_t N0 = n_space_divx2, N1 = n_space_divy2, N2 = n_space_divz2,
                  N1N0_c = N1 * N0_c,
                  N2_c = N2 / 2 + 1; // Dimension to store the complex data, as required by fftw (from their docs)
 
-constexpr size_t n_cells4 = N2 * N1 * N0_c;
+constexpr size_t n_cells4 = N2 * N1 * N0_c;//n_cells4 is not actually n_cells8/2
 // physical "constants"
 constexpr float kb = 1.38064852e-23;       // m^2kss^-2K-1
 constexpr float e_charge = 1.60217662e-19; // C
