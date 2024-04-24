@@ -329,9 +329,9 @@ int calcEBV(fields *fi, par *par)
             }
         }
         // Multiply by the respective constants here, since it is faster to parallelize it
-        const float Vconst = kc * e_charge * r_part_spart / n_cells8;
+        const float Vconst = kc * e_charge * r_part_spart / (float)n_cells8;
         // const float Aconst = 1e-7 * e_charge * r_part_spart / n_cells8;
-        const float Aconst = 1e-7 * e_charge * r_part_spart / n_cells8;
+        const float Aconst = 1e-7f * e_charge * r_part_spart / (float)n_cells8;
 #pragma omp parallel for simd num_threads(nthreads)
         for (size_t i = 0; i < n_cells8 * 3; i++)
             reinterpret_cast<float *>(precalc_r3_base[0])[i] *= Vconst;
@@ -482,7 +482,11 @@ int calcEBV(fields *fi, par *par)
             cout << "app3 B resFFT: " << resFFT << endl;
         res = clFinish(vkGPU.commandQueue); //  cout << "execute plan for E" << endl;
         clSetKernelArg(jcxPrecalc_kernel, 0, sizeof(cl_mem), &fi->r3_buffer);
+        if (res)
+            cout << "clSetKernelArg jcxPrecalc_kernel 0 res: " << resFFT << endl;
         clSetKernelArg(jcxPrecalc_kernel, 1, sizeof(cl_mem), &fi->fft_complex_buffer);
+        if (res)
+            cout << "clSetKernelArg jcxPrecalc_kernel 1 res: " << resFFT << endl;
         res = clEnqueueNDRangeKernel(vkGPU.commandQueue, jcxPrecalc_kernel, 1, NULL, &n_cells4, NULL, 0, NULL, NULL);
         if (res)
             cout << "jcxPrecalc_kernel B  res: " << res << endl;
