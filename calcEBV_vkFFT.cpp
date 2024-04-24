@@ -331,7 +331,7 @@ int calcEBV(fields *fi, par *par)
         // Multiply by the respective constants here, since it is faster to parallelize it
         const float Vconst = kc * e_charge * r_part_spart / (float)n_cells8;
         // const float Aconst = 1e-7 * e_charge * r_part_spart / n_cells8;
-        const float Aconst = 1e-7f * e_charge * r_part_spart / (float)n_cells8;
+        const float Aconst = 1e7f * e_charge * r_part_spart / (float)n_cells8;
 #pragma omp parallel for simd num_threads(nthreads)
         for (size_t i = 0; i < n_cells8 * 3; i++)
             reinterpret_cast<float *>(precalc_r3_base[0])[i] *= Vconst;
