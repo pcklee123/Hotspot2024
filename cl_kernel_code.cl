@@ -146,8 +146,8 @@ void kernel NxPrecalc(global const float2 *r3, global float2 *fft_complex) {
 void kernel jcxPrecalc(global const float2 *r3, global float2 *jc) {
   float2 t1, t2, t3;
   const uint n = 4 * NZ * NY * (NX + 1);
-  uint x = get_global_id(0), y = x + n, z = y + n, x1 = k + n, y1 = x1 + n,
-       z1 = k1 + n;
+  uint x = get_global_id(0), y = x + n, z = y + n, x1 = z + n, y1 = x1 + n,
+       z1 = y1 + n;
   t1 = (float2)(jc[y].s0 * r3[z1].s0 - jc[y].s1 * r3[z1].s1,
                 jc[y].s0 * r3[z1].s1 + jc[y].s1 * r3[z1].s0) -
        (float2)(jc[z].s0 * r3[y1].s0 - jc[z].s1 * r3[y1].s1,
