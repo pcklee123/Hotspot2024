@@ -120,7 +120,7 @@ void cl_start(fields *fi, particles *pt, par *par)
     cl::Program program(context, sources);
 
     cl_int cl_err = program.build({default_device}, cl_build_options.str().c_str());
-    info_file << "building: " << program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(default_device) << "\n";
+    info_file << "building: " << program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(default_device);
     if (cl_err != CL_SUCCESS)
     {
         info_file << " Error building: " << program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(default_device) << endl;
@@ -137,16 +137,8 @@ void cl_start(fields *fi, particles *pt, par *par)
     cl::CommandQueue queue(context_g, default_device_g);
     commandQueue_g = queue;
 
-    cout << "allocating buffers\n";
-
     // cout << "check for unified memory " << endl;
-    //  create buffers on the device
-    /** IMPORTANT: do not use CL_MEM_USE_HOST_PTR if on dGPU **/
-    /** HOST_PTR is only used so that memory is not copied, but instead shared between CPU and iGPU in RAM**/
-    // Note that special alignment has been given to Ea, Ba, y0, z0, x0, x1, y1 in order to actually do this properly
-    // Assume buffers A, B, I, J (Ea, Ba, ci, cf) will always be the same. Then we save a bit of time.
-    // get whether or not we are on an iGPU/similar, and can use certain memmory optimizations
-    bool temp;
+    cl_bool temp;
     default_device_g.getInfo(CL_DEVICE_HOST_UNIFIED_MEMORY, &temp);
     if (temp == true)
         info_file << "Using unified memory: " << temp << " \n";
@@ -155,10 +147,19 @@ void cl_start(fields *fi, particles *pt, par *par)
     fastIO = temp;
     fastIO = false;
 
-    static cl::Buffer buff_E(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_ONLY, n_cellsf * 3, fastIO ? fi->E : NULL, &cl_err);
-    static cl::Buffer buff_B(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_ONLY, n_cellsf * 3, fastIO ? fi->B : NULL, &cl_err);
-    static cl::Buffer buff_Ee(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_ONLY, n_cellsf * 3, fastIO ? fi->Ee : NULL, &cl_err);
-    static cl::Buffer buff_Be(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_ONLY, n_cellsf * 3, fastIO ? fi->Be : NULL, &cl_err);
+    // cout << "allocating buffers\n";
+    //  create buffers on the device
+    /** IMPORTANT: do not use CL_MEM_USE_HOST_PTR if on dGPU **/
+    /** HOST_PTR is only used so that memory is not copied, but instead shared between CPU and iGPU in RAM**/
+    // Note that special alignment has been given to Ea, Ba, y0, z0, x0, x1, y1 in order to actually do this properly
+    // Assume buffers A, B, I, J (Ea, Ba, ci, cf) will always be the same. Then we save a bit of time.
+    // get whether or not we are on an iGPU/similar, and can use certain memmory optimizations
+
+
+    static cl::Buffer buff_E(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cellsf * 3, fastIO ? fi->E : NULL, &cl_err);
+    static cl::Buffer buff_B(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cellsf * 3, fastIO ? fi->B : NULL, &cl_err);
+    static cl::Buffer buff_Ee(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cellsf * 3, fastIO ? fi->Ee : NULL, &cl_err);
+    static cl::Buffer buff_Be(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cellsf * 3, fastIO ? fi->Be : NULL, &cl_err);
     static cl::Buffer buff_npt(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cellsf, fastIO ? fi->npt : NULL, &cl_err); // cannot be static?
     static cl::Buffer buff_jc(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cellsf * 3, fastIO ? fi->jc : NULL, &cl_err);
 

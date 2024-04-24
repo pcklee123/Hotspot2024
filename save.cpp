@@ -131,7 +131,7 @@ void save_vti_c(string filename, int i,
       {
         int index = k * ny * nx + j * nx + i;
         double data[3] = {0, 0, 0};
-        for (int c = 0; c < ncomponents, ++c)
+        for (int c = 0; c < ncomponents; ++c)
         {
           for (int kk = 0; kk < zk; ++kk)
           {
@@ -148,7 +148,7 @@ void save_vti_c(string filename, int i,
         if (ncomponents == 3)
           FieldVectorArray->SetTuple3(index, data[0], data[1], data[2]);
         if (ncomponents == 1)
-          FieldVectorArray->SetTuple1(index, data);
+          FieldVectorArray->SetTuple1(index, data[0]);
       }
     }
   }

@@ -133,25 +133,27 @@ int main()
     par->dt[1] *= inc;
     cout << "dt = " << par->dt[0] << ", " << par->dt[1] << endl;
     info_file << "v0 electron = " << vel_e << endl;
-// redo initial particle positions to get the correct velocities
-#pragma omp parallel for simd
+    // redo initial particle positions to get the correct velocities
+    recalcpos(pt, par, inc);
+    /*#pragma omp parallel for simd
 
     for (int n = 0; n < par->n_part[0] * 3 * 2; n++)
-        pt->pos0[n] = pt->pos1[n] - (pt->pos1[n] - pt->pos0[n]) * inc;
+        pt->pos0[n] = pt->pos1[n] - (pt->pos1[n] - pt->pos0[n]) * inc;*/
+
     res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_x0_e[0](), CL_TRUE, 0, n_partf, pt->pos0x[0], 0, NULL, NULL);
     res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_y0_e[0](), CL_TRUE, 0, n_partf, pt->pos0y[0], 0, NULL, NULL);
     res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_z0_e[0](), CL_TRUE, 0, n_partf, pt->pos0z[0], 0, NULL, NULL);
-    res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_x1_e[0](), CL_TRUE, 0, n_partf, pt->pos1x[0], 0, NULL, NULL);
-    res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_y1_e[0](), CL_TRUE, 0, n_partf, pt->pos1y[0], 0, NULL, NULL);
-    res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_z1_e[0](), CL_TRUE, 0, n_partf, pt->pos1z[0], 0, NULL, NULL);
+    // res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_x1_e[0](), CL_TRUE, 0, n_partf, pt->pos1x[0], 0, NULL, NULL);
+    // res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_y1_e[0](), CL_TRUE, 0, n_partf, pt->pos1y[0], 0, NULL, NULL);
+    // res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_z1_e[0](), CL_TRUE, 0, n_partf, pt->pos1z[0], 0, NULL, NULL);
 
     res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_x0_i[0](), CL_TRUE, 0, n_partf, pt->pos0x[1], 0, NULL, NULL);
     res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_y0_i[0](), CL_TRUE, 0, n_partf, pt->pos0y[1], 0, NULL, NULL);
     res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_z0_i[0](), CL_TRUE, 0, n_partf, pt->pos0z[1], 0, NULL, NULL);
-    res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_x1_i[0](), CL_TRUE, 0, n_partf, pt->pos1x[1], 0, NULL, NULL);
-    res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_y1_i[0](), CL_TRUE, 0, n_partf, pt->pos1y[1], 0, NULL, NULL);
-    res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_z1_i[0](), CL_TRUE, 0, n_partf, pt->pos1z[1], 0, NULL, NULL);
-    //   cout << "dt changed" << endl;
+    // res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_x1_i[0](), CL_TRUE, 0, n_partf, pt->pos1x[1], 0, NULL, NULL);
+    // res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_y1_i[0](), CL_TRUE, 0, n_partf, pt->pos1y[1], 0, NULL, NULL);
+    // res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_z1_i[0](), CL_TRUE, 0, n_partf, pt->pos1z[1], 0, NULL, NULL);
+    //    cout << "dt changed" << endl;
 
 #ifdef Uon_
     // cout << "calculate the total potential energy U\n";

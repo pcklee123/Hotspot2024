@@ -47,6 +47,11 @@ int changedt(particles *pt, int cdt, par *par)
         //   cout << "no change dt" << endl;
         return 0;
     }
+    recalcpos(pt, par, inc);
+    return 1;
+}
+void recalcpos(particles *pt, par *par, float inc)
+{
     //   cout << "dt changed" << endl;
     static cl::Kernel kernel_recalcposchangedt = cl::Kernel(program_g, "recalcposchangedt");
     kernel_recalcposchangedt.setArg(0, pt->buff_x0_e[0]);    // x0
@@ -67,7 +72,6 @@ int changedt(particles *pt, int cdt, par *par)
     kernel_recalcposchangedt.setArg(6, sizeof(float), &inc); // scale factor
     commandQueue_g.enqueueNDRangeKernel(kernel_recalcposchangedt, cl::NullRange, cl::NDRange(par->n_part[1]), cl::NullRange);
     commandQueue_g.finish();
-    return 1;
 }
 
 void changedx(fields *fi, par *par)
