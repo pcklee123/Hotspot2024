@@ -118,7 +118,7 @@ int calcEBV(fields *fi, par *par)
     sumFftField_kernel = clCreateKernel(program_g(), "sumFftFieldo", NULL); // want rollover fields in x,y,z
 #else
 #ifdef quadrant
-    sumFftField_kernel = clCreateKernel(program_g(), "sumFftField", NULL); // want rollover fields in x,y no z
+    sumFftField_kernel = clCreateKernel(program_g(), "sumFftFieldq", NULL); // want rollover fields in x,y no z
 #else
     sumFftField_kernel = clCreateKernel(program_g(), "sumFftField", NULL);
 #endif
