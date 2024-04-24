@@ -160,9 +160,9 @@ void kernel jcxPrecalc(global const float2 *r3, global float2 *jc) {
                 jc[x].s0 * r3[y1].s1 + jc[x].s1 * r3[y1].s0) -
        (float2)(jc[y].s0 * r3[x1].s0 - jc[y].s1 * r3[x1].s1,
                 jc[y].s0 * r3[x1].s1 + jc[y].s1 * r3[x1].s0);
-  jc[x] = t1;
-  jc[y] = t2;
-  jc[z] = t3;
+  jc[x] = (float2)t1;
+  jc[y] = (float2)t2;
+  jc[z] = (float2)t3;
 }
 
 void kernel NxPrecalcr2(global const float2 *r2, global const float2 *r3,
@@ -257,10 +257,6 @@ void kernel sumFftFieldq(global const float *fft_real, global const float *Fe,
   const float s001[3] = {-1, +1, +1};
   const float s010[3] = {+1, -1, +1};
   const float s011[3] = {-1, -1, +1};
-  // const float s100[3] = {+1, +1, -1};
-  // const float s101[3] = {-1, +1, -1};
-  // const float s110[3] = {+1, -1, -1};
-  // const float s111[3] = {-1, -1, -1};
 
   // get global indices
   uint idx = get_global_id(0);
@@ -275,19 +271,12 @@ void kernel sumFftFieldq(global const float *fft_real, global const float *Fe,
   int idx001 = k * N0N1 + j * N0;
   int idx010 = k * N0N1 + i;
   int idx011 = k * N0N1;
-  // int idx100 = j * N0 + i;
-  // int idx101 = j * N0;
-  // int idx110 = i;
-  // int idx111 = 0;
 
   int odx000 = 0;                          // odx_kji
   int odx001 = i == 0 ? 0 : N0 - i;        // iskip
   int odx010 = j == 0 ? 0 : N0 * (N1 - j); // jskip
   int odx011 = odx001 + odx010;
-  // int odx100 = k == 0 ? 0 : N0 * N1 * (N2 - k); // kskip
-  // int odx101 = odx100 + odx001;
-  // int odx110 = odx100 + odx010;
-  // int odx111 = odx100 + odx011;
+
   for (int c = 0; c < 3; ++c, cdx += NXNYNZ, cdx8 += N0N1N2) {
     F[cdx + idx] = Fe[cdx + idx];
     F[cdx + idx] += s000[c] * fft_real[cdx8 + odx000 + idx000]; // main octant
@@ -295,10 +284,6 @@ void kernel sumFftFieldq(global const float *fft_real, global const float *Fe,
     F[cdx + idx] += s001[c] * fft_real[cdx8 + odx001 + idx001];
     F[cdx + idx] += s010[c] * fft_real[cdx8 + odx010 + idx010];
     F[cdx + idx] += s011[c] * fft_real[cdx8 + odx011 + idx011];
-    // F[cdx + idx] += s100[c] * fft_real[cdx8 + odx100 + idx100];
-    // F[cdx + idx] += s101[c] * fft_real[cdx8 + odx101 + idx101];
-    // F[cdx + idx] += s110[c] * fft_real[cdx8 + odx110 + idx110];
-    // F[cdx + idx] += s111[c] * fft_real[cdx8 + odx111 + idx111];
   }
 }
 

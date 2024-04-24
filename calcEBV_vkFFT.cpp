@@ -118,7 +118,7 @@ int calcEBV(fields *fi, par *par)
     sumFftField_kernel = clCreateKernel(program_g(), "sumFftFieldo", NULL); // want rollover fields in x,y,z
 #else
 #ifdef quadrant
-    sumFftField_kernel = clCreateKernel(program_g(), "sumFftFieldq", NULL); // want rollover fields in x,y no z
+    sumFftField_kernel = clCreateKernel(program_g(), "sumFftField", NULL); // want rollover fields in x,y no z
 #else
     sumFftField_kernel = clCreateKernel(program_g(), "sumFftField", NULL);
 #endif
@@ -330,7 +330,6 @@ int calcEBV(fields *fi, par *par)
         }
         // Multiply by the respective constants here, since it is faster to parallelize it
         const float Vconst = kc * e_charge * r_part_spart / (float)n_cells8;
-        // const float Aconst = 1e-7 * e_charge * r_part_spart / n_cells8;
         const float Aconst = 1e-7f * e_charge * r_part_spart / (float)n_cells8;
 #pragma omp parallel for simd num_threads(nthreads)
         for (size_t i = 0; i < n_cells8 * 3; i++)
