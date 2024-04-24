@@ -115,10 +115,11 @@ int main()
     float plasma_freq = sqrt(Density_e * e_charge * e_charge_mass / (mp[0] * epsilon0)) / (2 * pi);
     float plasma_period = 1 / plasma_freq;
     float Debye_Length = sqrt(epsilon0 * kb * Temp_e / (Density_e * e_charge * e_charge));
-    info_file << "debyeLength=" << Debye_Length << ", a0 = " << a0 << endl;
+    float gyroradius = vel_e / (par->Bmax * e_charge_mass);
+    info_file << "debyeLength=" << Debye_Length << ", a0 = " << a0 << ", gyroradius = " << gyroradius << endl;
     if (Debye_Length < a0)
     {
-        cerr << "a0 = " << a0 << " too large for this density Debyle Length = " << Debye_Length << endl;
+        cerr << "a0 = " << a0 << " too large for this density Debye Length = " << Debye_Length << endl;
         // exit(1);
     }
     float TDebye = Debye_Length / vel_e;
@@ -135,25 +136,14 @@ int main()
     info_file << "v0 electron = " << vel_e << endl;
     // redo initial particle positions to get the correct velocities
     recalcpos(pt, par, inc);
-    /*#pragma omp parallel for simd
-
-    for (int n = 0; n < par->n_part[0] * 3 * 2; n++)
-        pt->pos0[n] = pt->pos1[n] - (pt->pos1[n] - pt->pos0[n]) * inc;*/
-
-    res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_x0_e[0](), CL_TRUE, 0, n_partf, pt->pos0x[0], 0, NULL, NULL);
-    res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_y0_e[0](), CL_TRUE, 0, n_partf, pt->pos0y[0], 0, NULL, NULL);
-    res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_z0_e[0](), CL_TRUE, 0, n_partf, pt->pos0z[0], 0, NULL, NULL);
-    // res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_x1_e[0](), CL_TRUE, 0, n_partf, pt->pos1x[0], 0, NULL, NULL);
-    // res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_y1_e[0](), CL_TRUE, 0, n_partf, pt->pos1y[0], 0, NULL, NULL);
-    // res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_z1_e[0](), CL_TRUE, 0, n_partf, pt->pos1z[0], 0, NULL, NULL);
-
-    res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_x0_i[0](), CL_TRUE, 0, n_partf, pt->pos0x[1], 0, NULL, NULL);
-    res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_y0_i[0](), CL_TRUE, 0, n_partf, pt->pos0y[1], 0, NULL, NULL);
-    res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_z0_i[0](), CL_TRUE, 0, n_partf, pt->pos0z[1], 0, NULL, NULL);
-    // res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_x1_i[0](), CL_TRUE, 0, n_partf, pt->pos1x[1], 0, NULL, NULL);
-    // res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_y1_i[0](), CL_TRUE, 0, n_partf, pt->pos1y[1], 0, NULL, NULL);
-    // res = clEnqueueWriteBuffer(commandQueue_g(), pt->buff_z1_i[0](), CL_TRUE, 0, n_partf, pt->pos1z[1], 0, NULL, NULL);
-    //    cout << "dt changed" << endl;
+    // redo prev positions only
+    res = clEnqueueReadBuffer(commandQueue_g(), pt->buff_x0_e[0](), CL_TRUE, 0, n_partf, pt->pos0x[0], 0, NULL, NULL);
+    res = clEnqueueReadBuffer(commandQueue_g(), pt->buff_y0_e[0](), CL_TRUE, 0, n_partf, pt->pos0y[0], 0, NULL, NULL);
+    res = clEnqueueReadBuffer(commandQueue_g(), pt->buff_z0_e[0](), CL_TRUE, 0, n_partf, pt->pos0z[0], 0, NULL, NULL);
+    res = clEnqueueReadBuffer(commandQueue_g(), pt->buff_x0_i[0](), CL_TRUE, 0, n_partf, pt->pos0x[1], 0, NULL, NULL);
+    res = clEnqueueReadBuffer(commandQueue_g(), pt->buff_y0_i[0](), CL_TRUE, 0, n_partf, pt->pos0y[1], 0, NULL, NULL);
+    res = clEnqueueReadBuffer(commandQueue_g(), pt->buff_z0_i[0](), CL_TRUE, 0, n_partf, pt->pos0z[1], 0, NULL, NULL);
+    //     cout << "dt changed" << endl;
 
 #ifdef Uon_
     // cout << "calculate the total potential energy U\n";
@@ -162,9 +152,9 @@ int main()
     calcU(fi, pt, par);
 // cout << "U: " << timer.elapsed() << "s, ";
 #endif
-    // cout << "savefiles" << endl;
-    info(par); // printout initial info.csv file re do this with updated info
-    save_files(i_time, t, fi, pt, par);
+
+    info(par);                          // printout initial info.csv file re do this with updated info
+    save_files(i_time, t, fi, pt, par); // cout << "savefiles" << endl;
 
     //    cout << "logentry" << endl;
     log_headers();                        // log file start with headers

@@ -33,7 +33,7 @@ void save_hist(int i_time, double t, particles *pt, par *par)
       KEhist[p][index]++;
     }
     par->KEtot[p] = KE * 0.5 * mp[p] / (e_charge_mass * par->dt[p] * par->dt[p]) * r_part_spart; // as if these particles were actually samples of the greater thing
-    par->nt[p] = nt * r_part_spart;
+   // par->nt[p] = nt;// * r_part_spart;
     //   cout << "p = " << p << ", KE = " << par->KEtot[p] << ", npart[p]" << par->n_part[p] << endl;
   }
 
@@ -139,7 +139,7 @@ void save_vti_c(string filename, int i,
             {
               for (int ii = 0; ii < xi; ++ii)
               {
-                data[c] += data1[0][k * zk + kk][j * yj + jj][i * xi + ii];
+                data[c] += data1[c][k * zk + kk][j * yj + jj][i * xi + ii];
               }
             }
           }
