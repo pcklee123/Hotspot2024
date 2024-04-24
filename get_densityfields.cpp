@@ -62,6 +62,7 @@ void get_densityfields(fields *fi, particles *pt, par *par)
    kernel_df.setArg(2, fi->buff_currentj_e[0]);    // current
    kernel_df.setArg(3, fi->buff_cji[0]);           // current
    kernel_df.setArg(4, sizeof(float), &par->a0_f); // scale factor
+   kernel_df.setArg(5, sizeof(float), &par->dt[0]); 
    res = commandQueue_g.enqueueNDRangeKernel(kernel_df, cl::NullRange, cl::NDRange(n_cells), cl::NullRange);
    if (res)
       cout << "kernel_df e  res: " << res << endl;
@@ -104,7 +105,8 @@ void get_densityfields(fields *fi, particles *pt, par *par)
    kernel_df.setArg(1, fi->buff_npi[0]);           // np ion temp integer
    kernel_df.setArg(2, fi->buff_currentj_i[0]);    // current
    kernel_df.setArg(3, fi->buff_cji[0]);           // current
-   kernel_df.setArg(4, sizeof(float), &par->a0_f); // scale factor
+   kernel_df.setArg(4, sizeof(float), &par->a0_f);// scale factor
+   kernel_df.setArg(5, sizeof(float), &par->dt[1]); 
    res = commandQueue_g.enqueueNDRangeKernel(kernel_df, cl::NullRange, cl::NDRange(n_cells), cl::NullRange);
    if (res)
       cout << "kernel_df i  res: " << res << endl;

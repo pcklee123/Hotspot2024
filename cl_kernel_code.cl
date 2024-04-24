@@ -355,7 +355,7 @@ void kernel tnp_k_implicit(global const float8 *a1,
                            float Bcoef,
                            float Ecoef, // Bcoeff, Ecoeff
                            float a0_f, const unsigned int n,
-                           const uint ncalc, // 
+                           const uint ncalc, //
                            global int *q) {
 
   uint id = get_global_id(0);
@@ -483,7 +483,7 @@ void kernel tnp_k_implicitz(global const float8 *a1,
                             float Bcoef,
                             float Ecoef, // Bcoeff, Ecoeff
                             float a0_f, const unsigned int n,
-                            const uint ncalc, // 
+                            const uint ncalc, //
                             global int *q) {
 
   uint id = get_global_id(0);
@@ -954,10 +954,11 @@ void kernel density(global const float *x0, global const float *y0,
 }
 
 void kernel df(global float *np, global const int *npi, global float *currentj,
-               global const int *cji, float a0_f) {
-  float dx = DXo * a0_f * 1.1920929e-7f, dy = DYo * a0_f * 1.1920929e-7f,
-        dz = DZo * a0_f * 1.1920929e-7f;
-  float dn = 0.0078125f;
+               global const int *cji, const float a0_f, const float dt) {
+  const float dx = DXo * a0_f * 1.1920929e-7f / dt,
+              dy = DYo * a0_f * 1.1920929e-7f / dt,
+              dz = DZo * a0_f * 1.1920929e-7f / dt;
+  const float dn = 0.0078125f;
   uint idx00 = get_global_id(0);
   uint idx01 = idx00 + NZ * NY * NX;
   uint idx02 = idx01 + NZ * NY * NX;
@@ -1238,8 +1239,8 @@ void kernel recalcposchangedt(global float *x0, global float *y0,
                               global const float *z1, // current pos
                               float const inc         // increment
 ) {
- int n = get_global_id(0); 
-    x0[n] = x1[n] - (x1[n] - x0[n]) * inc;
-    y0[n] = y1[n] - (y1[n] - y0[n]) * inc;
-    z0[n] = z1[n] - (z1[n] - z0[n]) * inc;
+  int n = get_global_id(0);
+  x0[n] = x1[n] - (x1[n] - x0[n]) * inc;
+  y0[n] = y1[n] - (y1[n] - y0[n]) * inc;
+  z0[n] = z1[n] - (z1[n] - z0[n]) * inc;
 }
