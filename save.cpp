@@ -101,8 +101,7 @@ void save_vti_c(string filename, int i,
   int nz = par->n_space_div[2] / zk;
   // Set dimensions
   structuredGrid->SetDimensions(nx + 1, ny + 1, nz + 1);
-
-  // Set points at the vertices
+  // Set points at is one more vertex than cell
   vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
   for (int k = 0; k <= nz; ++k)
   {
@@ -119,38 +118,37 @@ void save_vti_c(string filename, int i,
     }
   }
   structuredGrid->SetPoints(points);
-
-  // Set electric vector data
+  // Set field vector data
   vtkSmartPointer<vtkDoubleArray> FieldVectorArray = vtkSmartPointer<vtkDoubleArray>::New();
-  FieldVectorArray->SetName(filename.c_str());
-  // cout << filename << ", " <<nx*ny*nz << endl;
-  FieldVectorArray->SetNumberOfComponents(ncomponents); // Three components (Ex, Ey, Ez)
-  FieldVectorArray->SetNumberOfTuples((nx) * (ny) * (nz));
-  for (int k = 0; k < nz; ++k)
+  FieldVectorArray->SetName(filename.c_str()); // cout << filename << ", " <<nx*ny*nz << endl;
+   FieldVectorArray->SetNumberOfComponents(ncomponents); // Three components (Ex, Ey, Ez)
+  FieldVectorArray->SetNumberOfTuples((nx) * (ny) * (nz)); //average cells shifted by half cell?
+  for (int k = 0; k < nz; ++k) 
   {
     for (int j = 0; j < ny; ++j)
     {
       for (int i = 0; i < nx; ++i)
       {
         int index = k * ny * nx + j * nx + i;
-        if (ncomponents == 3)
-          FieldVectorArray->SetTuple3(index, data1[0][k * zk][j * yj][i * xi], data1[1][k * zk][j * yj][i * xi], data1[2][k * zk][j * yj][i * xi]);
-        if (ncomponents == 1)
+        double data[3] = {0, 0, 0};
+        for (int c = 0; c < ncomponents, ++c)
         {
-          double data = 0;
           for (int kk = 0; kk < zk; ++kk)
           {
             for (int jj = 0; jj < yj; ++jj)
             {
               for (int ii = 0; ii < xi; ++ii)
               {
-                data+= data1[0][k * zk+kk][j * yj+jj][i * xi+ii];
+                data[c] += data1[0][k * zk + kk][j * yj + jj][i * xi + ii];
               }
             }
           }
-          data /= xi * yj * zk;
-          FieldVectorArray->SetTuple1(index, data);
+          data[c] /= xi * yj * zk;
         }
+        if (ncomponents == 3)
+          FieldVectorArray->SetTuple3(index, data[0], data[1], data[2]);
+        if (ncomponents == 1)
+          FieldVectorArray->SetTuple1(index, data);
       }
     }
   }
