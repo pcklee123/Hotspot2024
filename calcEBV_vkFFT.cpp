@@ -343,6 +343,7 @@ int calcEBV(fields *fi, par *par)
             (reinterpret_cast<float *>(precalc_r2_base))[i] *= Vconst;
 #endif
         resFFT = transferDataFromCPU(&vkGPU, precalc_r3_base, &r3_base_buffer, bufferSize_R6);
+        
         resFFT = VkFFTAppend(&appfor_k, -1, &launchParams); //
         if (resFFT)
             cout << "forward transform precalc_r3" << endl;
