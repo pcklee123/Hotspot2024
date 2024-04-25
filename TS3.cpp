@@ -68,7 +68,7 @@ int main()
     // float TEs = a0 * par->a0_f * vel_e;
     TE = TE <= 0 ? a0 * par->a0_f * vel_e : TE; // if acc is negligible
     // set time step to allow electrons to gyrate if there is B field or to allow electrons to move slowly throughout the plasma distance
-    par->dt[0] = min(Tcyclotron / 4, TE / 16) / f1; // electron should not move more than 1 cell after ncalc*dt and should not make more than 1/4 gyration and must calculate E before the next 1/4 plasma period
+    par->dt[0] = min(Tcyclotron, TE) / f1; // electron should not move more than 1 cell after ncalc*dt and should not make more than 1/4 gyration and must calculate E before the next 1/4 plasma period
     par->dt[1] = par->dt[0] * md_me;
     // cout << "dt = " << par->dt[0] << ", " << par->dt[1] << endl;
 #define generateRandom
@@ -128,8 +128,9 @@ int main()
     TE = ((TE <= 0) | (isnanf(TE))) ? a0 * par->a0_f / vel_e : TE;                   // if acc is negligible i.e. in square root ~=1, use approximation is more accurate
     // set time step to allow electrons to gyrate if there is B field or to allow electrons to move slowly throughout the plasma distance
     float TExB = a0 * par->a0_f / (par->Emax + .1) * (par->Bmax + .00001);
-    info_file << "Tdebye=" << TDebye << ", Tcycloton/4=" << Tcyclotron / 4 << ", plasma period/4=" << plasma_period / 4 << ",TE=" << TE << ",TExB=" << TExB << endl;
-    float inc = min(min(min(TDebye, Tcyclotron), plasma_period), TE) / f1 / par->dt[0]; // redo dt
+    info_file << "Tdebye=" << TDebye << ", Tcycloton/4=" << Tcyclotron << ", plasma period/4=" << plasma_period << ",TE=" << TE << ",TExB=" << TExB << endl;
+    //   par->dt[0] = min(Tcyclotron , TE) / f1;
+    float inc = min(Tcyclotron, TE) / f1 / par->dt[0]; // float inc = min(min(min(TDebye, Tcyclotron), plasma_period), TE) / f1 / par->dt[0]; // redo dt
     par->dt[0] *= inc;
     par->dt[1] *= inc;
     cout << "dt = " << par->dt[0] << ", " << par->dt[1] << endl;

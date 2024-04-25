@@ -228,11 +228,11 @@ void generateZpinchField(fields *fi, par *par)
 
         for (int j = 0; j < n_space_divy; j++)
         {
-            float y = ((j + 0.5) * a0 + par->posL[1]) * par->a0_f;
+            float y = (((float)j - 0.0) * a0 * par->a0_f + par->posL[1]);
             //    float y = ((j - n_space_divy / 2) * a0) * par->a0_f;
             for (unsigned int i = 0; i < n_space_divx; i++)
             {
-                float x = ((i + 0.5) * a0 + par->posL[0]) * par->a0_f;
+                float x = (((float)i - 0.0) * a0 * par->a0_f + par->posL[0]);
                 // float x = (i - n_space_divx / 2) * a0 * par->a0_f;
                 float r = sqrtf(pow(x, 2) + pow(y, 2));
                 fi->Ee[0][k][j][i] = 0;   // 1000+i*100;
