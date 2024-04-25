@@ -35,6 +35,7 @@
 #ifndef NZ
 #define NZ 2
 #endif
+#define NXNYNZ NX*NY*NZ
 
 void kernel vector_cross_mul(global float *A0, global const float *B0,
                              global const float *C0, global float *A1,
@@ -938,6 +939,7 @@ void kernel density(global const float *x0, global const float *y0,
   atomic_add(&cji[idx02 + odx111], vzi.s7);
 }
 
+// convert integer density to floating point format multiply in time step and cell size 
 void kernel df(global float *np, global const int *npi, global float *currentj,
                global const int *cji, const float a0_f, const float dt) {
   const float dx = DXo * a0_f * 1.1920929e-7f / dt,

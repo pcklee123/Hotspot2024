@@ -102,7 +102,7 @@ void get_densityfields(fields *fi, particles *pt, par *par)
    //  cout << "nt (i) = " << nt << endl;
 
    kernel_df.setArg(0, fi->buff_np_i[0]);          // np ion
-   kernel_df.setArg(1, fi->buff_npi[0]);           // np ion temp integer
+   kernel_df.setArg(1, fi->buff_npi[0]);           // np ion temporary integer
    kernel_df.setArg(2, fi->buff_currentj_i[0]);    // current
    kernel_df.setArg(3, fi->buff_cji[0]);           // current
    kernel_df.setArg(4, sizeof(float), &par->a0_f);// scale factor
