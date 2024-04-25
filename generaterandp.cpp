@@ -5,7 +5,7 @@ void generate_rand_sphere(particles *pt, par *par)
     float Temp[2] = {Temp_e, Temp_d}; // in K convert to eV divide by 1.160451812e4
     // initial bulk electron, ion velocity
     float v0[2][3] = {{0, 0, -vz0}, {0, 0, vz0 / 60}};
-    float r0[3] = {r0_f[0] * a0, r0_f[1] * a0, r0_f[2] * a0}; // if sphere this is the radius  
+    float r0[3] = {r0_f[0] * a0, r0_f[1] * a0, r0_f[2] * a0}; // if sphere this is the radius
     // set initial positions and velocity
     float sigma[2] = {sqrt(kb * Temp[0] / (mp[0] * e_mass)), sqrt(kb * Temp[1] / (mp[1] * e_mass))};
     long seed;
@@ -20,13 +20,35 @@ void generate_rand_sphere(particles *pt, par *par)
     {
 // #pragma omp parallel for
 #pragma omp parallel for simd num_threads(nthreads)
+
         for (na = 0; na < nback; ++na) // set number of particles per cell in background
         {
-            pt->pos1x[p][na] = pt->pos0x[p][na] = gsl_ran_flat(rng, par->posL_15[0], par->posH_15[0]);
-            pt->pos1y[p][na] = pt->pos0y[p][na] = gsl_ran_flat(rng, par->posL_15[1], par->posH_15[1]);
-            pt->pos1z[p][na] = pt->pos0z[p][na] = gsl_ran_flat(rng, par->posL_15[2], par->posH_15[2]);
+            float r = r0[2] * pow(gsl_ran_flat(rng, 0, 1), 0.3333333333);
+            double x, y, z;
+            z = gsl_ran_flat(rng, par->posL_1[2], par->posH_1[2]);
+            gsl_ran_dir_2d(rng, &x, &y);
+#ifdef octant
+            x = abs(x);
+            y = abs(y);
+#endif
+#ifdef quadrant
+            x = abs(x);
+            y = abs(y);
+#endif
+            pt->pos0x[p][na] = r * x;
+            pt->pos1x[p][na] = pt->pos0x[p][na] + v0[p][0] * par->dt[p];
+            pt->pos0y[p][na] = r * y;
+            pt->pos1y[p][na] = pt->pos0y[p][na] + v0[p][1] * par->dt[p];
+            pt->pos0z[p][na] = z;
+            pt->pos1z[p][na] = pt->pos0z[p][na] + v0[p][2] * par->dt[p];
             pt->q[p][na] = qs[p];
-         //   pt->m[p][na] = mp[p];
+            /*
+                        pt->pos1x[p][na] = pt->pos0x[p][na] = gsl_ran_flat(rng, par->posL_15[0], par->posH_15[0]);
+                        pt->pos1y[p][na] = pt->pos0y[p][na] = gsl_ran_flat(rng, par->posL_15[1], par->posH_15[1]);
+                        pt->pos1z[p][na] = pt->pos0z[p][na] = gsl_ran_flat(rng, par->posL_15[2], par->posH_15[2]);
+                        pt->q[p][na] = qs[p];
+                        */
+            //   pt->m[p][na] = mp[p];
         }
         //         cout << pt->pos1z[p][na - 1] << " ";
 // #pragma omp parallel for ordered
@@ -61,14 +83,14 @@ void generate_rand_sphere(particles *pt, par *par)
             pt->pos0z[p][n] = r * z;
             pt->pos1z[p][n] = pt->pos0z[p][n] + (gsl_ran_gaussian(rng, sigma[p]) + v0[p][2] + z * v0_r) * par->dt[p];
             pt->q[p][n] = qs[p];
-      //      pt->m[p][n] = mp[p];
+            //      pt->m[p][n] = mp[p];
             //         nt[p] += q[p][n];
         }
     }
 #pragma omp barrier
     gsl_rng_free(rng); // dealloc the rng
-        if (!fastIO) // write CPU generated particle positions to opencl buffers
-    {            //  electrons
+    if (!fastIO)       // write CPU generated particle positions to opencl buffers
+    {                  //  electrons
         commandQueue_g.enqueueWriteBuffer(pt->buff_x0_e[0], CL_TRUE, 0, n_partf, pt->pos0x[0]);
         commandQueue_g.enqueueWriteBuffer(pt->buff_y0_e[0], CL_TRUE, 0, n_partf, pt->pos0y[0]);
         commandQueue_g.enqueueWriteBuffer(pt->buff_z0_e[0], CL_TRUE, 0, n_partf, pt->pos0z[0]);
@@ -167,7 +189,7 @@ void generate_rand_cylinder(particles *pt, par *par)
             pt->pos1y[p][na] = pt->pos0y[p][na] = gsl_ran_flat(rng, par->posL_15[1], par->posH_15[1]);
             pt->pos1z[p][na] = pt->pos0z[p][na] = gsl_ran_flat(rng, par->posL_15[2], par->posH_15[2]);
             pt->q[p][na] = qs[p];
-      //      pt->m[p][na] = mp[p];
+            //      pt->m[p][na] = mp[p];
         }
 
         // #pragma omp parallel for ordered
@@ -186,14 +208,14 @@ void generate_rand_cylinder(particles *pt, par *par)
             // cout << pt->pos1z[p][n] << " ";
             // if (n==0) cout << "p = " <<p <<", sigma = " <<sigma[p]<<", temp = " << Temp[p] << ",mass of particle = " << mp[p] << par->dt[p]<<endl;
             pt->q[p][n] = qs[p];
-   //         pt->m[p][n] = mp[p];
+            //         pt->m[p][n] = mp[p];
         }
         //        nt[p] +=  pt->q[p][n];
     }
     // #pragma omp barrier
     gsl_rng_free(rng); // dealloc the rng
-        if (!fastIO) // write CPU generated particle positions to opencl buffers
-    {            //  electrons
+    if (!fastIO)       // write CPU generated particle positions to opencl buffers
+    {                  //  electrons
         commandQueue_g.enqueueWriteBuffer(pt->buff_x0_e[0], CL_TRUE, 0, n_partf, pt->pos0x[0]);
         commandQueue_g.enqueueWriteBuffer(pt->buff_y0_e[0], CL_TRUE, 0, n_partf, pt->pos0y[0]);
         commandQueue_g.enqueueWriteBuffer(pt->buff_z0_e[0], CL_TRUE, 0, n_partf, pt->pos0z[0]);

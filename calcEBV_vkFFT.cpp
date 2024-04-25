@@ -470,22 +470,29 @@ int calcEBV(fields *fi, par *par)
 
 #ifdef Bon_
     {
-        clSetKernelArg(copy3Data_kernel, 0, sizeof(cl_mem), &(fi->buff_jc[0]()));
-        clSetKernelArg(copy3Data_kernel, 1, sizeof(cl_mem), &fi->fft_real_buffer);
+        res = clSetKernelArg(copy3Data_kernel, 0, sizeof(cl_mem), &(fi->buff_jc[0]()));
+        if (res)
+            cout << "clSetKernelArg copy3Data_kernel 0 res: " << res << endl;
+        res = clSetKernelArg(copy3Data_kernel, 1, sizeof(cl_mem), &fi->fft_real_buffer);
+        if (res)
+            cout << "clSetKernelArg copy3Data_kernel 1 res: " << res << endl;
+        res = clSetKernelArg(copy3Data_kernel, 1, sizeof(cl_mem), &fi->fft_real_buffer);
         res = clEnqueueNDRangeKernel(vkGPU.commandQueue, copy3Data_kernel, 1, NULL, &n_cells8, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
         if (res)
             cout << "copy3Data_kernel B  res: " << res << endl;
         res = clFinish(vkGPU.commandQueue);
+        if (res)
+            cout << "copy3Data_kernel B clFinish  res: " << res << endl;
         resFFT = VkFFTAppend(&app3, -1, &launchParams); // -1 = forward transform // cout << "execute plan for E resFFT = " << resFFT << endl;
         if (resFFT)
             cout << "app3 B resFFT: " << resFFT << endl;
         res = clFinish(vkGPU.commandQueue); //  cout << "execute plan for E" << endl;
-        clSetKernelArg(jcxPrecalc_kernel, 0, sizeof(cl_mem), &fi->r3_buffer);
+        res = clSetKernelArg(jcxPrecalc_kernel, 0, sizeof(cl_mem), &fi->r3_buffer);
         if (res)
-            cout << "clSetKernelArg jcxPrecalc_kernel 0 res: " << resFFT << endl;
-        clSetKernelArg(jcxPrecalc_kernel, 1, sizeof(cl_mem), &fi->fft_complex_buffer);
+            cout << "clSetKernelArg jcxPrecalc_kernel 0 res: " << res << endl;
+        res = clSetKernelArg(jcxPrecalc_kernel, 1, sizeof(cl_mem), &fi->fft_complex_buffer);
         if (res)
-            cout << "clSetKernelArg jcxPrecalc_kernel 1 res: " << resFFT << endl;
+            cout << "clSetKernelArg jcxPrecalc_kernel 1 res: " << res << endl;
         res = clEnqueueNDRangeKernel(vkGPU.commandQueue, jcxPrecalc_kernel, 1, NULL, &n_cells4, NULL, 0, NULL, NULL);
         if (res)
             cout << "jcxPrecalc_kernel B  res: " << res << endl;

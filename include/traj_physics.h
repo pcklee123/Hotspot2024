@@ -22,10 +22,10 @@ constexpr size_t n_parte = n_partd;
 constexpr size_t nback = n_partd / 16; // background stationary particles distributed over all cells - improves stability
 
 constexpr float R_s = n_space / 1;                                 // Low Pass Filter smoothing radius not in use
-constexpr float r0_f[3] = {n_space / 32, n_space / 32, n_space / 2}; //  radius of sphere or cylinder (electron, ion, z-pinch plasma)
+constexpr float r0_f[3] = {n_space / 32, n_space / 32, n_space / 4}; //  radius of sphere or cylinder (electron, ion, z-pinch plasma)
 
-constexpr float Bz0 = 100.00001;     // in T, static constant fields
-constexpr float Btheta0 = 100.00001; // in T, static constant fields
+constexpr float Bz0 = 0.00001;     // in T, static constant fields
+constexpr float Btheta0 = 0.00001; // in T, static constant fields
 constexpr float Ez0 = 1.0e1;       // in V/m
 constexpr float vz0 = 1.0e7f;
 constexpr float a0 = 1e-6; // typical dimensions of a cell in m This needs to be smaller than debye length otherwise energy is not conserved if a particle moves across a cell
@@ -49,7 +49,7 @@ constexpr int n_output_part = (n_partd > 9369) ? 9369 : n_partd; // maximum numb
 // const int nprtd=floor(n_partd/n_output_part);
 
 constexpr int ndatapoints = 10; // total number of time steps to print
-constexpr int nc1 = 10;          // f1 * 1;      // number of times to calculate E and B between printouts total number of electron time steps calculated = ndatapoints *nc1*md_me
+constexpr int nc1 = 5;          // f1 * 1;      // number of times to calculate E and B between printouts total number of electron time steps calculated = ndatapoints *nc1*md_me
 constexpr int md_me = 60;       // ratio of electron speed/deuteron speed at the same KE. Used to calculate electron motion more often than deuteron motion
 
 #define Hist_n 512
