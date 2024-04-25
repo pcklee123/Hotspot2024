@@ -2,6 +2,7 @@
 #define maxcells 32
 #define cldevice 1 // 0 usually means integrated GPU
 #define sphere     // do hot spot  problem
+#define spherez    // but allow particles to rollover in the z direction
 // #define octant     // do hot spot problem 1/8 sphere. Magnetic fields do not make sense as will break symmetry
 // #define cylinder //do hot rod problem
 // #define quadrant // do problem 1/4 sphere or cylinder
@@ -9,7 +10,7 @@
 constexpr double weibullb = 4; // b factor for weibull. larger means closer to a shell. ~1 means filled more at the center.
 #define Temp_e 1e7             // in Kelvin 1e7 ~1keV
 #define Temp_d 1e7             // in Kelvin
-constexpr int f1 = 30;         // make bigger to make smaller time steps // 100 is min for sphere slight increase in KE
+constexpr int f1 = 3;          // make bigger to make smaller time steps // 100 is min for sphere slight increase in KE
 constexpr int f2 = f1 * 1.2;
 constexpr float incf = 1.2f;        // increment
 constexpr float decf = 1.0f / incf; // decrement factor
@@ -25,10 +26,10 @@ constexpr float r0_f[3] = {n_space / 8, n_space / 8, n_space / 2}; //  radius of
 
 constexpr float Bz0 = 0.00001;     // in T, static constant fields
 constexpr float Btheta0 = 0.00001; // in T, static constant fields
-constexpr float Ez0 = -1.0e9;      // in V/m
+constexpr float Ez0 = 1.0e1;       // in V/m
 constexpr float vz0 = 3.0e7f;
 constexpr float a0 = 1e-6; // typical dimensions of a cell in m This needs to be smaller than debye length otherwise energy is not conserved if a particle moves across a cell
-constexpr float a0_ff = 1.0 + 2.0 / (float)n_space;
+constexpr float a0_ff = 1.0 + 0.5 / (float)n_space;// rescale cell size, if particles rollover this cannot encrement more than 1 cell otherwise will have fake "waves"
 constexpr float target_part = 1e10; // 3.5e22 particles per m^3 per torr of ideal gas. 7e22 electrons for 1 torr of deuterium
 constexpr float v0_r = 0;           // initial directed radial velocity outwards is positive
 

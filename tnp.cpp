@@ -22,14 +22,15 @@ void tnp(fields *fi, particles *pt, par *par)
 #if defined(sphere)
 #if defined(octant)
    cl::Kernel kernel_tnp = cl::Kernel(program_g, "tnp_k_implicito"); // select the kernel program to run
-#else
-#if defined(quadrant)
+#elif defined(quadrant)
    cl::Kernel kernel_tnp = cl::Kernel(program_g, "tnp_k_implicitq", &res); // select the kernel program to run
+#elif defined(spherez)
+   cl::Kernel kernel_tnp = cl::Kernel(program_g, "tnp_k_implicitz"); // select the kernel program to run
 #else
    cl::Kernel kernel_tnp = cl::Kernel(program_g, "tnp_k_implicit"); // select the kernel program to run
 #endif
 #endif
-#endif
+
    if (res)
    {
       cout << "kernel_tnp progrem  res: " << res << endl;
