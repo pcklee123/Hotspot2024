@@ -139,14 +139,14 @@ void save_vti_c(string filename, int i,
             {
               for (int ii = 0; ii < xi; ++ii)
               {
-                data[c] += data1[c][k * zk + kk][j * yj + jj][i * xi + ii];
+                data[c] += (double)data1[c][k * zk + kk][j * yj + jj][i * xi + ii];
               }
             }
           }
           data[c] /= xi * yj * zk;
         }
         if (ncomponents == 3)
-          FieldVectorArray->SetTuple3(index, data[0], data[1], data[2]);
+          FieldVectorArray->SetTuple3(index, data[0], data[1], data[2]); //(index,x,y,z)
         if (ncomponents == 1)
           FieldVectorArray->SetTuple1(index, data[0]);
       }

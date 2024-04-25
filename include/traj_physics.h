@@ -4,7 +4,7 @@
 #define sphere     // do hot spot  problem
 // #define octant     // do hot spot problem 1/8 sphere. Magnetic fields do not make sense as will break symmetry
 //  #define cylinder //do hot rod problem
-#define quadrant // do problem 1/4 sphere or cylinder
+//#define quadrant // do problem 1/4 sphere or cylinder
 #define Weibull
 constexpr double weibullb = 4; // b factor for weibull. larger means closer to a shell. ~1 means filled more at the center.
 #define Temp_e 1e7             // in Kelvin 1e7 ~1keV
@@ -112,7 +112,7 @@ constexpr int mp[2] = {1, 1835 * 2};
 
 struct par // useful parameters
 {
-    float dt[2] = {1e-12, 1e-12}; // time step electron,deuteron
+    float dt[2] = {1e-12, 1e-12/60}; // time step electron,deuteron
     float Emax = Emax0;
     float Bmax = Bmax0;
     int nt[2];      // total number of particles

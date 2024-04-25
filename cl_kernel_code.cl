@@ -152,10 +152,10 @@ void kernel jcxPrecalc(global const float2 *r3, global float2 *jc) {
                 jc[y].s0 * r3[z1].s1 + jc[y].s1 * r3[z1].s0) -
        (float2)(jc[z].s0 * r3[y1].s0 - jc[z].s1 * r3[y1].s1,
                 jc[z].s0 * r3[y1].s1 + jc[z].s1 * r3[y1].s0);
-  t2 = (float2)(jc[z].s0 * r3[x1].s0 - jc[x].s1 * r3[z1].s1,
-                jc[z].s0 * r3[x1].s1 + jc[x].s1 * r3[z1].s0) -
-       (float2)(jc[x].s0 * r3[z1].s0 - jc[z].s1 * r3[x1].s1,
-                jc[x].s0 * r3[z1].s1 + jc[z].s1 * r3[x1].s0);
+  t2 = (float2)(jc[z].s0 * r3[x1].s0 - jc[z].s1 * r3[x1].s1,
+                jc[z].s0 * r3[x1].s1 + jc[z].s1 * r3[x1].s0) -
+       (float2)(jc[x].s0 * r3[z1].s0 - jc[x].s1 * r3[z1].s1,
+                jc[x].s0 * r3[z1].s1 + jc[x].s1 * r3[z1].s0);
   t3 = (float2)(jc[x].s0 * r3[y1].s0 - jc[x].s1 * r3[y1].s1,
                 jc[x].s0 * r3[y1].s1 + jc[x].s1 * r3[y1].s0) -
        (float2)(jc[y].s0 * r3[x1].s0 - jc[y].s1 * r3[x1].s1,

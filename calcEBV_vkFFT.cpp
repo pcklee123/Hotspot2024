@@ -156,7 +156,7 @@ int calcEBV(fields *fi, par *par)
         configuration.size[2] = N2;
 
         configuration.performR2C = true;
-        configuration.disableReorderFourStep = true; // disable reordering =true false
+        configuration.disableReorderFourStep = false; // disable reordering =true false
 
         configuration.isInputFormatted = 1; // out-of-place - we need to specify that input buffer is separate from the main buffer
 
