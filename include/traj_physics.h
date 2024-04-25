@@ -21,11 +21,11 @@ constexpr size_t n_parte = n_partd;
 constexpr size_t nback = n_partd / 16; // background stationary particles distributed over all cells - improves stability
 
 constexpr float R_s = n_space / 1;                                 // LPF smoothing radius
-constexpr float r0_f[3] = {n_space / 8 - 1, n_space / 8, n_space/2}; //  radius of sphere or cylinder (electron, ion, plasma)
+constexpr float r0_f[3] = {n_space / 8, n_space / 8, n_space/2}; //  radius of sphere or cylinder (electron, ion, plasma)
 
 constexpr float Bz0 = 0.00001;     // in T, static constant fields
 constexpr float Btheta0 = 0.00001; // in T, static constant fields
-constexpr float Ez0 = 1.0e0;       // in V/m
+constexpr float Ez0 = -1.0e9;       // in V/m
 constexpr float vz0 = 3.0e7f;
 constexpr float a0 = 1e-6; // typical dimensions of a cell in m This needs to be smaller than debye length otherwise energy is not conserved if a particle moves across a cell
 constexpr float a0_ff = 1.0 + 2.0 / (float)n_space;
