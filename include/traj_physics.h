@@ -25,7 +25,7 @@ constexpr float r0_f[3] = {n_space / 8 - 1, n_space / 8, n_space/2}; //  radius 
 
 constexpr float Bz0 = 0.00001;     // in T, static constant fields
 constexpr float Btheta0 = 0.00001; // in T, static constant fields
-constexpr float Ez0 = 1.0e8;       // in V/m
+constexpr float Ez0 = 1.0e0;       // in V/m
 constexpr float vz0 = 3.0e7f;
 constexpr float a0 = 1e-6; // typical dimensions of a cell in m This needs to be smaller than debye length otherwise energy is not conserved if a particle moves across a cell
 constexpr float a0_ff = 1.0 + 2.0 / (float)n_space;

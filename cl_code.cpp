@@ -39,8 +39,9 @@ void cl_set_build_options(par *par)
     add_build_option("N0", 2 * (int)par->n_space_div[0]);
     add_build_option("N1", 2 * (int)par->n_space_div[1]);
     add_build_option("N2", 2 * (int)par->n_space_div[2]);
-    add_build_option("NXNY", 4 * (int)par->n_space_div[0] * (int)par->n_space_div[1]);
-    add_build_option("NXNYNZ", (int)n_cells8);
+    add_build_option("N0N1", 4 * (int)par->n_space_div[0] * (int)par->n_space_div[1]);
+    add_build_option("N0N1N2", (int)n_cells8);
+    add_build_option("NC4", (int)n_cells4);
     // add_build_option("NC", n_cells);
 }
 
