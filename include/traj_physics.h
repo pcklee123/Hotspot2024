@@ -15,9 +15,9 @@ constexpr int f2 = f1 * 1.2;
 constexpr float incf = 1.2f;        // increment
 constexpr float decf = 1.0f / incf; // decrement factor
 
-constexpr int n_space = 128; // should be 2 to power of n for faster FFT e.g. 32,64,128,256 (128 is 2 million cells, ~ 1gB of ram, 256 is not practical for systems with 8GB or less GPU ram)
+constexpr int n_space = 32; // should be 2 to power of n for faster FFT e.g. 32,64,128,256 (128 is 2 million cells, ~ 1gB of ram, 256 is not practical for systems with 8GB or less GPU ram)
 
-constexpr size_t n_partd = 4 * 1024 * 1024; // n_space * n_space * n_space * 1 * 16; // must be 2 to power of n
+constexpr size_t n_partd = 1 * 1024 * 1024; // n_space * n_space * n_space * 1 * 16; // must be 2 to power of n
 constexpr size_t n_parte = n_partd;
 constexpr size_t nback = n_partd / 16; // background stationary particles distributed over all cells - improves stability
 
@@ -81,14 +81,14 @@ constexpr int n_space_divz = n_space;
 constexpr int n_space_divx2 = n_space_divx * 2;
 constexpr int n_space_divy2 = n_space_divy * 2;
 constexpr int n_space_divz2 = n_space_divz * 2;
-constexpr size_t n_cells = n_space_divx * n_space_divy * n_space_divz;
-constexpr size_t n_cells8 = n_cells * 8;
-constexpr size_t n_cellsf = n_cells * sizeof(float);
+constexpr size_t n_cells = n_space_divx * n_space_divy * n_space_divz; // number of cells 
+constexpr size_t n_cells8 = n_cells * 8;// number of cells * 8 = cells for FFT to prevent rollover fields
+constexpr size_t n_cellsf = n_cells * sizeof(float);// number of cells * sizeof(float) (4bytes)
 constexpr size_t n_cellsi = n_cells * sizeof(int);
-constexpr size_t n_partf = n_partd * sizeof(float);
+constexpr size_t n_partf = n_partd * sizeof(float);// number of particles * sizeof(float)
 constexpr size_t n_cells3x8f = n_cells * 3 * 8 * sizeof(float);
 constexpr size_t nc3_16 = n_cells * 3 / 16;
-// constexpr size_t n4 = n_partd * sizeof(float); // number of particles * sizeof(float)
+// constexpr size_t n4 = n_partd * sizeof(float); 
 constexpr size_t N0 = n_space_divx2, N1 = n_space_divy2, N2 = n_space_divz2,
                  N0N1 = N0 * N1, N0N1_2 = N0N1 / 2, N0N1N2 = N0 * N1 * N2,
                  N0_c = N0 / 2 + 1,
