@@ -35,8 +35,9 @@
 #ifndef NZ
 #define NZ 2
 #endif
-#define NXNYNZ NX*NY*NZ
-
+#ifndef NXNYNZ
+#define NXNYNZ 8
+#endif
 void kernel vector_cross_mul(global float *A0, global const float *B0,
                              global const float *C0, global float *A1,
                              global const float *B1, global const float *C1,
@@ -839,6 +840,8 @@ void kernel tnp_k_implicitq(global const float8 *a1,
   z1[id] = z;
 }
 
+//find the particle and current density convert from floating point to integer to use atomic_add 
+//smoothly assign a fraction of the density to "cell" depending on "center of density" 
 void kernel density(global const float *x0, global const float *y0,
                     global const float *z0, // prev pos
                     global const float *x1, global const float *y1,
@@ -882,7 +885,7 @@ void kernel density(global const float *x0, global const float *y0,
   uint idx01 = idx00 + NZ * NY * NX;
   uint idx02 = idx01 + NZ * NY * NX;
 
-  f.s0 = ((fz1 * fy1 * fx1) >> 14), f.s1 = ((fz1 * fy1 * fx0) >> 14),
+  f.s0 = ((fz1 * fy1 * fx1) >> 14), f.s1 = ((fz1 * fy1 * fx0) >> 14),//arithmetic shift right by 14 equivalent to division by 16384
   f.s2 = ((fz1 * fy0 * fx1) >> 14), f.s3 = ((fz1 * fy0 * fx0) >> 14),
   f.s3 = ((fz0 * fy1 * fx1) >> 14), f.s5 = ((fz0 * fy1 * fx0) >> 14),
   f.s6 = ((fz0 * fy0 * fx1) >> 14), f.s7 = ((fz0 * fy0 * fx0) >> 14);
