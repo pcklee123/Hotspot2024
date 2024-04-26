@@ -96,7 +96,7 @@ int main()
     generateField(fi, par);
     //  getchar();
     int i_time = 0;
-    cout << "get_densityfields: ";
+    // cout << "get_densityfields: ";
     timer.mark();
 
     get_densityfields(fi, pt, par);
@@ -111,7 +111,7 @@ int main()
     // float max_jc = maxvalf((reinterpret_cast<float *>(fi->jc)), n_cells * 3);
     // cout << "max current density  = " << max_jc << endl;
     cout << timer.elapsed() << "s\n ";
-    cout << "calcEBV: ";
+    // cout << "calcEBV: ";
     timer.mark();
 
     int cdt = calcEBV(fi, par); // electric and magnetic fields this is incorporated into tnp which also moves particles. Need here just to estimate dt
@@ -152,7 +152,7 @@ int main()
     cout << "dt = " << par->dt[0] << ", " << par->dt[1] << endl;
     info_file << "v0 electron = " << vel_e << endl;
     // redo initial particle positions to get the correct velocities
-    cout << "recalpos" << endl;
+    // cout << "recalpos" << endl;
     recalcpos(pt, par, inc);
     //  getchar();
     // redo prev positions only
@@ -193,12 +193,12 @@ int main()
 
     for (i_time = 1; i_time < ndatapoints; i_time++)
     {
-        timer.mark(); // For 60 timesteps
-        cout << "tnp" << endl;
+        timer.mark();     // For 60 timesteps
+                          // cout << "tnp" << endl;
         tnp(fi, pt, par); //  calculate the next position par->ncalcp[p] times
                           // float max_jc = maxvalf((reinterpret_cast<float *>(fi->jc)), n_cells * 3);
                           //  cout << "max current density  = " << max_jc << endl;
-        getchar();
+        // getchar();
         for (int p = 0; p < 2; ++p)
             total_ncalc[p] += par->nc * par->ncalcp[p];
         t += par->dt[0] * par->ncalcp[0] * par->nc;

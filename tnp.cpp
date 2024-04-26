@@ -7,8 +7,6 @@ void tnp(fields *fi, particles *pt, par *par)
    // Note that special alignment has been given to Ea, Ba, y0, z0, x0, x1, y1 in order to actually do this properly
    static int nt0prev;
    static bool first = true;
-   // static cl::Buffer buff_Ea, buff_Ba;
-   //static cl::Kernel kernel_tnp, kernel_trilin;
    cl_int res = 0;
    if (first)
    {
