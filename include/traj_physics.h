@@ -10,12 +10,12 @@
 constexpr double weibullb = 4; // b factor for weibull distribn. larger means closer to a shell. ~1 means filled more at the center.
 #define Temp_e 1e5             // in Kelvin 1e7 ~1keV
 #define Temp_d 1e7             // in Kelvin
-constexpr int f1 = 500;          // make bigger to make smaller time steps // 300 is min for sphere slight increase in KE
+constexpr int f1 = 1000;          // make bigger to make smaller time steps // 300 is min for sphere slight increase in KE
 constexpr int f2 = f1 * 1.2;
 constexpr float incf = 1.2f;        // increment
 constexpr float decf = 1.0f / incf; // decrement factor
 
-constexpr int n_space = 64; // should be 2 to power of n for faster FFT e.g. 32,64,128,256 (128 is 2 million cells, ~ 1gB of ram, 256 is not practical for systems with 8GB or less GPU ram) not less than 16
+constexpr int n_space = 128; // should be 2 to power of n for faster FFT e.g. 32,64,128,256 (128 is 2 million cells, ~ 1gB of ram, 256 is not practical for systems with 8GB or less GPU ram) not less than 16
 
 constexpr size_t n_partd = 1 * 1024 * 1024; // n_space * n_space * n_space * 1 * 16; // must be 2 to power of n
 constexpr size_t n_parte = n_partd;
