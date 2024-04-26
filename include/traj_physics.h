@@ -21,17 +21,17 @@ constexpr size_t n_partd = 1 * 1024 * 1024; // n_space * n_space * n_space * 1 *
 constexpr size_t n_parte = n_partd;
 constexpr size_t nback = n_partd / 16; // background stationary particles distributed over all cells - improves stability
 
-constexpr float R_s = n_space / 1;                                 // Low Pass Filter smoothing radius not in use
+constexpr float R_s = n_space / 1;                                   // Low Pass Filter smoothing radius not in use
 constexpr float r0_f[3] = {n_space / 32, n_space / 32, n_space / 4}; //  radius of sphere or cylinder (electron, ion, z-pinch plasma)
 
 constexpr float Bz0 = 0.00001;     // in T, static constant fields
 constexpr float Btheta0 = 0.00001; // in T, static constant fields
 constexpr float Ez0 = 1.0e1;       // in V/m
 constexpr float vz0 = 1.0e7f;
-constexpr float a0 = 1e-6; // typical dimensions of a cell in m This needs to be smaller than debye length otherwise energy is not conserved if a particle moves across a cell
-constexpr float a0_ff = 1.0 + 1.0 / (float)n_space;// rescale cell size, if particles rollover this cannot encrement more than 1 cell otherwise will have fake "waves"
-constexpr float target_part = 1e10; // 3.5e22 particles per m^3 per torr of ideal gas. 7e22 electrons for 1 torr of deuterium
-constexpr float v0_r = 0;           // initial directed radial velocity outwards is positive
+constexpr float a0 = 1e-6;                          // typical dimensions of a cell in m This needs to be smaller than debye length otherwise energy is not conserved if a particle moves across a cell
+constexpr float a0_ff = 1.0 + 1.0 / (float)n_space; // rescale cell size, if particles rollover this cannot encrement more than 1 cell otherwise will have fake "waves"
+constexpr float target_part = 1e10;                 // 3.5e22 particles per m^3 per torr of ideal gas. 7e22 electrons for 1 torr of deuterium
+constexpr float v0_r = 0;                           // initial directed radial velocity outwards is positive
 
 // The maximum expected E and B fields. If fields go beyond this, the the time step, cell size etc will be wrong. Should adjust and recalculate.
 //  maximum expected magnetic field
@@ -81,16 +81,16 @@ constexpr int n_space_divz = n_space;
 constexpr int n_space_divx2 = n_space_divx * 2;
 constexpr int n_space_divy2 = n_space_divy * 2;
 constexpr int n_space_divz2 = n_space_divz * 2;
-constexpr size_t n_cells = n_space_divx * n_space_divy * n_space_divz; // number of cells 
-constexpr size_t n_cells8 = n_cells * 8;// number of cells * 8 = cells for FFT to prevent rollover fields
-constexpr size_t n_cellsf = n_cells * sizeof(float);// number of cells * sizeof(float) (4bytes)
+constexpr size_t n_cells = n_space_divx * n_space_divy * n_space_divz; // number of cells
+constexpr size_t n_cells8 = n_cells * 8;                               // number of cells * 8 = cells for FFT to prevent rollover fields
+constexpr size_t n_cellsf = n_cells * sizeof(float);                   // number of cells * sizeof(float) (4bytes)
 constexpr size_t n_cellsi = n_cells * sizeof(int);
-constexpr size_t n_partf = n_partd * sizeof(float);// number of particles * sizeof(float)
-constexpr size_t n_part_2048 = n_partd /2048;// number of particles/2048 for  2048 parallel computations and 2048 times smaller buffer to transfer to CPU
+constexpr size_t n_partf = n_partd * sizeof(float); // number of particles * sizeof(float)
+constexpr size_t n_part_2048 = n_partd / 2048;      // number of particles/2048 for  2048 parallel computations and 2048 times smaller buffer to transfer to CPU
 constexpr size_t n_cells3x8f = n_cells * 3 * 8 * sizeof(float);
-constexpr size_t nc3_16 = n_cells * 3 / 16;// number of cells/16 for 3D float16 
-constexpr size_t n_cells_16 = n_cells / 16;// number of cells/16 for float16 
-// constexpr size_t n4 = n_partd * sizeof(float); 
+constexpr size_t nc3_16 = n_cells * 3 / 16; // number of cells/16 for 3D float16
+constexpr size_t n_cells_16 = n_cells / 16; // number of cells/16 for float16
+// constexpr size_t n4 = n_partd * sizeof(float);
 constexpr size_t N0 = n_space_divx2, N1 = n_space_divy2, N2 = n_space_divz2,
                  N0N1 = N0 * N1, N0N1_2 = N0N1 / 2, N0N1N2 = N0 * N1 * N2,
                  N0_c = N0 / 2 + 1,
@@ -169,7 +169,7 @@ struct par // useful parameters
     int cdt = 0;
     unsigned int maxcomputeunits[10];
     float *maxval_array;
-    int *nt_array; 
+    int *nt_array;
 };
 
 struct particles // particles
@@ -244,6 +244,8 @@ struct fields                                                      // particles
     cl::Buffer *buff_B;
     cl::Buffer *buff_Ee;
     cl::Buffer *buff_Be;
+    cl::Buffer *buff_Ea;
+    cl::Buffer *buff_Ba;
 
     cl::Buffer *buff_V;
 

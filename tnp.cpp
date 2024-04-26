@@ -7,16 +7,12 @@ void tnp(fields *fi, particles *pt, par *par)
    // Note that special alignment has been given to Ea, Ba, y0, z0, x0, x1, y1 in order to actually do this properly
    static int nt0prev;
    static bool first = true;
-   static cl::Buffer buff_Ea, buff_Ba;
-   // static cl::Kernel kernel_tnp, kernel_trilin;
+   // static cl::Buffer buff_Ea, buff_Ba;
+   //static cl::Kernel kernel_tnp, kernel_trilin;
    cl_int res = 0;
    if (first)
    {
       nt0prev = -(int)n_partd;
-      // Assume buffers A, B, I, J (Ea, Ba, ci, cf) will always be the same. Then we save a bit of time.
-      cl::Buffer buff_Ea(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cells3x8f, fastIO ? fi->Ea : NULL);
-      cl::Buffer buff_Ba(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cells3x8f, fastIO ? fi->Ba : NULL);
-
       first = false;
    }
 #if defined(sphere)
@@ -68,7 +64,7 @@ void tnp(fields *fi, particles *pt, par *par)
    for (uint32_t ntime = 0; ntime < par->nc; ntime++)
    {
       // timer.mark();
-      kernel_trilin.setArg(0, buff_Ea);                   // the 1st argument to the kernel program Ea
+      kernel_trilin.setArg(0, fi->buff_Ea[0]);               // the 1st argument to the kernel program Ea
       kernel_trilin.setArg(1, fi->buff_E[0]);             // Ba
       kernel_trilin.setArg(2, sizeof(float), &par->a0_f); // scale
       res = commandQueue_g.enqueueNDRangeKernel(kernel_trilin, cl::NullRange, cl::NDRange(n_cells), cl::NullRange);
@@ -76,7 +72,7 @@ void tnp(fields *fi, particles *pt, par *par)
          cout << "kernel_trilin E  res: " << res << endl;
       commandQueue_g.finish(); // wait for the end of the kernel program
 
-      kernel_trilin.setArg(0, buff_Ba);                   // the 1st argument to the kernel program Ea
+      kernel_trilin.setArg(0, fi->buff_Ba[0]);               // the 1st argument to the kernel program Ea
       kernel_trilin.setArg(1, fi->buff_B[0]);             // Ba
       kernel_trilin.setArg(2, sizeof(float), &par->a0_f); // scale
       res = commandQueue_g.enqueueNDRangeKernel(kernel_trilin, cl::NullRange, cl::NDRange(n_cells), cl::NullRange);
@@ -84,8 +80,8 @@ void tnp(fields *fi, particles *pt, par *par)
          cout << "kernel_trilin B  res: " << res << endl;
       commandQueue_g.finish(); //      cout << "\ntrilin " << timer.elapsed() << "s, \n";
 
-      kernel_tnp.setArg(0, buff_Ea);                             // the 1st argument to the kernel program Ea
-      kernel_tnp.setArg(1, buff_Ba);                             // Ba
+      kernel_tnp.setArg(0, fi->buff_Ea[0]);                         // the 1st argument to the kernel program Ea
+      kernel_tnp.setArg(1, fi->buff_Ba[0]);                         // Ba
       kernel_tnp.setArg(2, pt->buff_x0_e[0]);                    // x0
       kernel_tnp.setArg(3, pt->buff_y0_e[0]);                    // y0
       kernel_tnp.setArg(4, pt->buff_z0_e[0]);                    // z0
@@ -106,8 +102,8 @@ void tnp(fields *fi, particles *pt, par *par)
       commandQueue_g.finish();
 
       //  set arguments to be fed into the kernel program
-      kernel_tnp.setArg(0, buff_Ea);                             // the 1st argument to the kernel program Ea
-      kernel_tnp.setArg(1, buff_Ba);                             // Ba
+      kernel_tnp.setArg(0, fi->buff_Ea[0]);                         // the 1st argument to the kernel program Ea
+      kernel_tnp.setArg(1, fi->buff_Ba[0]);                         // Ba
       kernel_tnp.setArg(2, pt->buff_x0_i[0]);                    // x0
       kernel_tnp.setArg(3, pt->buff_y0_i[0]);                    // y0
       kernel_tnp.setArg(4, pt->buff_z0_i[0]);                    // z0
@@ -174,7 +170,7 @@ void tnp(fields *fi, particles *pt, par *par)
       commandQueue_g.enqueueReadBuffer(fi->buff_np_i[0], CL_TRUE, 0, n_cellsf, fi->np[1]);
 
       commandQueue_g.enqueueReadBuffer(fi->buff_currentj_e[0], CL_TRUE, 0, n_cellsf * 3, fi->currentj[0]);
-      //commandQueue_g.enqueueReadBuffer(fi->buff_jc[0], CL_TRUE, 0, n_cellsf * 3, fi->currentj[0]);
+      // commandQueue_g.enqueueReadBuffer(fi->buff_jc[0], CL_TRUE, 0, n_cellsf * 3, fi->currentj[0]);
       commandQueue_g.enqueueReadBuffer(fi->buff_currentj_i[0], CL_TRUE, 0, n_cellsf * 3, fi->currentj[1]);
    }
 }

@@ -45,7 +45,7 @@ int main()
     fields *fi = alloc_fields(par);
     cl_set_build_options(par);
     cl_start(fi, pt, par);
-
+    //   getchar();
     try
     {
         if (!std::filesystem::create_directory(outpath1))
@@ -94,12 +94,13 @@ int main()
 #endif
     // generate E and B external fields within limits and spacing of Field cells
     generateField(fi, par);
-
+    //  getchar();
     int i_time = 0;
-    // cout << "get_densityfields: ";
+    cout << "get_densityfields: ";
     timer.mark();
 
     get_densityfields(fi, pt, par);
+    //   getchar();
     res = clEnqueueReadBuffer(commandQueue_g(), fi->buff_np_e[0](), CL_TRUE, 0, n_cellsf, fi->np[0], 0, NULL, NULL);
     float max_ne = maxvalf((reinterpret_cast<float *>(fi->np[0])), n_cells);
     float Density_e = max_ne * r_part_spart / powf(a0, 3);
@@ -110,12 +111,17 @@ int main()
     // float max_jc = maxvalf((reinterpret_cast<float *>(fi->jc)), n_cells * 3);
     // cout << "max current density  = " << max_jc << endl;
     cout << timer.elapsed() << "s\n ";
-    // cout << "calcEBV: ";
+    cout << "calcEBV: ";
     timer.mark();
 
     int cdt = calcEBV(fi, par); // electric and magnetic fields this is incorporated into tnp which also moves particles. Need here just to estimate dt
+                                // getchar();
     res = clEnqueueReadBuffer(commandQueue_g(), fi->E_buffer, CL_TRUE, 0, n_cellsf * 3, fi->E, 0, NULL, NULL);
+    if (res)
+        cout << "clEnqueueReadBuffer res: " << res << endl;
     res = clEnqueueReadBuffer(commandQueue_g(), fi->B_buffer, CL_TRUE, 0, n_cellsf * 3, fi->B, 0, NULL, NULL);
+    if (res)
+        cout << "clEnqueueReadBuffer res: " << res << endl;
     cout << timer.elapsed() << "s\n ";
 
     // cout << "Emax = " << par->Emax << ", " << "Bmax = " << par->Bmax << endl;
@@ -146,7 +152,9 @@ int main()
     cout << "dt = " << par->dt[0] << ", " << par->dt[1] << endl;
     info_file << "v0 electron = " << vel_e << endl;
     // redo initial particle positions to get the correct velocities
+    cout << "recalpos" << endl;
     recalcpos(pt, par, inc);
+    //  getchar();
     // redo prev positions only
     res = clEnqueueReadBuffer(commandQueue_g(), pt->buff_x0_e[0](), CL_TRUE, 0, n_partf, pt->pos0x[0], 0, NULL, NULL);
     res = clEnqueueReadBuffer(commandQueue_g(), pt->buff_y0_e[0](), CL_TRUE, 0, n_partf, pt->pos0y[0], 0, NULL, NULL);
@@ -154,34 +162,43 @@ int main()
     res = clEnqueueReadBuffer(commandQueue_g(), pt->buff_x0_i[0](), CL_TRUE, 0, n_partf, pt->pos0x[1], 0, NULL, NULL);
     res = clEnqueueReadBuffer(commandQueue_g(), pt->buff_y0_i[0](), CL_TRUE, 0, n_partf, pt->pos0y[1], 0, NULL, NULL);
     res = clEnqueueReadBuffer(commandQueue_g(), pt->buff_z0_i[0](), CL_TRUE, 0, n_partf, pt->pos0z[1], 0, NULL, NULL);
-    //     cout << "dt changed" << endl;
+    if (res)
+        cout << "clEnqueueReadBuffer res: " << res << endl;
+        //     cout << "dt changed" << endl;
 
 #ifdef Uon_
-    // cout << "calculate the total potential energy U\n";
+    cout << "calculate the total potential energy U\n";
     //                  timer.mark();
-    commandQueue_g.enqueueReadBuffer(fi->buff_V[0], CL_TRUE, 0, n_cellsf, fi->V);
+    res = commandQueue_g.enqueueReadBuffer(fi->buff_V[0], CL_TRUE, 0, n_cellsf, fi->V);
+    if (res)
+        cout << "clEnqueueReadBuffer res: " << res << endl;
     calcU(fi, pt, par);
+//    getchar();
 // cout << "U: " << timer.elapsed() << "s, ";
 #endif
 
     info(par);                          // printout initial info.csv file re do this with updated info
     save_files(i_time, t, fi, pt, par); // cout << "savefiles" << endl;
 
-    //    cout << "logentry" << endl;
+    cout << "logentry" << endl;
     log_headers();                        // log file start with headers
     log_entry(0, 0, total_ncalc, t, par); // Write everything to log
-    nt0prev = par->nt[0];
-    //  cout << par->nt[0] << " " << nt0prev << endl;
+                                          //  getchar();
+    // nt0prev = par->nt[0];
+    //   cout << par->nt[0] << " " << nt0prev << endl;
 #pragma omp barrier
 
-    cout << "print data: " << timer.elapsed() << "s (no. of electron time steps calculated: " << 0 << ")\n";
+    cout
+        << "print data: " << timer.elapsed() << "s (no. of electron time steps calculated: " << 0 << ")\n";
 
     for (i_time = 1; i_time < ndatapoints; i_time++)
     {
-        timer.mark();     // For 60 timesteps
+        timer.mark(); // For 60 timesteps
+        cout << "tnp" << endl;
         tnp(fi, pt, par); //  calculate the next position par->ncalcp[p] times
                           // float max_jc = maxvalf((reinterpret_cast<float *>(fi->jc)), n_cells * 3);
                           //  cout << "max current density  = " << max_jc << endl;
+        getchar();
         for (int p = 0; p < 2; ++p)
             total_ncalc[p] += par->nc * par->ncalcp[p];
         t += par->dt[0] * par->ncalcp[0] * par->nc;

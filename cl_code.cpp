@@ -162,7 +162,9 @@ void cl_start(fields *fi, particles *pt, par *par)
     // Note that special alignment has been given to Ea, Ba, y0, z0, x0, x1, y1 in order to actually do this properly
     // Assume buffers A, B, I, J (Ea, Ba, ci, cf) will always be the same. Then we save a bit of time.
     // get whether or not we are on an iGPU/similar, and can use certain memmory optimizations
-
+    // Assume buffers A, B, I, J (Ea, Ba, ci, cf) will always be the same. Then we save a bit of time.
+    static cl::Buffer buff_Ea(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cells3x8f, fastIO ? fi->Ea : NULL, &cl_err);
+    static cl::Buffer buff_Ba(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cells3x8f, fastIO ? fi->Ba : NULL, &cl_err);
     static cl::Buffer buff_E(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cellsf * 3, fastIO ? fi->E : NULL, &cl_err);
     static cl::Buffer buff_B(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cellsf * 3, fastIO ? fi->B : NULL, &cl_err);
     static cl::Buffer buff_Ee(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cellsf * 3, fastIO ? fi->Ee : NULL, &cl_err);
@@ -221,7 +223,8 @@ void cl_start(fields *fi, particles *pt, par *par)
     par->nt_buffer = nt_buffer;
     if (res)
         cout << res << endl;
-
+    fi->buff_Ea = &buff_Ea;
+    fi->buff_Ba = &buff_Ba;
     fi->buff_E = &buff_E;
     fi->buff_B = &buff_B;
     fi->buff_Ee = &buff_Ee;
