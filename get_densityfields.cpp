@@ -3,16 +3,7 @@ void get_densityfields(fields *fi, particles *pt, par *par)
 {
    static bool first = true;
    uint32_t np = n_partd;
-   size_t n = n_partd / 2048;
-   static cl_mem nt_buffer;
-   static int *nt_array;
    cl_int res = 0;
-   if (first)
-   {
-      nt_buffer = clCreateBuffer(context_g(), CL_MEM_READ_WRITE, n * sizeof(int), 0, &res);
-      nt_array = (int *)_aligned_malloc(sizeof(int) * n, par->cl_align);
-      first = false;
-   }
 
    // static cl::Kernel kernel_density, kernel_df, kernel_dtotal;
 
@@ -45,16 +36,17 @@ void get_densityfields(fields *fi, particles *pt, par *par)
    commandQueue_g.finish();
 
    clSetKernelArg(nsumi_kernel, 0, sizeof(cl_mem), &(pt->buff_q_e[0]()));
-   clSetKernelArg(nsumi_kernel, 1, sizeof(cl_mem), &nt_buffer);
+   clSetKernelArg(nsumi_kernel, 1, sizeof(cl_mem), &par->nt_buffer);
    clSetKernelArg(nsumi_kernel, 2, sizeof(uint32_t), &np);
-   res = clEnqueueNDRangeKernel(commandQueue_g(), nsumi_kernel, 1, NULL, &n, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
+   res = clEnqueueNDRangeKernel(commandQueue_g(), nsumi_kernel, 1, NULL, &n_part_2048, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
    if (res)
       cout << "nsumi_kernel e  res: " << res << endl;
    res = clFinish(commandQueue_g());
-   res = clEnqueueReadBuffer(commandQueue_g(), nt_buffer, CL_TRUE, 0, sizeof(int) * n, nt_array, 0, NULL, NULL);
+   res = clEnqueueReadBuffer(commandQueue_g(), par->nt_buffer, CL_TRUE, 0, sizeof(int) * n_part_2048, par->nt_array, 0, NULL, NULL);
    int nt = 0;
-   for (int i = 0; i < n; ++i)
-      nt += nt_array[i];
+#pragma omp parallel for simd num_threads(nthreads) reduction(+ : nt)
+   for (int i = 0; i < n_part_2048; ++i)
+      nt += par->nt_array[i];
    par->nt[0] = nt;
 
    kernel_df.setArg(0, fi->buff_np_e[0]);          // np ion
@@ -62,7 +54,7 @@ void get_densityfields(fields *fi, particles *pt, par *par)
    kernel_df.setArg(2, fi->buff_currentj_e[0]);    // current
    kernel_df.setArg(3, fi->buff_cji[0]);           // current
    kernel_df.setArg(4, sizeof(float), &par->a0_f); // scale factor
-   kernel_df.setArg(5, sizeof(float), &par->dt[0]); 
+   kernel_df.setArg(5, sizeof(float), &par->dt[0]);
    res = commandQueue_g.enqueueNDRangeKernel(kernel_df, cl::NullRange, cl::NDRange(n_cells), cl::NullRange);
    if (res)
       cout << "kernel_df e  res: " << res << endl;
@@ -87,26 +79,34 @@ void get_densityfields(fields *fi, particles *pt, par *par)
       cout << "kernel_density i  res: " << res << endl;
    commandQueue_g.finish(); // wait for the end of the kernel program
 
-   clSetKernelArg(nsumi_kernel, 0, sizeof(cl_mem), &(pt->buff_q_i[0]()));
-   clSetKernelArg(nsumi_kernel, 1, sizeof(cl_mem), &nt_buffer);
-   res = clEnqueueNDRangeKernel(commandQueue_g(), nsumi_kernel, 1, NULL, &n, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
+   res = clSetKernelArg(nsumi_kernel, 0, sizeof(cl_mem), &(pt->buff_q_i[0]()));
+   if (res)
+      cout << "clSetKernelArg nsumi_kernel i 0 res: " << res << endl;
+   res = clSetKernelArg(nsumi_kernel, 1, sizeof(cl_mem), &par->nt_buffer);
+   if (res)
+      cout << "clSetKernelArg nsumi_kernel i 1 res: " << res << endl;
+   res = clSetKernelArg(nsumi_kernel, 2, sizeof(uint32_t), &np);
+   if (res)
+      cout << "clSetKernelArg nsumi_kernel i 2 res: " << res << endl;
+   res = clEnqueueNDRangeKernel(commandQueue_g(), nsumi_kernel, 1, NULL, &n_part_2048, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
    if (res)
       cout << "nsumi_kernel i  res: " << res << endl;
    res = clFinish(commandQueue_g());
-   res = clEnqueueReadBuffer(commandQueue_g(), nt_buffer, CL_TRUE, 0, sizeof(int) * n, nt_array, 0, NULL, NULL);
+   res = clEnqueueReadBuffer(commandQueue_g(), par->nt_buffer, CL_TRUE, 0, sizeof(int) * n_part_2048, par->nt_array, 0, NULL, NULL);
    nt = 0;
-   for (int i = 0; i < n; ++i)
-      nt += nt_array[i];
+#pragma omp parallel for simd num_threads(nthreads) reduction(+ : nt)
+   for (int i = 0; i < n_part_2048; ++i)
+      nt += par->nt_array[i];
    par->nt[1] = nt;
-   // cout << "nt (e) = " << par->nt[0] << ", nt (i) = " << par->nt[1] << ", n = " << n << endl;
+   // cout << "nt (e) = " << par->nt[0] << ", nt (i) = " << par->nt[1] << ", n = " << n_part_2048 << endl;
    //  cout << "nt (i) = " << nt << endl;
 
    kernel_df.setArg(0, fi->buff_np_i[0]);          // np ion
    kernel_df.setArg(1, fi->buff_npi[0]);           // np ion temporary integer
    kernel_df.setArg(2, fi->buff_currentj_i[0]);    // current
    kernel_df.setArg(3, fi->buff_cji[0]);           // current
-   kernel_df.setArg(4, sizeof(float), &par->a0_f);// scale factor
-   kernel_df.setArg(5, sizeof(float), &par->dt[1]); 
+   kernel_df.setArg(4, sizeof(float), &par->a0_f); // scale factor
+   kernel_df.setArg(5, sizeof(float), &par->dt[1]);
    res = commandQueue_g.enqueueNDRangeKernel(kernel_df, cl::NullRange, cl::NDRange(n_cells), cl::NullRange);
    if (res)
       cout << "kernel_df i  res: " << res << endl;
@@ -123,7 +123,7 @@ void get_densityfields(fields *fi, particles *pt, par *par)
    kernel_dtotal.setArg(4, fi->buff_npt[0]);        // total particles density
    kernel_dtotal.setArg(5, fi->buff_jc[0]);         // total current density
    kernel_dtotal.setArg(6, sizeof(uint32_t), &ntemp);
-   commandQueue_g.enqueueNDRangeKernel(kernel_dtotal, cl::NullRange, cl::NDRange(n_cells / 16), cl::NullRange);
+   commandQueue_g.enqueueNDRangeKernel(kernel_dtotal, cl::NullRange, cl::NDRange(n_cells_16), cl::NullRange);
    if (res)
       cout << "kernel_dtotal  res: " << res << endl;
    commandQueue_g.finish();

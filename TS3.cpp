@@ -8,16 +8,19 @@ ofstream info_file;
 int main()
 {
     par par1;
+    // particles pt1;
+    // fields fi1;
     par *par = &par1;
+    // particles *pt = &pt1;
+    // fields *fi = fi1;
     float nt0prev;
     cl_int res;
     timer.mark(); // Yes, 3 time marks. The first is for the overall program dt
     timer.mark(); // The second is for compute_d_time
     timer.mark(); // The third is for start up dt
     double t = 0;
-    // allocate memory for particles
-    particles *pt = alloc_particles(par);
-    fields *fi = alloc_fields(par);
+
+    // par = alloc_par();
     int total_ncalc[2] = {0, 0}; // particle 0 - electron, particle 1 deuteron
 
     info_file.open("info.csv");
@@ -33,6 +36,13 @@ int main()
 
     omp_set_nested(true);
     nthreads = omp_get_max_threads(); // omp_set_num_threads(nthreads);
+                                      // allocate memory for particles assume default value of cl_align.
+    static float *maxval_array = (float *)_aligned_malloc(sizeof(float) * n_cells_16, par->cl_align);
+    par->maxval_array = maxval_array;
+    static int *nt_array = (int *)_aligned_malloc(sizeof(int) * n_part_2048, par->cl_align);
+    par->nt_array = nt_array;
+    particles *pt = alloc_particles(par);
+    fields *fi = alloc_fields(par);
     cl_set_build_options(par);
     cl_start(fi, pt, par);
 

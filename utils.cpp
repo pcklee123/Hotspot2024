@@ -87,11 +87,11 @@ void log_entry(int i_time, int ntime, int total_ncalc[2], double t, par *par)
     logger.write(total_ncalc[1]);
     logger.write(par->dt[0] * 1e15); // in fs
     logger.write(par->dt[1] * 1e15);
-    logger.write(t * 1e12); // in ps
-    logger.write(par->nt[0]);
+    logger.write(t * 1e12);   // in ps
+    logger.write(par->nt[0]); // number of super particles
     logger.write(par->nt[1]);
-    logger.write(-par->KEtot[0] / par->nt[0]);
-    logger.write(par->KEtot[1] / par->nt[1]);
+    logger.write(-par->KEtot[0] / ((float)par->nt[0] * r_part_spart));
+    logger.write(par->KEtot[1] / ((float)par->nt[1] * r_part_spart));
     logger.write(par->UE / ntall);
     logger.write(par->UB / ntall);
     logger.write((par->KEtot[0] + par->KEtot[1] + par->UB + par->UE * 0.5) / ntall);
@@ -199,6 +199,7 @@ fields *alloc_fields(par *par)
 #ifdef Uon_
     f->precalc_r2 = static_cast<float(*)>(_aligned_malloc(n_cells4 * sizeof(complex<float>), alignment)); // similar arrays for U, but kept separately in one ifdef
 #endif
+
     return f;
 }
 

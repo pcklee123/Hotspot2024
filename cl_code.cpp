@@ -22,15 +22,15 @@ void add_build_option(string name, float param)
 
 void cl_set_build_options(par *par)
 {
-    add_build_option("XLOWo", par->posL[0]);
-    add_build_option("YLOWo", par->posL[1]);
-    add_build_option("ZLOWo", par->posL[2]);
-    add_build_option("XHIGHo", par->posH[0]);
-    add_build_option("YHIGHo", par->posH[1]);
-    add_build_option("ZHIGHo", par->posH[2]);
-    add_build_option("DXo", par->dd[0]);
-    add_build_option("DYo", par->dd[1]);
-    add_build_option("DZo", par->dd[2]);
+    add_build_option("XLOWo", (float)par->posL[0]);
+    add_build_option("YLOWo", (float)par->posL[1]);
+    add_build_option("ZLOWo", (float)par->posL[2]);
+    add_build_option("XHIGHo", (float)par->posH[0]);
+    add_build_option("YHIGHo", (float)par->posH[1]);
+    add_build_option("ZHIGHo", (float)par->posH[2]);
+    add_build_option("DXo", (float)par->dd[0]);
+    add_build_option("DYo", (float)par->dd[1]);
+    add_build_option("DZo", (float)par->dd[2]);
     add_build_option("NX", (int)par->n_space_div[0]);
     add_build_option("NY", (int)par->n_space_div[1]);
     add_build_option("NZ", (int)par->n_space_div[2]);
@@ -215,9 +215,12 @@ void cl_start(fields *fi, particles *pt, par *par)
     fi->fft_real_buffer = fft_real_buffer;
     fi->fft_complex_buffer = fft_complex_buffer;
     fi->fft_p_buffer = fft_p_buffer;
-
-    if (cl_err)
-        cout << cl_err << endl;
+    static cl_mem maxval_buffer = clCreateBuffer(context_g(), CL_MEM_READ_WRITE, n_cells_16 * sizeof(float), 0, &res);
+    par->maxval_buffer = maxval_buffer;
+    static cl_mem nt_buffer = clCreateBuffer(context_g(), CL_MEM_READ_WRITE, n_part_2048 * sizeof(int), 0, &res);
+    par->nt_buffer = nt_buffer;
+    if (res)
+        cout << res << endl;
 
     fi->buff_E = &buff_E;
     fi->buff_B = &buff_B;

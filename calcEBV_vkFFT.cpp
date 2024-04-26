@@ -76,7 +76,7 @@ int calcEBV(fields *fi, par *par)
     static VkFFTApplication appfor_k2 = {};
 
     static cl_mem EUtot_buffer = 0;
-    static cl_mem maxval_buffer = 0;
+  //  static cl_mem maxval_buffer = 0;
 
     static VkGPU vkGPU = {};
     // vkGPU.device_id = 0; // 0 = use iGPU for FFT
@@ -538,33 +538,29 @@ int calcEBV(fields *fi, par *par)
 #endif
 #endif
 
-    size_t n = n_cells / 16;
-    maxval_buffer = clCreateBuffer(vkGPU.context, CL_MEM_READ_WRITE, n * sizeof(float), 0, &res);
-    float *maxval_array = (float *)_aligned_malloc(sizeof(float) * n, par->cl_align);
+
 #ifdef Eon_
     clSetKernelArg(maxval3f_kernel, 0, sizeof(cl_mem), &fi->E_buffer);
-    clSetKernelArg(maxval3f_kernel, 1, sizeof(cl_mem), &maxval_buffer);
-    res = clEnqueueNDRangeKernel(vkGPU.commandQueue, maxval3f_kernel, 1, NULL, &n, NULL, 0, NULL, NULL);
+    clSetKernelArg(maxval3f_kernel, 1, sizeof(cl_mem), &par->maxval_buffer);
+    res = clEnqueueNDRangeKernel(vkGPU.commandQueue, maxval3f_kernel, 1, NULL, &n_cells_16, NULL, 0, NULL, NULL);
     if (res)
         cout << "maxval3f_kernel res: " << res << endl;
     res = clFinish(commandQueue_g());
-    res = clEnqueueReadBuffer(vkGPU.commandQueue, maxval_buffer, CL_TRUE, 0, sizeof(float) * n, maxval_array, 0, NULL, NULL);
-    par->Emax = sqrtf(maxvalf(maxval_array, n));
+    res = clEnqueueReadBuffer(vkGPU.commandQueue, par->maxval_buffer, CL_TRUE, 0, sizeof(float) * n_cells_16, par->maxval_array, 0, NULL, NULL);
+    par->Emax = sqrtf(maxvalf(par->maxval_array, n_cells_16));
     // cout << "Emax = " << par->Emax << endl;
 #endif
 
 #ifdef Bon_
     clSetKernelArg(maxval3f_kernel, 0, sizeof(cl_mem), &fi->B_buffer);
-    clSetKernelArg(maxval3f_kernel, 1, sizeof(cl_mem), &maxval_buffer);
-    res = clEnqueueNDRangeKernel(vkGPU.commandQueue, maxval3f_kernel, 1, NULL, &n, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
+    clSetKernelArg(maxval3f_kernel, 1, sizeof(cl_mem), &par->maxval_buffer);
+    res = clEnqueueNDRangeKernel(vkGPU.commandQueue, maxval3f_kernel, 1, NULL, &n_cells_16, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
     if (res)
         cout << "maxval3f_kernel res: " << res << endl;
     res = clFinish(commandQueue_g());
-    res = clEnqueueReadBuffer(vkGPU.commandQueue, maxval_buffer, CL_TRUE, 0, sizeof(float) * n, maxval_array, 0, NULL, NULL);
-    par->Bmax = sqrtf(maxvalf(maxval_array, n));
+    res = clEnqueueReadBuffer(vkGPU.commandQueue, par->maxval_buffer, CL_TRUE, 0, sizeof(float) * n_cells_16, par->maxval_array, 0, NULL, NULL);
+    par->Bmax = sqrtf(maxvalf(par->maxval_array, n_cells_16));
 #endif
-    _aligned_free(maxval_array);
-    clReleaseMemObject(maxval_buffer);
 
     int E_exceeds = 0,
         B_exceeds = 0;

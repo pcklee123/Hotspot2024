@@ -6,11 +6,11 @@ dir_guard=@mkdir -p $(@D)
 #https://stackoverflow.com/questions/14492436/g-optimization-beyond-o3-ofast
 CC=g++
 #ucrt64
-CFLAGS= -g -I$(IDIR) -I /ucrt64/include/vtk -L /ucrt64/lib/vtk -fopenmp -fopenmp-simd -march=native -malign-double -std=c++2b 
+CFLAGS= -pg -I$(IDIR) -I /ucrt64/include/vtk -L /ucrt64/lib/vtk -fopenmp -fopenmp-simd -march=native -malign-double -std=c++2b 
 
 
 CFLAGS+= -Ofast -ftree-parallelize-loops=8 
-CFLAGS+= -mavx -mavx2 -mfma -ffast-math -ftree-vectorize -fomit-frame-pointer
+CFLAGS+= -mavx -mavx2 -mfma -ffast-math -ftree-vectorize# -fomit-frame-pointer
 
 LIBS= -lm -lgsl -lOpenCL  -lgomp # -lfftw3f -lfftw3f_omp
 LIBS+= -lvtkCommonCore.dll  -lvtksys.dll -lvtkIOXML.dll -lvtkCommonDataModel.dll -lvtkIOCore.dll

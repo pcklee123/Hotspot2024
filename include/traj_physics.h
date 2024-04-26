@@ -15,7 +15,7 @@ constexpr int f2 = f1 * 1.2;
 constexpr float incf = 1.2f;        // increment
 constexpr float decf = 1.0f / incf; // decrement factor
 
-constexpr int n_space = 32; // should be 2 to power of n for faster FFT e.g. 32,64,128,256 (128 is 2 million cells, ~ 1gB of ram, 256 is not practical for systems with 8GB or less GPU ram)
+constexpr int n_space = 8; // should be 2 to power of n for faster FFT e.g. 32,64,128,256 (128 is 2 million cells, ~ 1gB of ram, 256 is not practical for systems with 8GB or less GPU ram)
 
 constexpr size_t n_partd = 1 * 1024 * 1024; // n_space * n_space * n_space * 1 * 16; // must be 2 to power of n
 constexpr size_t n_parte = n_partd;
@@ -86,8 +86,10 @@ constexpr size_t n_cells8 = n_cells * 8;// number of cells * 8 = cells for FFT t
 constexpr size_t n_cellsf = n_cells * sizeof(float);// number of cells * sizeof(float) (4bytes)
 constexpr size_t n_cellsi = n_cells * sizeof(int);
 constexpr size_t n_partf = n_partd * sizeof(float);// number of particles * sizeof(float)
+constexpr size_t n_part_2048 = n_partd /2048;// number of particles/2048 for  2048 parallel computations and 2048 times smaller buffer to transfer to CPU
 constexpr size_t n_cells3x8f = n_cells * 3 * 8 * sizeof(float);
-constexpr size_t nc3_16 = n_cells * 3 / 16;
+constexpr size_t nc3_16 = n_cells * 3 / 16;// number of cells/16 for 3D float16 
+constexpr size_t n_cells_16 = n_cells / 16;// number of cells/16 for float16 
 // constexpr size_t n4 = n_partd * sizeof(float); 
 constexpr size_t N0 = n_space_divx2, N1 = n_space_divy2, N2 = n_space_divz2,
                  N0N1 = N0 * N1, N0N1_2 = N0N1 / 2, N0N1N2 = N0 * N1 * N2,
@@ -162,10 +164,12 @@ struct par // useful parameters
     unsigned int cl_align = 4096;
     std::string outpath;
     float a0_f = 1.0; // factor to scale cell size
-    // cl_mem buff_E = 0;
-    // cl_mem buff_B = 0;
+    cl_mem maxval_buffer = 0;
+    cl_mem nt_buffer = 0;
     int cdt = 0;
     unsigned int maxcomputeunits[10];
+    float *maxval_array;
+    int *nt_array; 
 };
 
 struct particles // particles

@@ -1004,16 +1004,15 @@ void kernel dtotal(global const float16 *ne, global const float16 *ni,
   jt[n2 + i] = je[n2 + i] + ji[n2 + i];
 }
 
-void kernel nsumi(global const int *npi, global int *n0, const uint n) {
-  const uint n1 = get_global_size(0);
-  //  const uint n = NZ * NY * NX;
-  const uint n2 = n / n1; // make sure n is divisible by n1 from calling code
+void kernel nsumi(global const int *npi, global int *n0, const uint npart) {
+  const uint n1 = get_global_size(0); //n_part_2048
+  const uint n2 = npart / n1; // make sure n is divisible by n1 from calling code
   const uint i = get_global_id(0); // Get index of current element processed
   const uint j0 = i * n2;
   n0[i] = 0;
   for (uint j = 0; j < n2; ++j)
     n0[i] += npi[j0 + j]; // Do the operation
-  n0[i] = n0[i];
+  //n0[i] = n0[i];
 }
 
 void kernel copyextField(global const float16 *Fe, global float16 *F) {

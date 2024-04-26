@@ -136,4 +136,5 @@ particles *alloc_particles(par *par);
 fields *alloc_fields(par *par);
 
 void recalcpos(particles *pt, par *par,float inc);
+
 #endif // TRAJ_H_INCLUDED
