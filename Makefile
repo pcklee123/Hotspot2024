@@ -9,10 +9,10 @@ CC=g++
 CFLAGS= -pg -no-pie -I$(IDIR) -I /ucrt64/include/vtk -L /ucrt64/lib/vtk -fopenmp -fopenmp-simd -march=native -malign-double -std=c++2b 
 
 
-CFLAGS+= -O2 -ftree-parallelize-loops=8 
-CFLAGS+= -mavx -mavx2 -mfma -ffast-math -ftree-vectorize -fno-omit-frame-pointer -finline-functions
+CFLAGS+= -O3 -ftree-parallelize-loops=8 
+CFLAGS+= -mavx -mavx2 -mfma -ffast-math -ftree-vectorize -fno-omit-frame-pointer #-finline-functions
 
-LIBS= -lm -lgsl -lOpenCL  -lgomp # -lfftw3f -lfftw3f_omp
+LIBS= -lm -lgsl -lOpenCL.dll  -lgomp # -lfftw3f -lfftw3f_omp
 LIBS+= -lvtkCommonCore.dll  -lvtksys.dll -lvtkIOXML.dll -lvtkCommonDataModel.dll -lvtkIOCore.dll
 
 
