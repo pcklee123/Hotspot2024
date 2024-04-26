@@ -7,3 +7,6 @@ TS3.
 ~.*
 *.vti
 *.vtp
+gmon.out
+output.png
+t.txt
