@@ -7,10 +7,10 @@
 // #define cylinder //do hot rod problem
 // #define quadrant // do problem 1/4 sphere or cylinder
 #define Weibull
-constexpr double weibullb = 4; // b factor for weibull. larger means closer to a shell. ~1 means filled more at the center.
+constexpr double weibullb = 4; // b factor for weibull distribn. larger means closer to a shell. ~1 means filled more at the center.
 #define Temp_e 1e5             // in Kelvin 1e7 ~1keV
 #define Temp_d 1e7             // in Kelvin
-constexpr int f1 = 1;          // make bigger to make smaller time steps // 1 is min for sphere slight increase in KE
+constexpr int f1 = 300;          // make bigger to make smaller time steps // 300 is min for sphere slight increase in KE
 constexpr int f2 = f1 * 1.2;
 constexpr float incf = 1.2f;        // increment
 constexpr float decf = 1.0f / incf; // decrement factor
@@ -21,7 +21,7 @@ constexpr size_t n_partd = 1 * 1024 * 1024; // n_space * n_space * n_space * 1 *
 constexpr size_t n_parte = n_partd;
 constexpr size_t nback = n_partd / 16; // background stationary particles distributed over all cells - improves stability
 
-constexpr float R_s = n_space / 1;                                   // Low Pass Filter smoothing radius not in use
+constexpr float R_s = n_space / 1;                                   // Low Pass Filter smoothing radius. Not in use
 constexpr float r0_f[3] = {n_space / 32, n_space / 32, n_space / 4}; //  radius of sphere or cylinder (electron, ion, z-pinch plasma)
 
 constexpr float Bz0 = 0.00001;     // in T, static constant fields
