@@ -58,6 +58,7 @@ int calcEBV(fields *fi, par *par)
     static cl_kernel jcxPrecalc_kernel;
     // static cl_kernel sumFftFieldo_kernel;
     static cl_kernel sumFftField_kernel;
+    static cl_kernel sumFftFieldB_kernel;
     static cl_kernel sumFftSField_kernel;
     static cl_kernel copyextField_kernel;
     static cl_kernel EUEst_kernel;
@@ -76,7 +77,7 @@ int calcEBV(fields *fi, par *par)
     static VkFFTApplication appfor_k2 = {};
 
     static cl_mem EUtot_buffer = 0;
-  //  static cl_mem maxval_buffer = 0;
+    //  static cl_mem maxval_buffer = 0;
 
     static VkGPU vkGPU = {};
     // vkGPU.device_id = 0; // 0 = use iGPU for FFT
@@ -118,9 +119,11 @@ int calcEBV(fields *fi, par *par)
     sumFftField_kernel = clCreateKernel(program_g(), "sumFftFieldo", NULL); // want rollover fields in x,y,z
 #else
 #ifdef quadrant
-    sumFftField_kernel = clCreateKernel(program_g(), "sumFftFieldq", NULL); // want rollover fields in x,y no z
+    sumFftField_kernel = clCreateKernel(program_g(), "sumFftFieldq", NULL);   // want rollover fields in x,y no z
+    sumFftFieldB_kernel = clCreateKernel(program_g(), "sumFftFieldBq", NULL); // want rollover fields in x,y no z
 #else
     sumFftField_kernel = clCreateKernel(program_g(), "sumFftField", NULL);
+    sumFftFieldB_kernel = = clCreateKernel(program_g(), "sumFftField", NULL);
 #endif
 #endif
     sumFftSField_kernel = clCreateKernel(program_g(), "sumFftSField", NULL);
@@ -343,7 +346,7 @@ int calcEBV(fields *fi, par *par)
             (reinterpret_cast<float *>(precalc_r2_base))[i] *= Vconst;
 #endif
         resFFT = transferDataFromCPU(&vkGPU, precalc_r3_base, &r3_base_buffer, bufferSize_R6);
-        
+
         resFFT = VkFFTAppend(&appfor_k, -1, &launchParams); //
         if (resFFT)
             cout << "forward transform precalc_r3" << endl;
@@ -500,11 +503,11 @@ int calcEBV(fields *fi, par *par)
         resFFT = VkFFTAppend(&appbac3, 1, &launchParams); // 1 = inverse FFT// cout << "execute plan bac E resFFT = " << resFFT << endl;
         if (resFFT)
             cout << "appbac3 B resFFT: " << resFFT << endl;
-        res = clFinish(vkGPU.commandQueue);                                          // cout << "execute plan bac E ,clFinish res = " << res << endl;
-                                                                                     // resFFT = transferDataToCPU(&vkGPU, &fft_real[0][0], &fi->fft_real_buffer, bufferSize_R3);
-        clSetKernelArg(sumFftField_kernel, 0, sizeof(cl_mem), &fi->fft_real_buffer); // real[0-2] is E field
-        clSetKernelArg(sumFftField_kernel, 1, sizeof(cl_mem), &fi->Be_buffer);
-        clSetKernelArg(sumFftField_kernel, 2, sizeof(cl_mem), &fi->B_buffer);
+        res = clFinish(vkGPU.commandQueue);                                           // cout << "execute plan bac E ,clFinish res = " << res << endl;
+                                                                                      // resFFT = transferDataToCPU(&vkGPU, &fft_real[0][0], &fi->fft_real_buffer, bufferSize_R3);
+        clSetKernelArg(sumFftFieldB_kernel, 0, sizeof(cl_mem), &fi->fft_real_buffer); // real[0-2] is E field
+        clSetKernelArg(sumFftFieldB_kernel, 1, sizeof(cl_mem), &fi->Be_buffer);
+        clSetKernelArg(sumFftFieldB_kernel, 2, sizeof(cl_mem), &fi->B_buffer);
         res = clEnqueueNDRangeKernel(vkGPU.commandQueue, sumFftField_kernel, 1, NULL, &n_cells, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
         if (res)
             cout << "sumFftField_kernel B  res: " << res << endl;
@@ -536,7 +539,6 @@ int calcEBV(fields *fi, par *par)
     EUtot1 *= 0.5f; // * e_charge / ev_to_j; <- this is just 1
 #endif
 #endif
-
 
 #ifdef Eon_
     clSetKernelArg(maxval3f_kernel, 0, sizeof(cl_mem), &fi->E_buffer);

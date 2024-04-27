@@ -22,7 +22,7 @@ constexpr size_t n_parte = n_partd;
 constexpr size_t nback = n_partd / 16; // background stationary particles distributed over all cells - improves stability
 
 constexpr float R_s = n_space / 1;                                   // Low Pass Filter smoothing radius. Not in use
-constexpr float r0_f[3] = {n_space / 32, n_space / 32, n_space / 4}; //  radius of sphere or cylinder (electron, ion, z-pinch plasma)
+constexpr float r0_f[3] = {(float)n_space / 4.0, (float)n_space / 4.0, (float)n_space / 8.0}; //  radius of sphere or cylinder (electron, ion, z-pinch plasma)
 
 constexpr float Bz0 = 0.00001;     // in T, static constant fields
 constexpr float Btheta0 = 0.00001; // in T, static constant fields

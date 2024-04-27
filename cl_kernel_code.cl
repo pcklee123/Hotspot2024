@@ -253,6 +253,41 @@ void kernel sumFftFieldq(global const float *fft_real, global const float *Fe,
   }
 }
 
+void kernel sumFftFieldBq(global const float *fft_real, global const float *Fe,
+                         global float *F) {
+  const float s000[3] = {+1, +1, +1}; // c=0 is x,c=1 is y,c=2 is z
+  const float s001[3] = {+1, -1, +1}; // {-1, +1, +1};
+  const float s010[3] = {-1, +1, +1}; // {+1, -1, +1};
+  const float s011[3] = {+1, +1, +1}; // {-1, -1, +1};
+
+  uint idx = get_global_id(0); // get global indices
+  // Compute 3D index for dest array
+  uint i = idx % NX;
+  uint j = (idx / NX) % NY;
+  uint k = (idx / NXNY) % NZ;
+
+  uint cdx = 0, cdx8 = 0;
+
+  int idx000 = k * N0N1 + j * N0 + i; // idx_kji
+  int idx001 = k * N0N1 + j * N0;
+  int idx010 = k * N0N1 + i;
+  int idx011 = k * N0N1;
+
+  int odx000 = 0;                          // odx_kji
+  int odx001 = i == 0 ? 0 : N0 - i;        // iskip
+  int odx010 = j == 0 ? 0 : N0 * (N1 - j); // jskip
+  int odx011 = odx001 + odx010;
+
+  for (int c = 0; c < 3; ++c, cdx += NXNYNZ, cdx8 += N0N1N2) {
+    F[cdx + idx] = Fe[cdx + idx];
+    F[cdx + idx] += s000[c] * fft_real[cdx8 + odx000 + idx000]; // main octant
+    // add minor effects from other octants
+    F[cdx + idx] += s001[c] * fft_real[cdx8 + odx001 + idx001];
+    F[cdx + idx] += s010[c] * fft_real[cdx8 + odx010 + idx010];
+    F[cdx + idx] += s011[c] * fft_real[cdx8 + odx011 + idx011];
+  }
+}
+
 void kernel sumFftField(global const float *fft_real, global const float *Fe,
                         global float *F) {
   // get global indices
