@@ -1,14 +1,15 @@
-// Preprocessor things for compilation of tnp assume if XLOWo is defined then everything else is.Need these defines here to avoid warnings in the editor
+// Preprocessor things for compilation of tnp assume if XLOWo is defined then
+// everything else is.Need these defines here to avoid warnings in the editor
 #ifndef XLOWo
-#define XLOWo 0
-#define YLOWo 0
-#define ZLOWo 0
-#define XHIGHo 0
-#define YHIGHo 0
-#define ZHIGHo 0
-#define DXo 0
-#define DYo 0
-#define DZo 0
+#define XLOWo 0.0
+#define YLOWo 0.0
+#define ZLOWo 0.0
+#define XHIGHo 1.0
+#define YHIGHo 1.0
+#define ZHIGHo 1.0
+#define DXo 1.0
+#define DYo 1.0
+#define DZo 1.0
 #define NX 2
 #define NY 2
 #define NZ 2
@@ -19,7 +20,7 @@
 #define N2 4
 #define N0N1 16
 #define N0N1N2 64
-#define NC4 48 //N0*N1*(N2/2+1) = 4 * NX * NY * (NZ + 1) 
+#define NC4 48 // N0*N1*(N2/2+1) = 4 * NX * NY * (NZ + 1)
 #endif
 void kernel vector_cross_mul(global float *A0, global const float *B0,
                              global const float *C0, global float *A1,
@@ -76,7 +77,8 @@ void kernel copy3Data(global const float *jc, global float *fft_real) {
 
   uint s_idx = (in) ? k * NY * NX + j * NX + i
                     : 0; // Compute global index for source array
-  //  Copy element from source to destination array or with zeroes do for each component
+  //  Copy element from source to destination array or with zeroes do for each
+  //  component
   fft_real[idx] = (in) ? jc[s_idx] : 0;
   idx += N0N1N2;
   s_idx += NXNYNZ;
@@ -102,7 +104,10 @@ void kernel copyData(global const float *npt, global float *fft_real) {
   //  Copy element from source to destination array or with zeroes
   fft_real[idx] = (in) ? npt[source_index] : 0;
 }
-
+// This does scalar complex multiply the fft of the r_vector/r^3 with the fft of
+// the "density" since density is a scalar field it is contained in 1st
+// component of fft_complex the final result is a vector field with 3 components
+// in the array each with NC4 elements
 void kernel NxPrecalc(global const float2 *r3, global float2 *fft_complex) {
   uint i = get_global_id(0), j = i + NC4, k = j + NC4;
   float2 b = fft_complex[i], c = r3[k];
@@ -115,11 +120,15 @@ void kernel NxPrecalc(global const float2 *r3, global float2 *fft_complex) {
   fft_complex[i] =
       (float2)(b.s0 * c.s0 - b.s1 * c.s1, b.s0 * c.s1 + b.s1 * c.s0);
 }
-
+// This does complex vector cross multiply the fft of the r_vector/r^3 with the
+// fft of the "current density" since current density is a vector field, each
+// component is contained  fft_complex x has NC4 elements, y has .... the final
+// result is a vector field with 3 components in the array each with NC4
+// elements
 void kernel jcxPrecalc(global const float2 *r3, global float2 *jc) {
   float2 t1, t2, t3;
-  uint x = get_global_id(0), y = x + NC4, z = y + NC4, x1 = z + NC4, y1 = x1 + NC4,
-       z1 = y1 + NC4;
+  uint x = get_global_id(0), y = x + NC4, z = y + NC4, x1 = z + NC4,
+       y1 = x1 + NC4, z1 = y1 + NC4;
   t1 = (float2)(jc[y].s0 * r3[z1].s0 - jc[y].s1 * r3[z1].s1,
                 jc[y].s0 * r3[z1].s1 + jc[y].s1 * r3[z1].s0) -
        (float2)(jc[z].s0 * r3[y1].s0 - jc[z].s1 * r3[y1].s1,
@@ -142,11 +151,11 @@ void kernel NxPrecalcr2(global const float2 *r2, global const float2 *r3,
 
   uint i = get_global_id(0), j = i + NC4, k = j + NC4;
   float2 b = fft_complex[i], c = r2[i];
-  // V is at complex[3]
+  // V is at fft_complex[3] fourth place
   fft_complex[NC4 + k] =
       (float2)(b.s0 * c.s0 - b.s1 * c.s1, b.s0 * c.s1 + b.s1 * c.s0);
   c = r3[k];
-  // E is at complex[0]-[2]
+  // fft of E is at fft_complex[0]-[2]
   fft_complex[k] =
       (float2)(b.s0 * c.s0 - b.s1 * c.s1, b.s0 * c.s1 + b.s1 * c.s0);
   c = r3[j];
@@ -216,8 +225,7 @@ void kernel sumFftFieldq(global const float *fft_real, global const float *Fe,
   const float s010[3] = {+1, -1, +1};
   const float s011[3] = {-1, -1, +1};
 
-  // get global indices
-  uint idx = get_global_id(0);
+  uint idx = get_global_id(0); // get global indices
   // Compute 3D index for dest array
   uint i = idx % NX;
   uint j = (idx / NX) % NY;
@@ -269,7 +277,7 @@ void kernel sumFftSField(global const float *fft_real, global float *V) {
   uint k = (idx / NXNY) % NZ;
 
   int idx000 = k * N0N1 + j * N0 + i; // idx_kji
-  V[idx] = fft_real[idx000];  // V[idx] = 5.0;
+  V[idx] = fft_real[idx000];          // V[idx] = 5.0;
 }
 
 void kernel tnp_k_implicit(global const float8 *a1,
@@ -779,8 +787,9 @@ void kernel tnp_k_implicitq(global const float8 *a1,
   z1[id] = z;
 }
 
-//find the particle and current density convert from floating point to integer to use atomic_add 
-//smoothly assign a fraction of the density to "cell" depending on "center of density" 
+// find the particle and current density convert from floating point to integer
+// to use atomic_add smoothly assign a fraction of the density to "cell"
+// depending on "center of density"
 void kernel density(global const float *x0, global const float *y0,
                     global const float *z0, // prev pos
                     global const float *x1, global const float *y1,
@@ -824,8 +833,10 @@ void kernel density(global const float *x0, global const float *y0,
   uint idx01 = idx00 + NZ * NY * NX;
   uint idx02 = idx01 + NZ * NY * NX;
 
-  f.s0 = ((fz1 * fy1 * fx1) >> 14), f.s1 = ((fz1 * fy1 * fx0) >> 14),//arithmetic shift right by 14 equivalent to division by 16384
-  f.s2 = ((fz1 * fy0 * fx1) >> 14), f.s3 = ((fz1 * fy0 * fx0) >> 14),
+  f.s0 = ((fz1 * fy1 * fx1) >> 14),
+  f.s1 = ((fz1 * fy1 * fx0) >>
+          14), // arithmetic shift right by 14 equivalent to division by 16384
+      f.s2 = ((fz1 * fy0 * fx1) >> 14), f.s3 = ((fz1 * fy0 * fx0) >> 14),
   f.s3 = ((fz0 * fy1 * fx1) >> 14), f.s5 = ((fz0 * fy1 * fx0) >> 14),
   f.s6 = ((fz0 * fy0 * fx1) >> 14), f.s7 = ((fz0 * fy0 * fx0) >> 14);
   f = q[id] * f;
@@ -881,7 +892,8 @@ void kernel density(global const float *x0, global const float *y0,
   atomic_add(&cji[idx02 + odx111], vzi.s7);
 }
 
-// convert integer density to floating point format multiply in time step and cell size 
+// convert integer density to floating point format multiply in time step and
+// cell size
 void kernel df(global float *np, global const int *npi, global float *currentj,
                global const int *cji, const float a0_f, const float dt) {
   const float dx = DXo * a0_f * 1.1920929e-7f / dt,
@@ -1005,14 +1017,15 @@ void kernel dtotal(global const float16 *ne, global const float16 *ni,
 }
 
 void kernel nsumi(global const int *npi, global int *n0, const uint npart) {
-  const uint n1 = get_global_size(0); //n_part_2048
-  const uint n2 = npart / n1; // make sure n is divisible by n1 from calling code
+  const uint n1 = get_global_size(0); // n_part_2048
+  const uint n2 =
+      npart / n1; // make sure n is divisible by n1 from calling code
   const uint i = get_global_id(0); // Get index of current element processed
   const uint j0 = i * n2;
   n0[i] = 0;
   for (uint j = 0; j < n2; ++j)
     n0[i] += npi[j0 + j]; // Do the operation
-  //n0[i] = n0[i];
+  // n0[i] = n0[i];
 }
 
 void kernel copyextField(global const float16 *Fe, global float16 *F) {
