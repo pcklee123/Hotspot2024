@@ -80,12 +80,8 @@ void kernel copy3Data(global const float *jc, global float *fft_real) {
   //  Copy element from source to destination array or with zeroes do for each
   //  component
   fft_real[idx] = (in) ? jc[s_idx] : 0;
-  idx += N0N1N2;
-  s_idx += NXNYNZ;
-  fft_real[idx] = (in) ? jc[s_idx] : 0;
-  idx += N0N1N2;
-  s_idx += NXNYNZ;
-  fft_real[idx] = (in) ? jc[s_idx] : 0;
+  fft_real[idx + N0N1N2] = (in) ? jc[s_idx + NXNYNZ] : 0;
+  fft_real[idx + N0N1N2 * 2] = (in) ? jc[s_idx + NXNYNZ * 2] : 0;
 }
 
 void kernel copyData(global const float *npt, global float *fft_real) {
@@ -254,7 +250,7 @@ void kernel sumFftFieldq(global const float *fft_real, global const float *Fe,
 }
 
 void kernel sumFftFieldBq(global const float *fft_real, global const float *Fe,
-                         global float *F) {
+                          global float *F) {
   const float s000[3] = {+1, +1, +1}; // c=0 is x,c=1 is y,c=2 is z
   const float s001[3] = {+1, -1, +1}; // {-1, +1, +1};
   const float s010[3] = {-1, +1, +1}; // {+1, -1, +1};

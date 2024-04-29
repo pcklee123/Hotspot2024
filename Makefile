@@ -11,8 +11,7 @@ CFLAGS= -pg -no-pie -I$(IDIR) -I /ucrt64/include/vtk -L /ucrt64/lib/vtk -march=n
 
 CFLAGS+= -O3 -ftree-parallelize-loops=8 
 CFLAGS+= -mavx -mavx2 -mfma -ffast-math -ftree-vectorize -fno-omit-frame-pointer #-finline-functions
-
-LIBS= -lm -lgsl -lOpenCL.dll  -lgomp # -lfftw3f -lfftw3f_omp
+LIBS= -lm  -lOpenCL.dll  -lgomp # -lfftw3f -lfftw3f_omp -lgsl
 LIBS+= -lvtkCommonCore.dll  -lvtksys.dll -lvtkIOXML.dll -lvtkCommonDataModel.dll -lvtkIOCore.dll
 
 
