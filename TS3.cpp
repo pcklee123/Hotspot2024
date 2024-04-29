@@ -179,8 +179,7 @@ int main()
 
     info(par);                          // printout initial info.csv file re do this with updated info
     save_files(i_time, t, fi, pt, par); // cout << "savefiles" << endl;
-
-    cout << "logentry" << endl;
+   // cout << "logentry" << endl;
     log_headers();                        // log file start with headers
     log_entry(0, 0, total_ncalc, t, par); // Write everything to log
                                           //  getchar();
