@@ -49,11 +49,11 @@ void generate_rand_sphere(particles *pt, par *par)
         for (int n = nback; n < n_partd; n++)
         {
 #ifdef Weibull
-            float r = r0[p] * weibull_dist(gen);
+            float r = r0[p] * pow(weibull_dist(gen),0.33333333333);
             //     cout << r << ", ";
             while ((r) >= r0[2]) // Don't allow particles to be generated outside the plasma
             {
-                r = r0[p] * weibull_dist(gen);
+                r = r0[p] * pow(weibull_dist(gen),0.33333333333);
             }
 #else
             float r = r0 * pow(uniform_dist(gen), 0.3333333333);
