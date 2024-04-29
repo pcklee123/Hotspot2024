@@ -7,7 +7,7 @@
 //  #define cylinder //do hot rod problem
 #define quadrant // do problem 1/4 sphere or cylinder
 #define Weibull
-constexpr double weibullb = 4; // b factor for weibull distribn. larger means closer to a shell. ~1 means filled more at the center.
+constexpr float weibullb = 2; // b factor for weibull distribn. larger means closer to a shell. ~1 means filled more at the center.
 #define Temp_e 1e5             // in Kelvin 1e7 ~1keV
 #define Temp_d 1e7             // in Kelvin
 constexpr int f1 = 1000;       // make bigger to make smaller time steps // 300 is min for sphere slight increase in KE
@@ -15,22 +15,22 @@ constexpr int f2 = f1 * 1.2;
 constexpr float incf = 1.2f;        // increment
 constexpr float decf = 1.0f / incf; // decrement factor
 
-constexpr int n_space = 128; // should be 2 to power of n for faster FFT e.g. 32,64,128,256 (128 is 2 million cells, ~ 1gB of ram, 256 is not practical for systems with 8GB or less GPU ram) 
+constexpr int n_space = 64; // should be 2 to power of n for faster FFT e.g. 32,64,128,256 (128 is 2 million cells, ~ 1gB of ram, 256 is not practical for systems with 8GB or less GPU ram) 
 
 constexpr size_t n_partd = 16 * 1024 * 1024; // n_space * n_space * n_space * 1 * 16; // must be 2 to power of n
 constexpr size_t n_parte = n_partd;
-constexpr size_t nback = n_partd / 16; // background stationary particles distributed over all cells - improves stability
+constexpr size_t nback = n_partd / 2; // background stationary particles distributed over all cells - improves stability
 
 constexpr float R_s = n_space / 1;                                   // Low Pass Filter smoothing radius. Not in use
-constexpr float r0_f[3] = {(float)n_space / 4.0, (float)n_space / 4.0, (float)n_space / 8.0}; //  radius of sphere or cylinder (electron, ion, z-pinch plasma)
+constexpr float r0_f[3] = {(float)n_space / 8.0, (float)n_space / 8.0, (float)n_space / 4.0}; //  radius of sphere or cylinder (electron, ion, z-pinch plasma)
 
 constexpr float Bz0 = 0.00001;     // in T, static constant fields
 constexpr float Btheta0 = 0.00001; // in T, static constant fields
 constexpr float Ez0 = 1.0e1;       // in V/m
-constexpr float vz0 = 1.0e7f;
+constexpr float vz0 = 2.0e7f;
 constexpr float a0 = 1e-6;                          // typical dimensions of a cell in m This needs to be smaller than debye length otherwise energy is not conserved if a particle moves across a cell
 constexpr float a0_ff = 1.0 + 1.0 / (float)n_space; // rescale cell size, if particles rollover this cannot encrement more than 1 cell otherwise will have fake "waves"
-constexpr float target_part = 1e7;                  // 3.5e22 particles per m^3 per torr of ideal gas. 7e22 electrons for 1 torr of deuterium
+constexpr float target_part = 1e9;                  // 3.5e22 particles per m^3 per torr of ideal gas. 7e22 electrons for 1 torr of deuterium
 constexpr float v0_r = 0;                           // initial directed radial velocity outwards is positive
 
 // The maximum expected E and B fields. If fields go beyond this, the the time step, cell size etc will be wrong. Should adjust and recalculate.
@@ -49,7 +49,7 @@ constexpr int n_output_part = (n_partd > 9369) ? 9369 : n_partd; // maximum numb
 // const int nprtd=floor(n_partd/n_output_part);
 
 constexpr int ndatapoints = 10; // total number of time steps to print
-constexpr int nc1 = 30;          // f1 * 1;      // number of times to calculate E and B between printouts total number of electron time steps calculated = ndatapoints *nc1*md_me
+constexpr int nc1 = 10;          // f1 * 1;      // number of times to calculate E and B between printouts total number of electron time steps calculated = ndatapoints *nc1*md_me
 constexpr int md_me = 60;       // ratio of electron speed/deuteron speed at the same KE. Used to calculate electron motion more often than deuteron motion
 
 #define Hist_n 512

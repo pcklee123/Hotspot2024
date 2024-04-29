@@ -8,25 +8,25 @@ void generate_rand_sphere(particles *pt, par *par)
     float r0[3] = {r0_f[0] * a0, r0_f[1] * a0, r0_f[2] * a0}; // if sphere this is the radius
     // set initial positions and velocity
     float sigma[2] = {sqrt(kb * Temp[0] / (mp[0] * e_mass)), sqrt(kb * Temp[1] / (mp[1] * e_mass))};
-    long seed;
-    gsl_rng *rng;                        // random number generator
-    rng = gsl_rng_alloc(gsl_rng_rand48); // pick random number generator
-    time_t myTime;
-    seed = time(&myTime);
-    info_file << "seed=" << seed << "\n";
-    gsl_rng_set(rng, seed); // set seed
+    std::random_device rd;  // Seed for the random number engine
+    std::mt19937 gen(rd()); // Mersenne Twister random number engine
+    std::uniform_real_distribution<float> uniform_dist(0.0f, 1.0f);
+    std::normal_distribution<float> normal_dist(0.0f, 1.0f);
+    std::weibull_distribution<float> weibull_dist(weibullb,1.0f); // Weibull distribution 1st parameter is shape
+
     size_t na = 0;
     for (int p = 0; p < 2; p++)
     {
-// #pragma omp parallel for
-#pragma omp parallel for simd num_threads(nthreads)
-
+        // #pragma omp parallel for simd num_threads(nthreads)
         for (na = 0; na < nback; ++na) // set number of particles per cell in background
         {
-            float r = r0[2] * pow(gsl_ran_flat(rng, 0, 1), 0.3333333333);
-            double x, y, z;
-            z = gsl_ran_flat(rng, par->posL_1[2], par->posH_1[2]);
-            gsl_ran_dir_2d(rng, &x, &y);
+            float r = r0[2] * pow(uniform_dist(gen), 0.5);
+            float x, y, z;
+            z = uniform_dist(gen) * (par->posH_1[2] - par->posL_1[2]) + par->posL_1[2];
+            float theta = 2 * pi * uniform_dist(gen);
+            float phi = acos(2 * uniform_dist(gen) - 1);
+            x = sin(phi) * cos(theta);
+            y = sin(phi) * sin(theta);
 #ifdef octant
             x = abs(x);
             y = abs(y);
@@ -35,6 +35,7 @@ void generate_rand_sphere(particles *pt, par *par)
             x = abs(x);
             y = abs(y);
 #endif
+            //          cout << r << ", " << x << ", " << y << ", " << z << endl;
             pt->pos0x[p][na] = r * x;
             pt->pos1x[p][na] = pt->pos0x[p][na] + v0[p][0] * par->dt[p];
             pt->pos0y[p][na] = r * y;
@@ -42,31 +43,27 @@ void generate_rand_sphere(particles *pt, par *par)
             pt->pos0z[p][na] = z;
             pt->pos1z[p][na] = pt->pos0z[p][na] + v0[p][2] * par->dt[p];
             pt->q[p][na] = qs[p];
-            /*
-                        pt->pos1x[p][na] = pt->pos0x[p][na] = gsl_ran_flat(rng, par->posL_15[0], par->posH_15[0]);
-                        pt->pos1y[p][na] = pt->pos0y[p][na] = gsl_ran_flat(rng, par->posL_15[1], par->posH_15[1]);
-                        pt->pos1z[p][na] = pt->pos0z[p][na] = gsl_ran_flat(rng, par->posL_15[2], par->posH_15[2]);
-                        pt->q[p][na] = qs[p];
-                        */
-            //   pt->m[p][na] = mp[p];
         }
-        //         cout << pt->pos1z[p][na - 1] << " ";
-// #pragma omp parallel for ordered
-#pragma omp parallel for simd num_threads(nthreads)
+
+        // #pragma omp parallel for simd num_threads(nthreads)
         for (int n = nback; n < n_partd; n++)
         {
 #ifdef Weibull
-            double r = gsl_ran_weibull(rng, r0[p], weibullb);
-            while (fabs(r) >= ((float)n_space / 4.0 * a0))
-                r = gsl_ran_weibull(rng, r0[p], weibullb);
+            float r = r0[p] * pow(weibull_dist(gen),0.33333333333);
+            //     cout << r << ", ";
+            while ((r) >= r0[2]) // Don't allow particles to be generated outside the plasma
+            {
+                r = r0[p] * pow(weibull_dist(gen),0.33333333333);
+            }
 #else
-            float r = r0 * pow(gsl_ran_flat(rng, 0, 1), 0.3333333333);
-            // float r = gsl_ran_gaussian(rng, r0);
-            // while (fabs(r)>=((float)n_space-1.0)/4.0*a0) r = gsl_ran_gaussian(rng, r0);
-            //  float r = r0 * pow(gsl_ran_flat(rng, 0, 1), 0.5);
+            float r = r0 * pow(uniform_dist(gen), 0.3333333333);
 #endif
-            double x, y, z;
-            gsl_ran_dir_3d(rng, &x, &y, &z);
+            float x, y, z;
+            float theta = 2 * pi * uniform_dist(gen);
+            float phi = acos(2 * uniform_dist(gen) - 1);
+            x = sin(phi) * cos(theta);
+            y = sin(phi) * sin(theta);
+            z = cos(phi);
 #ifdef octant
             x = abs(x);
             y = abs(y);
@@ -76,21 +73,20 @@ void generate_rand_sphere(particles *pt, par *par)
             x = abs(x);
             y = abs(y);
 #endif
+            //  cout << r << ", " << x * x + y * y + z * z << ", " << y << ", " << z << endl;
             pt->pos0x[p][n] = r * x;
-            pt->pos1x[p][n] = pt->pos0x[p][n] + (gsl_ran_gaussian(rng, sigma[p]) + v0[p][0] + x * v0_r) * par->dt[p];
+            pt->pos1x[p][n] = pt->pos0x[p][n] + (normal_dist(gen) * sigma[p] + v0[p][0] + x * v0_r) * par->dt[p];
             pt->pos0y[p][n] = r * y;
-            pt->pos1y[p][n] = pt->pos0y[p][n] + (gsl_ran_gaussian(rng, sigma[p]) + v0[p][1] + y * v0_r) * par->dt[p];
+            pt->pos1y[p][n] = pt->pos0y[p][n] + (normal_dist(gen) * sigma[p] + v0[p][1] + y * v0_r) * par->dt[p];
             pt->pos0z[p][n] = r * z;
-            pt->pos1z[p][n] = pt->pos0z[p][n] + (gsl_ran_gaussian(rng, sigma[p]) + v0[p][2] + z * v0_r) * par->dt[p];
+            pt->pos1z[p][n] = pt->pos0z[p][n] + (normal_dist(gen) * sigma[p] + v0[p][2] + z * v0_r) * par->dt[p];
             pt->q[p][n] = qs[p];
-            //      pt->m[p][n] = mp[p];
-            //         nt[p] += q[p][n];
+         //   cout << pt->pos0x[p][n] - pt->pos1x[p][n] << ", " << normal_dist(gen) << endl;
         }
     }
 #pragma omp barrier
-    gsl_rng_free(rng); // dealloc the rng
-    if (!fastIO)       // write CPU generated particle positions to opencl buffers
-    {                  //  electrons
+    if (!fastIO) // write CPU generated particle positions to opencl buffers
+    {            //  electrons
         commandQueue_g.enqueueWriteBuffer(pt->buff_x0_e[0], CL_TRUE, 0, n_partf, pt->pos0x[0]);
         commandQueue_g.enqueueWriteBuffer(pt->buff_y0_e[0], CL_TRUE, 0, n_partf, pt->pos0y[0]);
         commandQueue_g.enqueueWriteBuffer(pt->buff_z0_e[0], CL_TRUE, 0, n_partf, pt->pos0z[0]);
@@ -170,52 +166,50 @@ void generate_rand_cylinder(particles *pt, par *par)
 */
     // set initial positions and velocity
     double sigma[2] = {sqrt(kb * Temp[0] / (mp[0] * e_mass)), sqrt(kb * Temp[1] / (mp[1] * e_mass))};
-    long seed;
-    gsl_rng *rng;                        // random number generator
-    rng = gsl_rng_alloc(gsl_rng_rand48); // pick random number generator
-
-    time_t myTime;
-    seed = time(&myTime);
-    info_file << "seed=" << seed << "\n";
-    gsl_rng_set(rng, seed); // set seed
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<> dis(0, 1);
+    std::uniform_real_distribution<> dis_minus1_1(-1.0, 1.0);
+    std::normal_distribution<> normal_dis(0, 1);
 
     size_t na = 0;
     for (int p = 0; p < 2; p++)
     {
-#pragma omp parallel for
+// #pragma omp parallel for
+#pragma omp parallel for simd num_threads(nthreads)
         for (na = 0; na < nback; ++na) // set number of particles per cell in background
         {
-            pt->pos1x[p][na] = pt->pos0x[p][na] = gsl_ran_flat(rng, par->posL_15[0], par->posH_15[0]);
-            pt->pos1y[p][na] = pt->pos0y[p][na] = gsl_ran_flat(rng, par->posL_15[1], par->posH_15[1]);
-            pt->pos1z[p][na] = pt->pos0z[p][na] = gsl_ran_flat(rng, par->posL_15[2], par->posH_15[2]);
+            pt->pos1x[p][na] = pt->pos0x[p][na] = dis(gen) * (par->posH_15[0] - par->posL_15[0]) + par->posL_15[0];
+            pt->pos1y[p][na] = pt->pos0y[p][na] = dis(gen) * (par->posH_15[1] - par->posL_15[1]) + par->posL_15[1];
+            pt->pos1z[p][na] = pt->pos0z[p][na] = dis(gen) * (par->posH_15[2] - par->posL_15[2]) + par->posL_15[2];
             pt->q[p][na] = qs[p];
-            //      pt->m[p][na] = mp[p];
+            // pt->m[p][na] = mp[p];
         }
 
-        // #pragma omp parallel for ordered
+// #pragma omp parallel for ordered
+#pragma omp parallel for simd num_threads(nthreads)
         for (int n = na; n < n_partd; n++)
         {
-            float r = r0[p] * pow(gsl_ran_flat(rng, 0, 1), 0.5);
+            float r = r0[p] * pow(dis(gen), 0.5);
             double x, y, z;
-            z = gsl_ran_flat(rng, -1.0, 1.0) * a0 * (n_space - 3) * 0.5;
-            gsl_ran_dir_2d(rng, &x, &y);
+            z = dis_minus1_1(gen) * a0 * (n_space - 3) * 0.5;
+            double theta = 2 * pi * dis(gen);
+            x = cos(theta);
+            y = sin(theta);
             pt->pos0x[p][n] = r * x;
-            pt->pos1x[p][n] = pt->pos0x[p][n] + (gsl_ran_gaussian(rng, sigma[p]) + v0[p][0]) * par->dt[p];
+            pt->pos1x[p][n] = pt->pos0x[p][n] + (normal_dis(gen) * sigma[p] + v0[p][0]) * par->dt[p];
             pt->pos0y[p][n] = r * y;
-            pt->pos1y[p][n] = pt->pos0y[p][n] + (gsl_ran_gaussian(rng, sigma[p]) + v0[p][1]) * par->dt[p];
+            pt->pos1y[p][n] = pt->pos0y[p][n] + (normal_dis(gen) * sigma[p] + v0[p][1]) * par->dt[p];
             pt->pos0z[p][n] = z;
-            pt->pos1z[p][n] = pt->pos0z[p][n] + (gsl_ran_gaussian(rng, sigma[p]) + v0[p][2]) * par->dt[p];
-            // cout << pt->pos1z[p][n] << " ";
-            // if (n==0) cout << "p = " <<p <<", sigma = " <<sigma[p]<<", temp = " << Temp[p] << ",mass of particle = " << mp[p] << par->dt[p]<<endl;
+            pt->pos1z[p][n] = pt->pos0z[p][n] + (normal_dis(gen) * sigma[p] + v0[p][2]) * par->dt[p];
             pt->q[p][n] = qs[p];
             //         pt->m[p][n] = mp[p];
         }
         //        nt[p] +=  pt->q[p][n];
     }
     // #pragma omp barrier
-    gsl_rng_free(rng); // dealloc the rng
-    if (!fastIO)       // write CPU generated particle positions to opencl buffers
-    {                  //  electrons
+    if (!fastIO) // write CPU generated particle positions to opencl buffers
+    {            //  electrons
         commandQueue_g.enqueueWriteBuffer(pt->buff_x0_e[0], CL_TRUE, 0, n_partf, pt->pos0x[0]);
         commandQueue_g.enqueueWriteBuffer(pt->buff_y0_e[0], CL_TRUE, 0, n_partf, pt->pos0y[0]);
         commandQueue_g.enqueueWriteBuffer(pt->buff_z0_e[0], CL_TRUE, 0, n_partf, pt->pos0z[0]);
