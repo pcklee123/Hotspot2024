@@ -508,7 +508,7 @@ int calcEBV(fields *fi, par *par)
         clSetKernelArg(sumFftFieldB_kernel, 0, sizeof(cl_mem), &fi->fft_real_buffer); // real[0-2] is E field
         clSetKernelArg(sumFftFieldB_kernel, 1, sizeof(cl_mem), &fi->Be_buffer);
         clSetKernelArg(sumFftFieldB_kernel, 2, sizeof(cl_mem), &fi->B_buffer);
-        res = clEnqueueNDRangeKernel(vkGPU.commandQueue, sumFftField_kernel, 1, NULL, &n_cells, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
+        res = clEnqueueNDRangeKernel(vkGPU.commandQueue, sumFftFieldB_kernel, 1, NULL, &n_cells, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
         if (res)
             cout << "sumFftField_kernel B  res: " << res << endl;
         res = clFinish(vkGPU.commandQueue);

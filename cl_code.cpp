@@ -127,7 +127,7 @@ void cl_start(fields *fi, particles *pt, par *par)
 
     cl::Program program(context, sources);
 
-    // cl_build_options << " -cl-mad-enable -cl-fast-relaxed-math -cl-no-signed-zeros -cl-denorms-are-zero -cl-single-precision-constant"; // Add other options as needed -cl-unsafe-math-optimizations -cl-finite-math-only -cl-no-signed-zeros -cl-denorms-are-zero -cl-single-precision-constant
+    //cl_build_options << " -cl-mad-enable -cl-fast-relaxed-math -cl-no-signed-zeros -cl-denorms-are-zero -cl-single-precision-constant"; // Add other options as needed -cl-unsafe-math-optimizations -cl-finite-math-only -cl-no-signed-zeros -cl-denorms-are-zero -cl-single-precision-constant
     cl_int cl_err = program.build({default_device}, cl_build_options.str().c_str());
     info_file << "building: " << program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(default_device);
     if (cl_err != CL_SUCCESS)
