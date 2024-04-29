@@ -10,17 +10,17 @@
 #define DXo 1.0
 #define DYo 1.0
 #define DZo 1.0
-#define NX 2
-#define NY 2
-#define NZ 2
-#define NXNY 4
-#define NXNYNZ 8
-#define N0 4
-#define N1 4
-#define N2 4
-#define N0N1 16
-#define N0N1N2 64
-#define NC4 48 // N0*N1*(N2/2+1) = 4 * NX * NY * (NZ + 1)
+#define NX 128
+#define NY 128
+#define NZ 128
+#define NXNY 16384
+#define NXNYNZ 2097152
+#define N0 256
+#define N1 256
+#define N2 256
+#define N0N1 65536
+#define N0N1N2 16777216
+#define NC4 8454144 // N0*N1*(N2/2+1) = 4 * NX * NY * (NZ + 1)
 #endif
 void kernel vector_cross_mul(global float *A0, global const float *B0,
                              global const float *C0, global float *A1,
