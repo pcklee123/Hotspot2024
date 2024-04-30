@@ -42,7 +42,6 @@ void cl_set_build_options(par *par)
     add_build_option("N0N1", 4 * (int)par->n_space_div[0] * (int)par->n_space_div[1]);
     add_build_option("N0N1N2", (int)n_cells8);
     add_build_option("NC4", (int)n_cells4);
-    // add_build_option("NC", n_cells);
 }
 
 void cl_start(fields *fi, particles *pt, par *par)

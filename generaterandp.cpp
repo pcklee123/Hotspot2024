@@ -12,12 +12,12 @@ void generate_rand_sphere(particles *pt, par *par)
     std::mt19937 gen(rd()); // Mersenne Twister random number engine
     std::uniform_real_distribution<float> uniform_dist(0.0f, 1.0f);
     std::normal_distribution<float> normal_dist(0.0f, 1.0f);
-    std::weibull_distribution<float> weibull_dist(weibullb,1.0f); // Weibull distribution 1st parameter is shape
+    std::weibull_distribution<float> weibull_dist(weibullb, 1.0f); // Weibull distribution 1st parameter is shape
 
     size_t na = 0;
     for (int p = 0; p < 2; p++)
     {
-        // #pragma omp parallel for simd num_threads(nthreads)
+#pragma omp parallel for simd num_threads(nthreads)
         for (na = 0; na < nback; ++na) // set number of particles per cell in background
         {
             float r = r0[2] * pow(uniform_dist(gen), 0.5);
@@ -45,15 +45,15 @@ void generate_rand_sphere(particles *pt, par *par)
             pt->q[p][na] = qs[p];
         }
 
-        // #pragma omp parallel for simd num_threads(nthreads)
+#pragma omp parallel for simd num_threads(nthreads)
         for (int n = nback; n < n_partd; n++)
         {
 #ifdef Weibull
-            float r = r0[p] * pow(weibull_dist(gen),0.33333333333);
+            float r = r0[p] * pow(weibull_dist(gen), 0.33333333333);
             //     cout << r << ", ";
             while ((r) >= r0[2]) // Don't allow particles to be generated outside the plasma
             {
-                r = r0[p] * pow(weibull_dist(gen),0.33333333333);
+                r = r0[p] * pow(weibull_dist(gen), 0.33333333333);
             }
 #else
             float r = r0 * pow(uniform_dist(gen), 0.3333333333);
@@ -81,7 +81,7 @@ void generate_rand_sphere(particles *pt, par *par)
             pt->pos0z[p][n] = r * z;
             pt->pos1z[p][n] = pt->pos0z[p][n] + (normal_dist(gen) * sigma[p] + v0[p][2] + z * v0_r) * par->dt[p];
             pt->q[p][n] = qs[p];
-         //   cout << pt->pos0x[p][n] - pt->pos1x[p][n] << ", " << normal_dist(gen) << endl;
+            //   cout << pt->pos0x[p][n] - pt->pos1x[p][n] << ", " << normal_dist(gen) << endl;
         }
     }
 #pragma omp barrier

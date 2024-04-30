@@ -863,11 +863,9 @@ void kernel density(global const float *x0, global const float *y0,
   uint idx00 = k * NY * NX + j * NX + i;
   uint idx01 = idx00 + NZ * NY * NX;
   uint idx02 = idx01 + NZ * NY * NX;
-
-  f.s0 = ((fz1 * fy1 * fx1) >> 14),
-  f.s1 = ((fz1 * fy1 * fx0) >>
-          14), // arithmetic shift right by 14 equivalent to division by 16384
-      f.s2 = ((fz1 * fy0 * fx1) >> 14), f.s3 = ((fz1 * fy0 * fx0) >> 14),
+  // arithmetic shift right by 14 equivalent to division by 16384
+  f.s0 = ((fz1 * fy1 * fx1) >> 14), f.s1 = ((fz1 * fy1 * fx0) >> 14),
+  f.s2 = ((fz1 * fy0 * fx1) >> 14), f.s3 = ((fz1 * fy0 * fx0) >> 14),
   f.s3 = ((fz0 * fy1 * fx1) >> 14), f.s5 = ((fz0 * fy1 * fx0) >> 14),
   f.s6 = ((fz0 * fy0 * fx1) >> 14), f.s7 = ((fz0 * fy0 * fx0) >> 14);
   f = q[id] * f;
