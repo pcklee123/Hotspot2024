@@ -510,7 +510,7 @@ int calcEBV(fields *fi, par *par)
         clSetKernelArg(sumFftFieldB_kernel, 2, sizeof(cl_mem), &fi->B_buffer);
         res = clEnqueueNDRangeKernel(vkGPU.commandQueue, sumFftFieldB_kernel, 1, NULL, &n_cells, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
         if (res)
-            cout << "sumFftField_kernel B  res: " << res << endl;
+            cout << "sumFftFieldB_kernel B  res: " << res << endl;
         res = clFinish(vkGPU.commandQueue);
     }
 #else
