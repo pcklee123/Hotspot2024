@@ -1,9 +1,9 @@
 // Preprocessor things for compilation of tnp assume if XLOWo is defined then
 // everything else is.Need these defines here to avoid warnings in the editor
 #ifndef XLOWo
-#define XLOWo 0.0
-#define YLOWo 0.0
-#define ZLOWo 0.0
+#define XLOWo -1.0
+#define YLOWo -1.0
+#define ZLOWo -1.0
 #define XHIGHo 1.0
 #define YHIGHo 1.0
 #define ZHIGHo 1.0
@@ -821,74 +821,89 @@ void kernel tnp_k_implicitq(global const float8 *a1,
 // find the particle and current density convert from floating point to integer
 // to use atomic_add smoothly assign a fraction of the density to "cell"
 // depending on "center of density"
-void kernel density(global const float *x0, global const float *y0,
-                    global const float *z0, // prev pos
-                    global const float *x1, global const float *y1,
-                    global const float *z1, // current pos
-                    global int *npi, global int *cji, global int *q,
-                    float a0_f) {
-  const float DX = DXo * a0_f, DY = DYo * a0_f, DZ = DZo * a0_f;
-  const float XLOW = XLOWo * a0_f, YLOW = YLOWo * a0_f, ZLOW = ZLOWo * a0_f;
-  const float XHIGH = XHIGHo * a0_f, YHIGH = YHIGHo * a0_f,
-              ZHIGH = ZHIGHo * a0_f;
+/*
+void kernel density16(global const float16 *x0, global const float16 *y0,
+                      global const float16 *z0, // prev pos
+                      global const float16 *x1, global const float16 *y1,
+                      global const float16 *z1, // current pos
+                      global int16 *npi, global int16 *cji, global int16 *q,
+                      float a0_f) {
+  const float16 DX = DXo * a0_f, DY = DYo * a0_f, DZ = DZo * a0_f;
+  const float16 XLOW = XLOWo * a0_f, YLOW = YLOWo * a0_f, ZLOW = ZLOWo * a0_f;
+  const float16 XHIGH = XHIGHo * a0_f, YHIGH = YHIGHo * a0_f,
+                ZHIGH = ZHIGHo * a0_f;
 
-  const float invDX = 1.0f / DX, invDY = 1.0f / DY, invDZ = 1.0f / DZ;
-  int8 f; // = (1, 0, 0, 0, 0, 0, 0, 0);
+  const float16 invDX = 1.0f / DX, invDY = 1.0f / DY, invDZ = 1.0f / DZ;
+  int16 f[8]; // = (1, 0, 0, 0, 0, 0, 0, 0);
   uint id = get_global_id(0);
-  float xprev = x0[id], yprev = y0[id], zprev = z0[id], x = x1[id], y = y1[id],
-        z = z1[id];
+  int16 qid = q[id];
+  float16 xprev = x0[id], yprev = y0[id], zprev = z0[id], x = x1[id],
+          y = y1[id], z = z1[id];
+  float16 fk = (z - ZLOW) * invDZ;
+  float16 fj = (y - YLOW) * invDY;
+  float16 fi = (x - XLOW) * invDX;
+  float16 frk = round(fk);
+  float16 frj = round(fj);
+  float16 fri = round(fi);
+  int16 k =
+      (int16)(frk.s0, frk.s1, frk.s2, frk.s3, frk.s4, frk.s5, frk.s6, frk.s7,
+               frk.s8, frk.s9, frk.sA, frk.sB, frk.sC, frk.sD, frk.sE, frk.sF);
+  int16 j =
+      (int16)(frj.s0, frj.s1, frj.s2, frj.s3, frj.s4, frj.s5, frj.s6, frj.s7,
+               frj.s8, frj.s9, frj.sA, frj.sB, frj.sC, frj.sD, frj.sE, frj.sF);
+  int16 i =
+      (int16)(fri.s0, fri.s1, fri.s2, fri.s3, fri.s4, fri.s5, fri.s6, fri.s7,
+               fri.s8, fri.s9, fri.sA, fri.sB, fri.sC, fri.sD, fri.sE, fri.sF);
+  float16 xf = (fi - fri) * 256.0f;
+  float16 yf = (fj - frj) * 256.0f;
+  float16 zf = (fk - frk) * 256.0f;
+  int16 ofz = (int16)(xf.s0, xf.s1, xf.s2, xf.s3, xf.s4, xf.s5, xf.s6, xf.s7,
+                      xf.s8, xf.s9, xf.sA, xf.sB, xf.sC, xf.sD, xf.sE, xf.sF);
+  int16 ofy = (int16)(yf.s0, yf.s1, yf.s2, yf.s3, yf.s4, yf.s5, yf.s6, yf.s7,
+                      yf.s8, yf.s9, yf.sA, yf.sB, yf.sC, yf.sD, yf.sE, yf.sF);
+  int16 ofx = (int16)(zf.s0, zf.s1, zf.s2, zf.s3, zf.s4, zf.s5, zf.s6, zf.s7,
+                      zf.s8, zf.s9, zf.sA, zf.sB, zf.sC, zf.sD, zf.sE, zf.sF);
 
-  uint k = round((z - ZLOW) * invDZ);
-  uint j = round((y - YLOW) * invDY);
-  uint i = round((x - XLOW) * invDX);
-  int ofx = ((x - XLOW) * invDX - i) * 256.0f;
-  int ofy = ((y - YLOW) * invDY - j) * 256.0f;
-  int ofz = ((z - ZLOW) * invDZ - k) * 256.0f;
   // oct 000,001,010,011,100,101,110,111
-  int odx000 = 0;
-  int odx001 = ofx > 0 ? 1 : -1;
-  int odx010 = ofy > 0 ? NX : -NX;
-  int odx011 = odx001 + odx010;
-  int odx100 = ofz > 0 ? NX * NY : -NX * NY;
-  int odx101 = odx100 + odx001;
-  int odx110 = odx100 + odx010;
-  int odx111 = odx100 + odx011;
+  int16 odx000 = 0;
+  int16 odx001 = ofx > 0 ? 1 : -1;
+  int16 odx010 = ofy > 0 ? NX : -NX;
+  int16 odx011 = odx001 + odx010;
+  int16 odx100 = ofz > 0 ? NXNY : -NXNY;
+  int16 odx101 = odx100 + odx001;
+  int16 odx110 = odx100 + odx010;
+  int16 odx111 = odx100 + odx011;
 
-  int fx0 = abs(ofx);
-  int fy0 = abs(ofy);
-  int fz0 = abs(ofz);
-  int fx1 = 128 - fx0;
-  int fy1 = 128 - fy0;
-  int fz1 = 128 - fz0;
-  uint idx00 = k * NY * NX + j * NX + i;
-  uint idx01 = idx00 + NZ * NY * NX;
-  uint idx02 = idx01 + NZ * NY * NX;
+  int16 fx0 = ofx > 0 ? ofx : -ofx;
+  int16 fy0 = ofy > 0 ? ofy : -ofy;
+  int16 fz0 = ofz > 0 ? ofz : -ofz;
+  int16 fx1 = 128 - fx0;
+  int16 fy1 = 128 - fy0;
+  int16 fz1 = 128 - fz0;
+  int16 idx00 = k * NXNY + j * NX + i;
+  int16 idx01 = idx00 + NXNYNZ;
+  int16 idx02 = idx01 + NXNYNZ;
   // arithmetic shift right by 14 equivalent to division by 16384
-  f.s0 = ((fz1 * fy1 * fx1) >> 14), f.s1 = ((fz1 * fy1 * fx0) >> 14),
-  f.s2 = ((fz1 * fy0 * fx1) >> 14), f.s3 = ((fz1 * fy0 * fx0) >> 14),
-  f.s3 = ((fz0 * fy1 * fx1) >> 14), f.s5 = ((fz0 * fy1 * fx0) >> 14),
-  f.s6 = ((fz0 * fy0 * fx1) >> 14), f.s7 = ((fz0 * fy0 * fx0) >> 14);
-  f = q[id] * f;
-  // np density
-  atomic_add(&npi[idx00 + odx000], f.s0);
-  atomic_add(&npi[idx00 + odx001], f.s1);
-  atomic_add(&npi[idx00 + odx010], f.s2);
-  atomic_add(&npi[idx00 + odx011], f.s3);
-  atomic_add(&npi[idx00 + odx100], f.s4);
-  atomic_add(&npi[idx00 + odx101], f.s5);
-  atomic_add(&npi[idx00 + odx110], f.s6);
-  atomic_add(&npi[idx00 + odx111], f.s7);
-  /*
-
-    npi[idx00 + odx000] += f.s0;
-  npi[idx00 + odx001] += f.s1;
-  npi[idx00 + odx010] += f.s2;
-  npi[idx00 + odx011] += f.s3;
-  npi[idx00 + odx100] += f.s4;
-  npi[idx00 + odx101] += f.s5;
-  npi[idx00 + odx110] += f.s6;
-  npi[idx00 + odx111] += f.s7; */
-
+  f[0] = ((fz1 * fy1 * fx1) >> 14) * qid;
+  f[1] = ((fz1 * fy1 * fx0) >> 14) * qid;
+  f[2] = ((fz1 * fy0 * fx1) >> 14) * qid;
+  f[3] = ((fz1 * fy0 * fx0) >> 14) * qid;
+  f[4] = ((fz0 * fy1 * fx1) >> 14) * qid;
+  f[5] = ((fz0 * fy1 * fx0) >> 14) * qid;
+  f[6] = ((fz0 * fy0 * fx1) >> 14) * qid;
+  f[7] = ((fz0 * fy0 * fx0) >> 14) * qid;
+  // f = (int16)(q[id] * f);
+  //  np density
+  for (int i = 0; i < 8; i++) {
+      atomic_add(&npi[idx00.s0 + odx000.s0], f[i].s0);
+      atomic_add(&npi[idx00.s0 + odx001.s0], f[i].s0);
+      atomic_add(&npi[idx00.s0 + odx010.s0], f[i].s0);
+      atomic_add(&npi[idx00.s0 + odx011.s0], f[i].s0);
+      atomic_add(&npi[idx00.s0 + odx100.s0], f[i].s0);
+      atomic_add(&npi[idx00.s0 + odx101.s0], f[i].s0);
+      atomic_add(&npi[idx00.s0 + odx110.s0], f[i].s0);
+      atomic_add(&npi[idx00.s0 + odx111.s0], f[i].s0);
+  }
   // current x-component
   int8 vxi = (int)((x - xprev) * 65536.0f * invDX) * f;
   atomic_add(&cji[idx00 + odx000], vxi.s0);
@@ -912,6 +927,103 @@ void kernel density(global const float *x0, global const float *y0,
 
   int8 vzi = (int)((z - zprev) * 65536.0f * invDZ) * f;
   atomic_add(&cji[idx02 + odx000], vzi.s0);
+  atomic_add(&cji[idx02 + odx001], vzi.s1);
+  atomic_add(&cji[idx02 + odx010], vzi.s2);
+  atomic_add(&cji[idx02 + odx011], vzi.s3);
+  atomic_add(&cji[idx02 + odx100], vzi.s4);
+  atomic_add(&cji[idx02 + odx101], vzi.s5);
+  atomic_add(&cji[idx02 + odx110], vzi.s6);
+  atomic_add(&cji[idx02 + odx111], vzi.s7);
+}
+*/
+
+    void kernel density(global const float *x0, global const float *y0,
+                        global const float *z0, // prev pos
+                        global const float *x1, global const float *y1,
+                        global const float *z1, // current pos
+                        global int *npi, global int *cji, global const int *q,
+                        const float a0_f) {
+  const float DX = DXo * a0_f, DY = DYo * a0_f, DZ = DZo * a0_f;
+  const float XLOW = XLOWo * a0_f, YLOW = YLOWo * a0_f, ZLOW = ZLOWo * a0_f;
+  const float XHIGH = XHIGHo * a0_f, YHIGH = YHIGHo * a0_f,
+              ZHIGH = ZHIGHo * a0_f;
+
+  const float invDX = 1.0f / DX, invDY = 1.0f / DY, invDZ = 1.0f / DZ;
+  int8 f; // = (1, 0, 0, 0, 0, 0, 0, 0);
+  uint id = get_global_id(0);
+  float xprev = x0[id], yprev = y0[id], zprev = z0[id], x = x1[id], y = y1[id],
+        z = z1[id];
+  float fk = (z - ZLOW) * invDZ;
+  float fj = (y - YLOW) * invDY;
+  float fi = (x - XLOW) * invDX;
+  float frk = round(fk);
+  float frj = round(fj);
+  float fri = round(fi);
+  uint k = (uint)frk;
+  uint j = (uint)frj;
+  uint i = (uint)fri;
+  int ofx = (fi - fri) * 256.0f;
+  int ofy = (fj - frj) * 256.0f;
+  int ofz = (fk - frk) * 256.0f;
+  // oct 000,001,010,011,100,101,110,111
+  int odx000 = 0;
+  int odx001 = ofx > 0 ? 1 : -1;
+  int odx010 = ofy > 0 ? NX : -NX;
+  int odx011 = odx001 + odx010;
+  int odx100 = ofz > 0 ? NXNY : -NXNY;
+  int odx101 = odx100 + odx001;
+  int odx110 = odx100 + odx010;
+  int odx111 = odx100 + odx011;
+
+  int fx0 = abs(ofx);
+  int fy0 = abs(ofy);
+  int fz0 = abs(ofz);
+  int fx1 = 128 - fx0;
+  int fy1 = 128 - fy0;
+  int fz1 = 128 - fz0;
+  uint idx00 = k * NXNY + j * NX + i;
+  uint idx01 = idx00 + NXNYNZ;
+  uint idx02 = idx01 + NXNYNZ;
+  // arithmetic shift right by 14 equivalent to division by 16384
+  f.s0 = ((fz1 * fy1 * fx1) >> 14), f.s1 = ((fz1 * fy1 * fx0) >> 14),
+  f.s2 = ((fz1 * fy0 * fx1) >> 14), f.s3 = ((fz1 * fy0 * fx0) >> 14),
+  f.s3 = ((fz0 * fy1 * fx1) >> 14), f.s5 = ((fz0 * fy1 * fx0) >> 14),
+  f.s6 = ((fz0 * fy0 * fx1) >> 14), f.s7 = ((fz0 * fy0 * fx0) >> 14);
+  f = q[id] * f;
+  // np density
+  atomic_add(&npi[idx00], f.s0);
+  atomic_add(&npi[idx00 + odx001], f.s1);
+  atomic_add(&npi[idx00 + odx010], f.s2);
+  atomic_add(&npi[idx00 + odx011], f.s3);
+  atomic_add(&npi[idx00 + odx100], f.s4);
+  atomic_add(&npi[idx00 + odx101], f.s5);
+  atomic_add(&npi[idx00 + odx110], f.s6);
+  atomic_add(&npi[idx00 + odx111], f.s7);
+
+  // current x-component
+  int8 vxi = (int)((x - xprev) * 65536.0f * invDX) * f;
+  int8 vyi = (int)((y - yprev) * 65536.0f * invDY) * f;
+  int8 vzi = (int)((z - zprev) * 65536.0f * invDZ) * f;
+
+  atomic_add(&cji[idx00], vxi.s0);
+  atomic_add(&cji[idx00 + odx001], vxi.s1);
+  atomic_add(&cji[idx00 + odx010], vxi.s2);
+  atomic_add(&cji[idx00 + odx011], vxi.s3);
+  atomic_add(&cji[idx00 + odx100], vxi.s4);
+  atomic_add(&cji[idx00 + odx101], vxi.s5);
+  atomic_add(&cji[idx00 + odx110], vxi.s6);
+  atomic_add(&cji[idx00 + odx111], vxi.s7);
+
+  atomic_add(&cji[idx01], vyi.s0);
+  atomic_add(&cji[idx01 + odx001], vyi.s1);
+  atomic_add(&cji[idx01 + odx010], vyi.s2);
+  atomic_add(&cji[idx01 + odx011], vyi.s3);
+  atomic_add(&cji[idx01 + odx100], vyi.s4);
+  atomic_add(&cji[idx01 + odx101], vyi.s5);
+  atomic_add(&cji[idx01 + odx110], vyi.s6);
+  atomic_add(&cji[idx01 + odx111], vyi.s7);
+
+  atomic_add(&cji[idx02], vzi.s0);
   atomic_add(&cji[idx02 + odx001], vzi.s1);
   atomic_add(&cji[idx02 + odx010], vzi.s2);
   atomic_add(&cji[idx02 + odx011], vzi.s3);
