@@ -20,13 +20,13 @@ void generate_rand_sphere(particles *pt, par *par)
 #pragma omp parallel for simd num_threads(nthreads)
         for (na = 0; na < nback; ++na) // set number of particles per cell in background
         {
-            float r = r0[2] * pow(uniform_dist(gen), 0.5);
+            float r = r0[2] * pow(uniform_dist(gen), 0.5f);
             float x, y, z;
             z = uniform_dist(gen) * (par->posH_1[2] - par->posL_1[2]) + par->posL_1[2];
-            float theta = 2 * pi * uniform_dist(gen);
-            float phi = acos(2 * uniform_dist(gen) - 1);
-            x = sin(phi) * cos(theta);
-            y = sin(phi) * sin(theta);
+            float theta = 2.0f * pi * uniform_dist(gen);
+            float phi = acosf(2.0f * uniform_dist(gen) - 1.0f);
+            x = sinf(phi) * cosf(theta);
+            y = sinf(phi) * sinf(theta);
 #ifdef octant
             x = abs(x);
             y = abs(y);
@@ -49,11 +49,11 @@ void generate_rand_sphere(particles *pt, par *par)
         for (int n = nback; n < n_partd; n++)
         {
 #ifdef Weibull
-            float r = r0[p] * pow(weibull_dist(gen), 0.33333333333);
+            float r = r0[p] * powf(weibull_dist(gen), 0.33333333333f);
             //     cout << r << ", ";
             while ((r) >= r0[2]) // Don't allow particles to be generated outside the plasma
             {
-                r = r0[p] * pow(weibull_dist(gen), 0.33333333333);
+                r = r0[p] * powf(weibull_dist(gen), 0.33333333333f);
             }
 #else
             float r = r0 * pow(uniform_dist(gen), 0.3333333333);

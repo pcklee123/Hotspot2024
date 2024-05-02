@@ -3,6 +3,7 @@ void get_densityfields(fields *fi, particles *pt, par *par)
 {
    static bool first = true;
    uint32_t np = n_partd;
+   size_t ntry = n_partd;
    cl_int res = 0;
 
    // static cl::Kernel kernel_density, kernel_df, kernel_dtotal;
@@ -32,7 +33,7 @@ void get_densityfields(fields *fi, particles *pt, par *par)
    kernel_density.setArg(8, pt->buff_q_e[0]);           // q
    kernel_density.setArg(9, sizeof(float), &par->a0_f); // scale factor
    // cout << "run kernel to get density for electron" << endl;
-   res = commandQueue_g.enqueueNDRangeKernel(kernel_density, cl::NullRange, cl::NDRange(n_partd), cl::NullRange);
+   res = commandQueue_g.enqueueNDRangeKernel(kernel_density, cl::NullRange, cl::NDRange(ntry), cl::NullRange);
    if (res)
       cout << "kernel_density e  res: " << res << endl; // cout << "run kernel for electron done" << endl;
    commandQueue_g.finish();
@@ -78,7 +79,7 @@ void get_densityfields(fields *fi, particles *pt, par *par)
    kernel_density.setArg(8, pt->buff_q_i[0]);           // q
    kernel_density.setArg(9, sizeof(float), &par->a0_f); // scale factor
    // cout << "run kernel for ions" << endl;
-   res = commandQueue_g.enqueueNDRangeKernel(kernel_density, cl::NullRange, cl::NDRange(n_partd), cl::NullRange);
+   res = commandQueue_g.enqueueNDRangeKernel(kernel_density, cl::NullRange, cl::NDRange(ntry), cl::NullRange);
    if (res)
       cout << "kernel_density i  res: " << res << endl;
    commandQueue_g.finish(); // wait for the end of the kernel program
