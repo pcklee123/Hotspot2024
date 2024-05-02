@@ -44,8 +44,9 @@ int main()
     particles *pt = alloc_particles(par);
     fields *fi = alloc_fields(par);
     cl_set_build_options(par);
+           //getchar();
     cl_start(fi, pt, par);
-    //   getchar();
+
     try
     {
         if (!std::filesystem::create_directory(outpath1))

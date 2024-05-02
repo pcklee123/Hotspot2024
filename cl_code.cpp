@@ -134,9 +134,11 @@ void cl_start(fields *fi, particles *pt, par *par)
     }
     else if (deviceVendor.find("Advanced Micro Devices") != std::string::npos)
     {
-        cl_build_options << "-O3 -cl-mad-enable -cl-fast-relaxed-math -cl-no-signed-zeros -cl-denorms-are-zero -cl-single-precision-constant";
+        cout << "AMD" << endl;
+        //     cl_build_options << "-O3 -cl-mad-enable -cl-fast-relaxed-math -cl-no-signed-zeros -cl-denorms-are-zero -cl-single-precision-constant";
     }
     cl_int cl_err = program.build({default_device}, cl_build_options.str().c_str());
+    cout << "program.build " << cl_err << endl;
     info_file << "building: " << program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(default_device);
     if (cl_err != CL_SUCCESS)
     {
@@ -154,7 +156,7 @@ void cl_start(fields *fi, particles *pt, par *par)
     cl::CommandQueue queue(context_g, default_device_g);
     commandQueue_g = queue;
 
-    // cout << "check for unified memory " << endl;
+    cout << "check for unified memory " << endl;
     cl_bool temp;
     default_device_g.getInfo(CL_DEVICE_HOST_UNIFIED_MEMORY, &temp);
     if (temp == true)
