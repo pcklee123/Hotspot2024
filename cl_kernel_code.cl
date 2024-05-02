@@ -1182,6 +1182,7 @@ void kernel density(global const float *x0, global const float *y0,
   atomic_add(&cji[idx02 + odx101], vzi.s5);
   atomic_add(&cji[idx02 + odx110], vzi.s6);
   atomic_add(&cji[idx02 + odx111], vzi.s7);
+  //*/
 }
 /*
 void kernel density(global const float *x0, global const float *y0,
