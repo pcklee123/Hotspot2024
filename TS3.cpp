@@ -44,7 +44,7 @@ int main()
     particles *pt = alloc_particles(par);
     fields *fi = alloc_fields(par);
     cl_set_build_options(par);
-           //getchar();
+    // getchar();
     cl_start(fi, pt, par);
 
     try
@@ -95,11 +95,12 @@ int main()
 #endif
     // generate E and B external fields within limits and spacing of Field cells
     generateField(fi, par);
+    cout << timer.elapsed() << "s\n ";
     //  getchar();
     int i_time = 0;
-    // cout << "get_densityfields: ";
-    timer.mark();
 
+    timer.mark();
+    cout << "get_densityfields: ";
     get_densityfields(fi, pt, par);
     //   getchar();
     res = clEnqueueReadBuffer(commandQueue_g(), fi->buff_np_e[0](), CL_TRUE, 0, n_cellsf, fi->np[0], 0, NULL, NULL);
@@ -108,11 +109,13 @@ int main()
     // cout << "max density electron = " << max_ne << ", " << max_ne * r_part_spart / powf(a0, 3) << "m-3, ion = " << max_ni << ", " << max_ni * r_part_spart / powf(a0, 3) << endl;
     // float max_ni = maxvalf((reinterpret_cast<float *>(fi->np[1])), n_cells);
     // max_jc = maxvalf((reinterpret_cast<float *>(fi->jc)), n_cells * 3);
-    cout << "dt = " << par->dt[0] << ", " << par->dt[1] << endl;
+
     // float max_jc = maxvalf((reinterpret_cast<float *>(fi->jc)), n_cells * 3);
     // cout << "max current density  = " << max_jc << endl;
     cout << timer.elapsed() << "s\n ";
-    // cout << "calcEBV: ";
+    cout << "dt = " << par->dt[0] << ", " << par->dt[1] << endl;
+
+    cout << "calcEBV: ";
     timer.mark();
 
     int cdt = calcEBV(fi, par); // electric and magnetic fields this is incorporated into tnp which also moves particles. Need here just to estimate dt
@@ -178,9 +181,9 @@ int main()
 // cout << "U: " << timer.elapsed() << "s, ";
 #endif
 
-    info(par);                          // printout initial info.csv file re do this with updated info
-    save_files(i_time, t, fi, pt, par); // cout << "savefiles" << endl;
-   // cout << "logentry" << endl;
+    info(par);                            // printout initial info.csv file re do this with updated info
+    save_files(i_time, t, fi, pt, par);   // cout << "savefiles" << endl;
+                                          // cout << "logentry" << endl;
     log_headers();                        // log file start with headers
     log_entry(0, 0, total_ncalc, t, par); // Write everything to log
                                           //  getchar();
