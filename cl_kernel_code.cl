@@ -1029,7 +1029,7 @@ void kernel densitynoatomic(global const float *x0, global const float *y0,
   cji[idx02 + odx111] += vzi.s7;
   mem_fence(CLK_GLOBAL_MEM_FENCE);
 }
-
+// add a fraction of the density to the 8 surrounding cells
 void kernel density_orig(global const float *x0, global const float *y0,
                          global const float *z0, // prev pos
                          global const float *x1, global const float *y1,
@@ -1131,6 +1131,7 @@ void kernel density_orig(global const float *x0, global const float *y0,
     atomic_add(&cji[idx02 + odx111], vzi.s7);
   }
 }
+// simplistic density just add particle to the nearest cell
 void kernel density(global const float *x0, global const float *y0,
                     global const float *z0, // prev pos
                     global const float *x1, global const float *y1,
@@ -1146,15 +1147,21 @@ void kernel density(global const float *x0, global const float *y0,
   int f = 128; // = (1, 0, 0, 0, 0, 0, 0, 0);
   uint size = get_global_size(0);
   uint id = get_global_id(0);
+
   // number of iterations ensure that this is an integer from main code
-  int num = NPART / size;
-  for (int n = 0; n < num; ++n) {
-    int nn = id * num + n;
-    float xprev = x0[nn], yprev = y0[nn], zprev = z0[nn], x = x1[nn],
-          y = y1[nn], z = z1[nn];
-    float fk = (z - ZLOW) * invDZ;
-    float fj = (y - YLOW) * invDY;
-    float fi = (x - XLOW) * invDX;
+  // const uint num = NPART / size;
+  const uint num = 64;
+  const uint n0 = id * num;
+  const uint n1 = n0 + num;
+  float xprev[64], yprev[64], zprev[64], x[64], y[64], z[64];
+  for (uint nn = n0; nn < n1; ++nn) {
+   xprev[nn] = x0[nn], yprev[nn] = y0[nn], zprev[nn] = z0[nn], x[nn] = x1[nn],
+          y[nn] = y1[nn], z[nn] = z1[nn];
+  }
+  for (uint nn = n0; nn < n1; ++nn) {
+    float fk = (z[nn] - ZLOW) * invDZ;
+    float fj = (y[nn] - YLOW) * invDY;
+    float fi = (x[nn] - XLOW) * invDX;
     float frk = round(fk);
     float frj = round(fj);
     float fri = round(fi);
@@ -1168,9 +1175,9 @@ void kernel density(global const float *x0, global const float *y0,
     f = q[id] * f;
 
     // current x,y,z-component
-    int vxi = (int)((x - xprev) * 65536.0f * invDX) * f;
-    int vyi = (int)((y - yprev) * 65536.0f * invDY) * f;
-    int vzi = (int)((z - zprev) * 65536.0f * invDZ) * f;
+    int vxi = (int)((x[nn] - xprev[nn]) * 65536.0f * invDX) * f;
+    int vyi = (int)((y[nn] - yprev[nn]) * 65536.0f * invDY) * f;
+    int vzi = (int)((z[nn] - zprev[nn]) * 65536.0f * invDZ) * f;
     // np density
     atomic_add(&npi[idx00], f);
 
