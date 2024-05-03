@@ -1112,7 +1112,7 @@ void kernel density_interpolated(global const float *x0, global const float *y0,
     atomic_add(&cji[idx.s5], vxi.s5);
     atomic_add(&cji[idx.s6], vxi.s6);
     atomic_add(&cji[idx.s7], vxi.s7);
-    idx += NXNYNZ * ones; 
+    idx += NXNYNZ * ones;
     atomic_add(&cji[idx.s0], vyi.s0);
     atomic_add(&cji[idx.s1], vyi.s1);
     atomic_add(&cji[idx.s2], vyi.s2);
@@ -1148,34 +1148,32 @@ void kernel density(global const float *x0, global const float *y0,
   // int f; // = (1, 0, 0, 0, 0, 0, 0, 0);
   const uint size = get_global_size(0);
   const uint id = get_global_id(0);
-  // const uint num = NPART / size;
-  const uint num =
-      16; // number of iterations ensure that this is an integer from main code
+  const uint num = NPART / size;
+  // const uint num = 16;
+  //  number of iterations ensure that this is an integer from main code
   const uint n0 = id * num;
   const uint n1 = n0 + num;
-  float x[num], y[num], z[num];
-  int f[num], vxi[num], vyi[num], vzi[num];
   for (uint nn = n0; nn < n1; ++nn) {
-    x[nn] = x1[nn], y[nn] = y1[nn], z[nn] = z1[nn];
-    f[nn] = qq[nn] * 128;
+    float x = x1[nn], y = y1[nn], z = z1[nn], xp = x0[nn], yp = y0[nn],
+          zp = z0[nn];
+    int f = qq[nn] * 128;
     // current x,y,z-component
-    vxi[nn] = (int)((x[nn] - x0[nn]) * 65536.0f * invDX) * f[nn];
-    vyi[nn] = (int)((y[nn] - y0[nn]) * 65536.0f * invDY) * f[nn];
-    vzi[nn] = (int)((z[nn] - z0[nn]) * 65536.0f * invDZ) * f[nn];
-  }
-  for (uint nn = n0; nn < n1; ++nn) {
-    uint k = (uint)round((z[nn] - ZLOW) * invDZ);
-    uint j = (uint)round((y[nn] - YLOW) * invDY);
-    uint i = (uint)round((x[nn] - XLOW) * invDX);
+    int vxi = (int)((x - xp) * 65536.0f * invDX) * f;
+    int vyi = (int)((y - yp) * 65536.0f * invDY) * f;
+    int vzi = (int)((z - zp) * 65536.0f * invDZ) * f;
+
+    uint k = (uint)round((z - ZLOW) * invDZ);
+    uint j = (uint)round((y - YLOW) * invDY);
+    uint i = (uint)round((x - XLOW) * invDX);
 
     uint idx00 = k * NXNY + j * NX + i;
     // np density
-    atomic_add(&npi[idx00], f[nn]);
-    atomic_add(&cji[idx00], vxi[nn]);
+    atomic_add(&npi[idx00], f);
+    atomic_add(&cji[idx00], vxi);
     idx00 += NXNYNZ;
-    atomic_add(&cji[idx00], vyi[nn]);
+    atomic_add(&cji[idx00], vyi);
     idx00 += NXNYNZ;
-    atomic_add(&cji[idx00], vzi[nn]);
+    atomic_add(&cji[idx00], vzi);
   }
 }
 
