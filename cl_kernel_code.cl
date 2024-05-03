@@ -1029,8 +1029,8 @@ void kernel densitynoatomic(global const float *x0, global const float *y0,
   cji[idx02 + odx111] += vzi.s7;
   mem_fence(CLK_GLOBAL_MEM_FENCE);
 }
-// add a fraction of the density to the 8 surrounding cells
-void kernel density(global const float *x0, global const float *y0,
+// density_interpolated add a fraction of the density to the 8 surrounding cells
+void kernel density_interpolated(global const float *x0, global const float *y0,
                     global const float *z0, // prev pos
                     global const float *x1, global const float *y1,
                     global const float *z1, // current pos
@@ -1132,8 +1132,8 @@ void kernel density(global const float *x0, global const float *y0,
     atomic_add(&cji[idx.s7], vzi.s7);
   }
 }
-// simplistic density just add particle to the nearest cell
-void kernel density_simple(global const float *x0, global const float *y0,
+// density_simple simplest density just add particle to the nearest cell
+void kernel density(global const float *x0, global const float *y0,
                            global const float *z0, // prev pos
                            global const float *x1, global const float *y1,
                            global const float *z1, // current pos

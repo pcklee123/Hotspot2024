@@ -95,7 +95,7 @@ void log_entry(int i_time, int ntime, int total_ncalc[2], double t, par *par)
     logger.write(par->UE / ntall);
     logger.write(par->UB / ntall);
     logger.write((par->KEtot[0] + par->KEtot[1] + par->UB + par->UE * 0.5) / ntall);
-    logger.write(par->Emax)*1e-6; // MV/m
+    logger.write(par->Emax*1e-6); // MV/m
     logger.write(par->Bmax * 1000); // mT
     logger.write(par->Ecoef[0] * 1e21);
     logger.write(par->Bcoef[0] * 1e9);
