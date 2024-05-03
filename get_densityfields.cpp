@@ -3,7 +3,7 @@ void get_densityfields(fields *fi, particles *pt, par *par)
 {
    static bool first = true;
    uint32_t np = n_partd;
-   size_t ntry = n_partd;
+   size_t ntry = n_partd/256;
    cl_int res = 0;
 
    // static cl::Kernel kernel_density, kernel_df, kernel_dtotal;
