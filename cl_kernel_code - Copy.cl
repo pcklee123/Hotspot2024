@@ -819,6 +819,680 @@ void kernel tnp_k_implicitq(global const float8 *a1,
   z1[id] = z;
 }
 
+// find the particle and current density convert from floating point to integer
+// to use atomic_add smoothly assign a fraction of the density to "cell"
+// depending on "center of density"
+
+void kernel density16(global const float16 *x0, global const float16 *y0,
+                      global const float16 *z0, // prev pos
+                      global const float16 *x1, global const float16 *y1,
+                      global const float16 *z1, // current pos
+                      global int *npi, global int *cji, global int16 *q,
+                      float a0_f) {
+  const float16 DX = DXo * a0_f, DY = DYo * a0_f, DZ = DZo * a0_f;
+  const float16 XLOW = XLOWo * a0_f, YLOW = YLOWo * a0_f, ZLOW = ZLOWo * a0_f;
+  const float16 XHIGH = XHIGHo * a0_f, YHIGH = YHIGHo * a0_f,
+                ZHIGH = ZHIGHo * a0_f;
+
+  const float16 invDX = 1.0f / DX, invDY = 1.0f / DY, invDZ = 1.0f / DZ;
+  int16 f[8]; // = (1, 0, 0, 0, 0, 0, 0, 0);
+  uint id = get_global_id(0);
+  int16 qid = q[id];
+  float16 xprev = x0[id], yprev = y0[id], zprev = z0[id], x = x1[id],
+          y = y1[id], z = z1[id];
+  float16 fk = (z - ZLOW) * invDZ;
+  float16 fj = (y - YLOW) * invDY;
+  float16 fi = (x - XLOW) * invDX;
+  float16 frk = round(fk);
+  float16 frj = round(fj);
+  float16 fri = round(fi);
+  int16 k =
+      (int16)(frk.s0, frk.s1, frk.s2, frk.s3, frk.s4, frk.s5, frk.s6, frk.s7,
+              frk.s8, frk.s9, frk.sA, frk.sB, frk.sC, frk.sD, frk.sE, frk.sF);
+  int16 j =
+      (int16)(frj.s0, frj.s1, frj.s2, frj.s3, frj.s4, frj.s5, frj.s6, frj.s7,
+              frj.s8, frj.s9, frj.sA, frj.sB, frj.sC, frj.sD, frj.sE, frj.sF);
+  int16 i =
+      (int16)(fri.s0, fri.s1, fri.s2, fri.s3, fri.s4, fri.s5, fri.s6, fri.s7,
+              fri.s8, fri.s9, fri.sA, fri.sB, fri.sC, fri.sD, fri.sE, fri.sF);
+  float16 xf = (fi - fri) * 256.0f;
+  float16 yf = (fj - frj) * 256.0f;
+  float16 zf = (fk - frk) * 256.0f;
+  int16 ofz = (int16)(xf.s0, xf.s1, xf.s2, xf.s3, xf.s4, xf.s5, xf.s6, xf.s7,
+                      xf.s8, xf.s9, xf.sA, xf.sB, xf.sC, xf.sD, xf.sE, xf.sF);
+  int16 ofy = (int16)(yf.s0, yf.s1, yf.s2, yf.s3, yf.s4, yf.s5, yf.s6, yf.s7,
+                      yf.s8, yf.s9, yf.sA, yf.sB, yf.sC, yf.sD, yf.sE, yf.sF);
+  int16 ofx = (int16)(zf.s0, zf.s1, zf.s2, zf.s3, zf.s4, zf.s5, zf.s6, zf.s7,
+                      zf.s8, zf.s9, zf.sA, zf.sB, zf.sC, zf.sD, zf.sE, zf.sF);
+
+  // oct 000,001,010,011,100,101,110,111
+  int16 odx000 = 0;
+  int16 odx001 = ofx > 0 ? 1 : -1;
+  int16 odx010 = ofy > 0 ? NX : -NX;
+  int16 odx011 = odx001 + odx010;
+  int16 odx100 = ofz > 0 ? NXNY : -NXNY;
+  int16 odx101 = odx100 + odx001;
+  int16 odx110 = odx100 + odx010;
+  int16 odx111 = odx100 + odx011;
+
+  int16 fx0 = ofx > 0 ? ofx : -ofx;
+  int16 fy0 = ofy > 0 ? ofy : -ofy;
+  int16 fz0 = ofz > 0 ? ofz : -ofz;
+  int16 fx1 = 128 - fx0;
+  int16 fy1 = 128 - fy0;
+  int16 fz1 = 128 - fz0;
+  int16 idx00 = k * NXNY + j * NX + i;
+  int16 idx01 = idx00 + NXNYNZ;
+  int16 idx02 = idx01 + NXNYNZ;
+  // arithmetic shift right by 14 equivalent to division by 16384
+  f[0] = ((fz1 * fy1 * fx1) >> 14) * qid;
+  f[1] = ((fz1 * fy1 * fx0) >> 14) * qid;
+  f[2] = ((fz1 * fy0 * fx1) >> 14) * qid;
+  f[3] = ((fz1 * fy0 * fx0) >> 14) * qid;
+  f[4] = ((fz0 * fy1 * fx1) >> 14) * qid;
+  f[5] = ((fz0 * fy1 * fx0) >> 14) * qid;
+  f[6] = ((fz0 * fy0 * fx1) >> 14) * qid;
+  f[7] = ((fz0 * fy0 * fx0) >> 14) * qid;
+  // f = (int16)(q[id] * f);
+  //  np density
+  float16 vxf = ((x - xprev) * 65536.0f * invDX);
+  float16 vyf = ((y - yprev) * 65536.0f * invDY);
+  float16 vzf = ((z - zprev) * 65536.0f * invDZ);
+  int16 vxi1 =
+      (int16)(vxf.s0, vxf.s1, vxf.s2, vxf.s3, vxf.s4, vxf.s5, vxf.s6, vxf.s7,
+              vxf.s8, vxf.s9, vxf.sA, vxf.sB, vxf.sC, vxf.sD, vxf.sE, vxf.sF);
+  int16 vyi1 =
+      (int16)(vyf.s0, vyf.s1, vyf.s2, vyf.s3, vyf.s4, vyf.s5, vyf.s6, vyf.s7,
+              vyf.s8, vyf.s9, vyf.sA, vyf.sB, vyf.sC, vyf.sD, vyf.sE, vyf.sF);
+  int16 vzi1 =
+      (int16)(vzf.s0, vzf.s1, vzf.s2, vzf.s3, vzf.s4, vzf.s5, vzf.s6, vzf.s7,
+              vzf.s8, vzf.s9, vzf.sA, vzf.sB, vzf.sC, vzf.sD, vzf.sE, vzf.sF);
+  int16 vxi[8], vyi[8], vzi[8];
+
+  for (int i = 0; i < 8; i++) {
+    atomic_add(&npi[idx00.s0 + odx000.s0], f[i].s0);
+    atomic_add(&npi[idx00.s0 + odx001.s0], f[i].s0);
+    atomic_add(&npi[idx00.s0 + odx010.s0], f[i].s0);
+    atomic_add(&npi[idx00.s0 + odx011.s0], f[i].s0);
+    atomic_add(&npi[idx00.s0 + odx100.s0], f[i].s0);
+    atomic_add(&npi[idx00.s0 + odx101.s0], f[i].s0);
+    atomic_add(&npi[idx00.s0 + odx110.s0], f[i].s0);
+    atomic_add(&npi[idx00.s0 + odx111.s0], f[i].s0);
+
+    atomic_add(&npi[idx00.s1 + odx000.s1], f[i].s1);
+    atomic_add(&npi[idx00.s1 + odx001.s1], f[i].s1);
+    atomic_add(&npi[idx00.s1 + odx010.s1], f[i].s1);
+    atomic_add(&npi[idx00.s1 + odx011.s1], f[i].s1);
+    atomic_add(&npi[idx00.s1 + odx100.s1], f[i].s1);
+    atomic_add(&npi[idx00.s1 + odx101.s1], f[i].s1);
+    atomic_add(&npi[idx00.s1 + odx110.s1], f[i].s1);
+    atomic_add(&npi[idx00.s1 + odx111.s1], f[i].s1);
+
+    atomic_add(&npi[idx00.s2 + odx000.s2], f[i].s2);
+    atomic_add(&npi[idx00.s2 + odx001.s2], f[i].s2);
+    atomic_add(&npi[idx00.s2 + odx010.s2], f[i].s2);
+    atomic_add(&npi[idx00.s2 + odx011.s2], f[i].s2);
+    atomic_add(&npi[idx00.s2 + odx100.s2], f[i].s2);
+    atomic_add(&npi[idx00.s2 + odx101.s2], f[i].s2);
+    atomic_add(&npi[idx00.s2 + odx110.s2], f[i].s2);
+    atomic_add(&npi[idx00.s2 + odx111.s2], f[i].s2);
+
+    atomic_add(&npi[idx01.s3 + odx000.s3], f[i].s3);
+    atomic_add(&npi[idx01.s3 + odx001.s3], f[i].s3);
+    atomic_add(&npi[idx01.s3 + odx010.s3], f[i].s3);
+    atomic_add(&npi[idx01.s3 + odx011.s3], f[i].s3);
+    atomic_add(&npi[idx01.s3 + odx100.s3], f[i].s3);
+    atomic_add(&npi[idx01.s3 + odx101.s3], f[i].s3);
+    atomic_add(&npi[idx01.s3 + odx110.s3], f[i].s3);
+    atomic_add(&npi[idx01.s3 + odx111.s3], f[i].s3);
+
+    atomic_add(&npi[idx01.s4 + odx000.s4], f[i].s4);
+    atomic_add(&npi[idx01.s4 + odx001.s4], f[i].s4);
+    atomic_add(&npi[idx01.s4 + odx010.s4], f[i].s4);
+    atomic_add(&npi[idx01.s4 + odx011.s4], f[i].s4);
+    atomic_add(&npi[idx01.s4 + odx100.s4], f[i].s4);
+    atomic_add(&npi[idx01.s4 + odx101.s4], f[i].s4);
+    atomic_add(&npi[idx01.s4 + odx110.s4], f[i].s4);
+    atomic_add(&npi[idx01.s4 + odx111.s4], f[i].s4);
+
+    atomic_add(&npi[idx01.s5 + odx000.s5], f[i].s5);
+    atomic_add(&npi[idx01.s5 + odx001.s5], f[i].s5);
+    atomic_add(&npi[idx01.s5 + odx010.s5], f[i].s5);
+    atomic_add(&npi[idx01.s5 + odx011.s5], f[i].s5);
+    atomic_add(&npi[idx01.s5 + odx100.s5], f[i].s5);
+    atomic_add(&npi[idx01.s5 + odx101.s5], f[i].s5);
+    atomic_add(&npi[idx01.s5 + odx110.s5], f[i].s5);
+    atomic_add(&npi[idx01.s5 + odx111.s5], f[i].s5);
+
+    atomic_add(&npi[idx01.s6 + odx000.s6], f[i].s6);
+    atomic_add(&npi[idx01.s6 + odx001.s6], f[i].s6);
+    atomic_add(&npi[idx01.s6 + odx010.s6], f[i].s6);
+    atomic_add(&npi[idx01.s6 + odx011.s6], f[i].s6);
+    atomic_add(&npi[idx01.s6 + odx100.s6], f[i].s6);
+    atomic_add(&npi[idx01.s6 + odx101.s6], f[i].s6);
+    atomic_add(&npi[idx01.s6 + odx110.s6], f[i].s6);
+    atomic_add(&npi[idx01.s6 + odx111.s6], f[i].s6);
+
+    atomic_add(&npi[idx01.s7 + odx000.s7], f[i].s7);
+    atomic_add(&npi[idx01.s7 + odx001.s7], f[i].s7);
+    atomic_add(&npi[idx01.s7 + odx010.s7], f[i].s7);
+    atomic_add(&npi[idx01.s7 + odx011.s7], f[i].s7);
+    atomic_add(&npi[idx01.s7 + odx100.s7], f[i].s7);
+    atomic_add(&npi[idx01.s7 + odx101.s7], f[i].s7);
+    atomic_add(&npi[idx01.s7 + odx110.s7], f[i].s7);
+    atomic_add(&npi[idx01.s7 + odx111.s7], f[i].s7);
+
+    atomic_add(&npi[idx02.s8 + odx000.s8], f[i].s8);
+    atomic_add(&npi[idx02.s8 + odx001.s8], f[i].s8);
+    atomic_add(&npi[idx02.s8 + odx010.s8], f[i].s8);
+    atomic_add(&npi[idx02.s8 + odx011.s8], f[i].s8);
+    atomic_add(&npi[idx02.s8 + odx100.s8], f[i].s8);
+    atomic_add(&npi[idx02.s8 + odx101.s8], f[i].s8);
+    atomic_add(&npi[idx02.s8 + odx110.s8], f[i].s8);
+    atomic_add(&npi[idx02.s8 + odx111.s8], f[i].s8);
+
+    atomic_add(&npi[idx02.s9 + odx000.s9], f[i].s9);
+    atomic_add(&npi[idx02.s9 + odx001.s9], f[i].s9);
+    atomic_add(&npi[idx02.s9 + odx010.s9], f[i].s9);
+    atomic_add(&npi[idx02.s9 + odx011.s9], f[i].s9);
+    atomic_add(&npi[idx02.s9 + odx100.s9], f[i].s9);
+    atomic_add(&npi[idx02.s9 + odx101.s9], f[i].s9);
+    atomic_add(&npi[idx02.s9 + odx110.s9], f[i].s9);
+    atomic_add(&npi[idx02.s9 + odx111.s9], f[i].s9);
+
+    atomic_add(&npi[idx02.sA + odx000.sA], f[i].sA);
+    atomic_add(&npi[idx02.sA + odx001.sA], f[i].sA);
+    atomic_add(&npi[idx02.sA + odx010.sA], f[i].sA);
+    atomic_add(&npi[idx02.sA + odx011.sA], f[i].sA);
+    atomic_add(&npi[idx02.sA + odx100.sA], f[i].sA);
+    atomic_add(&npi[idx02.sA + odx101.sA], f[i].sA);
+    atomic_add(&npi[idx02.sA + odx110.sA], f[i].sA);
+    atomic_add(&npi[idx02.sA + odx111.sA], f[i].sA);
+
+    atomic_add(&npi[idx02.sB + odx000.sB], f[i].sB);
+    atomic_add(&npi[idx02.sB + odx001.sB], f[i].sB);
+    atomic_add(&npi[idx02.sB + odx010.sB], f[i].sB);
+    atomic_add(&npi[idx02.sB + odx011.sB], f[i].sB);
+    atomic_add(&npi[idx02.sB + odx100.sB], f[i].sB);
+    atomic_add(&npi[idx02.sB + odx101.sB], f[i].sB);
+    atomic_add(&npi[idx02.sB + odx110.sB], f[i].sB);
+    atomic_add(&npi[idx02.sB + odx111.sB], f[i].sB);
+
+    atomic_add(&npi[idx02.sC + odx000.sC], f[i].sC);
+    atomic_add(&npi[idx02.sC + odx001.sC], f[i].sC);
+    atomic_add(&npi[idx02.sC + odx010.sC], f[i].sC);
+    atomic_add(&npi[idx02.sC + odx011.sC], f[i].sC);
+    atomic_add(&npi[idx02.sC + odx100.sC], f[i].sC);
+    atomic_add(&npi[idx02.sC + odx101.sC], f[i].sC);
+    atomic_add(&npi[idx02.sC + odx110.sC], f[i].sC);
+    atomic_add(&npi[idx02.sC + odx111.sC], f[i].sC);
+
+    atomic_add(&npi[idx02.sD + odx000.sD], f[i].sD);
+    atomic_add(&npi[idx02.sD + odx001.sD], f[i].sD);
+    atomic_add(&npi[idx02.sD + odx010.sD], f[i].sD);
+    atomic_add(&npi[idx02.sD + odx011.sD], f[i].sD);
+    atomic_add(&npi[idx02.sD + odx100.sD], f[i].sD);
+    atomic_add(&npi[idx02.sD + odx101.sD], f[i].sD);
+    atomic_add(&npi[idx02.sD + odx110.sD], f[i].sD);
+    atomic_add(&npi[idx02.sD + odx111.sD], f[i].sD);
+
+    atomic_add(&npi[idx02.sE + odx000.sE], f[i].sE);
+    atomic_add(&npi[idx02.sE + odx001.sE], f[i].sE);
+    atomic_add(&npi[idx02.sE + odx010.sE], f[i].sE);
+    atomic_add(&npi[idx02.sE + odx011.sE], f[i].sE);
+    atomic_add(&npi[idx02.sE + odx100.sE], f[i].sE);
+    atomic_add(&npi[idx02.sE + odx101.sE], f[i].sE);
+    atomic_add(&npi[idx02.sE + odx110.sE], f[i].sE);
+    atomic_add(&npi[idx02.sE + odx111.sE], f[i].sE);
+
+    atomic_add(&npi[idx02.sF + odx000.sF], f[i].sF);
+    atomic_add(&npi[idx02.sF + odx001.sF], f[i].sF);
+    atomic_add(&npi[idx02.sF + odx010.sF], f[i].sF);
+    atomic_add(&npi[idx02.sF + odx011.sF], f[i].sF);
+    atomic_add(&npi[idx02.sF + odx100.sF], f[i].sF);
+    atomic_add(&npi[idx02.sF + odx101.sF], f[i].sF);
+    atomic_add(&npi[idx02.sF + odx110.sF], f[i].sF);
+    atomic_add(&npi[idx02.sF + odx111.sF], f[i].sF);
+
+    // current x-component
+
+    vxi[i] = vxi1 * f[i];
+    vyi[i] = vyi1 * f[i];
+    vzi[i] = vzi1 * f[i];
+    atomic_add(&cji[idx00.s0 + odx000.s0], vxi[i].s0);
+    atomic_add(&cji[idx00.s0 + odx001.s0], vxi[i].s0);
+    atomic_add(&cji[idx00.s0 + odx010.s0], vxi[i].s0);
+    atomic_add(&cji[idx00.s0 + odx011.s0], vxi[i].s0);
+    atomic_add(&cji[idx00.s0 + odx100.s0], vxi[i].s0);
+    atomic_add(&cji[idx00.s0 + odx101.s0], vxi[i].s0);
+    atomic_add(&cji[idx00.s0 + odx110.s0], vxi[i].s0);
+    atomic_add(&cji[idx00.s0 + odx111.s0], vxi[i].s0);
+
+    atomic_add(&cji[idx00.s1 + odx000.s1], vxi[i].s1);
+    atomic_add(&cji[idx00.s1 + odx001.s1], vxi[i].s1);
+    atomic_add(&cji[idx00.s1 + odx010.s1], vxi[i].s1);
+    atomic_add(&cji[idx00.s1 + odx011.s1], vxi[i].s1);
+    atomic_add(&cji[idx00.s1 + odx100.s1], vxi[i].s1);
+    atomic_add(&cji[idx00.s1 + odx101.s1], vxi[i].s1);
+    atomic_add(&cji[idx00.s1 + odx110.s1], vxi[i].s1);
+    atomic_add(&cji[idx00.s1 + odx111.s1], vxi[i].s1);
+
+    atomic_add(&cji[idx00.s2 + odx000.s2], vxi[i].s2);
+    atomic_add(&cji[idx00.s2 + odx001.s2], vxi[i].s2);
+    atomic_add(&cji[idx00.s2 + odx010.s2], vxi[i].s2);
+    atomic_add(&cji[idx00.s2 + odx011.s2], vxi[i].s2);
+    atomic_add(&cji[idx00.s2 + odx100.s2], vxi[i].s2);
+    atomic_add(&cji[idx00.s2 + odx101.s2], vxi[i].s2);
+    atomic_add(&cji[idx00.s2 + odx110.s2], vxi[i].s2);
+    atomic_add(&cji[idx00.s2 + odx111.s2], vxi[i].s2);
+
+    atomic_add(&cji[idx00.s3 + odx000.s3], vxi[i].s3);
+    atomic_add(&cji[idx00.s3 + odx001.s3], vxi[i].s3);
+    atomic_add(&cji[idx00.s3 + odx010.s3], vxi[i].s3);
+    atomic_add(&cji[idx00.s3 + odx011.s3], vxi[i].s3);
+    atomic_add(&cji[idx00.s3 + odx100.s3], vxi[i].s3);
+    atomic_add(&cji[idx00.s3 + odx101.s3], vxi[i].s3);
+    atomic_add(&cji[idx00.s3 + odx110.s3], vxi[i].s3);
+    atomic_add(&cji[idx00.s3 + odx111.s3], vxi[i].s3);
+
+    atomic_add(&cji[idx00.s4 + odx000.s4], vxi[i].s4);
+    atomic_add(&cji[idx00.s4 + odx001.s4], vxi[i].s4);
+    atomic_add(&cji[idx00.s4 + odx010.s4], vxi[i].s4);
+    atomic_add(&cji[idx00.s4 + odx011.s4], vxi[i].s4);
+    atomic_add(&cji[idx00.s4 + odx100.s4], vxi[i].s4);
+    atomic_add(&cji[idx00.s4 + odx101.s4], vxi[i].s4);
+    atomic_add(&cji[idx00.s4 + odx110.s4], vxi[i].s4);
+    atomic_add(&cji[idx00.s4 + odx111.s4], vxi[i].s4);
+
+    atomic_add(&cji[idx00.s5 + odx000.s5], vxi[i].s5);
+    atomic_add(&cji[idx00.s5 + odx001.s5], vxi[i].s5);
+    atomic_add(&cji[idx00.s5 + odx010.s5], vxi[i].s5);
+    atomic_add(&cji[idx00.s5 + odx011.s5], vxi[i].s5);
+    atomic_add(&cji[idx00.s5 + odx100.s5], vxi[i].s5);
+    atomic_add(&cji[idx00.s5 + odx101.s5], vxi[i].s5);
+    atomic_add(&cji[idx00.s5 + odx110.s5], vxi[i].s5);
+    atomic_add(&cji[idx00.s5 + odx111.s5], vxi[i].s5);
+
+    atomic_add(&cji[idx00.s6 + odx000.s6], vxi[i].s6);
+    atomic_add(&cji[idx00.s6 + odx001.s6], vxi[i].s6);
+    atomic_add(&cji[idx00.s6 + odx010.s6], vxi[i].s6);
+    atomic_add(&cji[idx00.s6 + odx011.s6], vxi[i].s6);
+    atomic_add(&cji[idx00.s6 + odx100.s6], vxi[i].s6);
+    atomic_add(&cji[idx00.s6 + odx101.s6], vxi[i].s6);
+    atomic_add(&cji[idx00.s6 + odx110.s6], vxi[i].s6);
+    atomic_add(&cji[idx00.s6 + odx111.s6], vxi[i].s6);
+
+    atomic_add(&cji[idx00.s7 + odx000.s7], vxi[i].s7);
+    atomic_add(&cji[idx00.s7 + odx001.s7], vxi[i].s7);
+    atomic_add(&cji[idx00.s7 + odx010.s7], vxi[i].s7);
+    atomic_add(&cji[idx00.s7 + odx011.s7], vxi[i].s7);
+    atomic_add(&cji[idx00.s7 + odx100.s7], vxi[i].s7);
+    atomic_add(&cji[idx00.s7 + odx101.s7], vxi[i].s7);
+    atomic_add(&cji[idx00.s7 + odx110.s7], vxi[i].s7);
+    atomic_add(&cji[idx00.s7 + odx111.s7], vxi[i].s7);
+
+    atomic_add(&cji[idx00.s8 + odx000.s8], vxi[i].s8);
+    atomic_add(&cji[idx00.s8 + odx001.s8], vxi[i].s8);
+    atomic_add(&cji[idx00.s8 + odx010.s8], vxi[i].s8);
+    atomic_add(&cji[idx00.s8 + odx011.s8], vxi[i].s8);
+    atomic_add(&cji[idx00.s8 + odx100.s8], vxi[i].s8);
+    atomic_add(&cji[idx00.s8 + odx101.s8], vxi[i].s8);
+    atomic_add(&cji[idx00.s8 + odx110.s8], vxi[i].s8);
+    atomic_add(&cji[idx00.s8 + odx111.s8], vxi[i].s8);
+
+    atomic_add(&cji[idx00.s9 + odx000.s9], vxi[i].s9);
+    atomic_add(&cji[idx00.s9 + odx001.s9], vxi[i].s9);
+    atomic_add(&cji[idx00.s9 + odx010.s9], vxi[i].s9);
+    atomic_add(&cji[idx00.s9 + odx011.s9], vxi[i].s9);
+    atomic_add(&cji[idx00.s9 + odx100.s9], vxi[i].s9);
+    atomic_add(&cji[idx00.s9 + odx101.s9], vxi[i].s9);
+    atomic_add(&cji[idx00.s9 + odx110.s9], vxi[i].s9);
+    atomic_add(&cji[idx00.s9 + odx111.s9], vxi[i].s9);
+
+    atomic_add(&cji[idx00.sA + odx000.sA], vxi[i].sA);
+    atomic_add(&cji[idx00.sA + odx001.sA], vxi[i].sA);
+    atomic_add(&cji[idx00.sA + odx010.sA], vxi[i].sA);
+    atomic_add(&cji[idx00.sA + odx011.sA], vxi[i].sA);
+    atomic_add(&cji[idx00.sA + odx100.sA], vxi[i].sA);
+    atomic_add(&cji[idx00.sA + odx101.sA], vxi[i].sA);
+    atomic_add(&cji[idx00.sA + odx110.sA], vxi[i].sA);
+    atomic_add(&cji[idx00.sA + odx111.sA], vxi[i].sA);
+
+    atomic_add(&cji[idx00.sB + odx000.sB], vxi[i].sB);
+    atomic_add(&cji[idx00.sB + odx001.sB], vxi[i].sB);
+    atomic_add(&cji[idx00.sB + odx010.sB], vxi[i].sB);
+    atomic_add(&cji[idx00.sB + odx011.sB], vxi[i].sB);
+    atomic_add(&cji[idx00.sB + odx100.sB], vxi[i].sB);
+    atomic_add(&cji[idx00.sB + odx101.sB], vxi[i].sB);
+    atomic_add(&cji[idx00.sB + odx110.sB], vxi[i].sB);
+    atomic_add(&cji[idx00.sB + odx111.sB], vxi[i].sB);
+
+    atomic_add(&cji[idx00.sC + odx000.sC], vxi[i].sC);
+    atomic_add(&cji[idx00.sC + odx001.sC], vxi[i].sC);
+    atomic_add(&cji[idx00.sC + odx010.sC], vxi[i].sC);
+    atomic_add(&cji[idx00.sC + odx011.sC], vxi[i].sC);
+    atomic_add(&cji[idx00.sC + odx100.sC], vxi[i].sC);
+    atomic_add(&cji[idx00.sC + odx101.sC], vxi[i].sC);
+    atomic_add(&cji[idx00.sC + odx110.sC], vxi[i].sC);
+    atomic_add(&cji[idx00.sC + odx111.sC], vxi[i].sC);
+
+    atomic_add(&cji[idx00.sD + odx000.sD], vxi[i].sD);
+    atomic_add(&cji[idx00.sD + odx001.sD], vxi[i].sD);
+    atomic_add(&cji[idx00.sD + odx010.sD], vxi[i].sD);
+    atomic_add(&cji[idx00.sD + odx011.sD], vxi[i].sD);
+    atomic_add(&cji[idx00.sD + odx100.sD], vxi[i].sD);
+    atomic_add(&cji[idx00.sD + odx101.sD], vxi[i].sD);
+    atomic_add(&cji[idx00.sD + odx110.sD], vxi[i].sD);
+    atomic_add(&cji[idx00.sD + odx111.sD], vxi[i].sD);
+
+    atomic_add(&cji[idx00.sE + odx000.sE], vxi[i].sE);
+    atomic_add(&cji[idx00.sE + odx001.sE], vxi[i].sE);
+    atomic_add(&cji[idx00.sE + odx010.sE], vxi[i].sE);
+    atomic_add(&cji[idx00.sE + odx011.sE], vxi[i].sE);
+    atomic_add(&cji[idx00.sE + odx100.sE], vxi[i].sE);
+    atomic_add(&cji[idx00.sE + odx101.sE], vxi[i].sE);
+    atomic_add(&cji[idx00.sE + odx110.sE], vxi[i].sE);
+    atomic_add(&cji[idx00.sE + odx111.sE], vxi[i].sE);
+
+    atomic_add(&cji[idx00.sF + odx000.sF], vxi[i].sF);
+    atomic_add(&cji[idx00.sF + odx001.sF], vxi[i].sF);
+    atomic_add(&cji[idx00.sF + odx010.sF], vxi[i].sF);
+    atomic_add(&cji[idx00.sF + odx011.sF], vxi[i].sF);
+    atomic_add(&cji[idx00.sF + odx100.sF], vxi[i].sF);
+    atomic_add(&cji[idx00.sF + odx101.sF], vxi[i].sF);
+    atomic_add(&cji[idx00.sF + odx110.sF], vxi[i].sF);
+    atomic_add(&cji[idx00.sF + odx111.sF], vxi[i].sF);
+
+    atomic_add(&cji[idx01.s0 + odx000.s0], vyi[i].s0);
+    atomic_add(&cji[idx01.s0 + odx001.s0], vyi[i].s0);
+    atomic_add(&cji[idx01.s0 + odx010.s0], vyi[i].s0);
+    atomic_add(&cji[idx01.s0 + odx011.s0], vyi[i].s0);
+    atomic_add(&cji[idx01.s0 + odx100.s0], vyi[i].s0);
+    atomic_add(&cji[idx01.s0 + odx101.s0], vyi[i].s0);
+    atomic_add(&cji[idx01.s0 + odx110.s0], vyi[i].s0);
+    atomic_add(&cji[idx01.s0 + odx111.s0], vyi[i].s0);
+
+    atomic_add(&cji[idx01.s1 + odx000.s1], vyi[i].s1);
+    atomic_add(&cji[idx01.s1 + odx001.s1], vyi[i].s1);
+    atomic_add(&cji[idx01.s1 + odx010.s1], vyi[i].s1);
+    atomic_add(&cji[idx01.s1 + odx011.s1], vyi[i].s1);
+    atomic_add(&cji[idx01.s1 + odx100.s1], vyi[i].s1);
+    atomic_add(&cji[idx01.s1 + odx101.s1], vyi[i].s1);
+    atomic_add(&cji[idx01.s1 + odx110.s1], vyi[i].s1);
+    atomic_add(&cji[idx01.s1 + odx111.s1], vyi[i].s1);
+
+    atomic_add(&cji[idx01.s2 + odx000.s2], vyi[i].s2);
+    atomic_add(&cji[idx01.s2 + odx001.s2], vyi[i].s2);
+    atomic_add(&cji[idx01.s2 + odx010.s2], vyi[i].s2);
+    atomic_add(&cji[idx01.s2 + odx011.s2], vyi[i].s2);
+    atomic_add(&cji[idx01.s2 + odx100.s2], vyi[i].s2);
+    atomic_add(&cji[idx01.s2 + odx101.s2], vyi[i].s2);
+    atomic_add(&cji[idx01.s2 + odx110.s2], vyi[i].s2);
+    atomic_add(&cji[idx01.s2 + odx111.s2], vyi[i].s2);
+
+    atomic_add(&cji[idx01.s3 + odx000.s3], vyi[i].s3);
+    atomic_add(&cji[idx01.s3 + odx001.s3], vyi[i].s3);
+    atomic_add(&cji[idx01.s3 + odx010.s3], vyi[i].s3);
+    atomic_add(&cji[idx01.s3 + odx011.s3], vyi[i].s3);
+    atomic_add(&cji[idx01.s3 + odx100.s3], vyi[i].s3);
+    atomic_add(&cji[idx01.s3 + odx101.s3], vyi[i].s3);
+    atomic_add(&cji[idx01.s3 + odx110.s3], vyi[i].s3);
+    atomic_add(&cji[idx01.s3 + odx111.s3], vyi[i].s3);
+
+    atomic_add(&cji[idx01.s4 + odx000.s4], vyi[i].s4);
+    atomic_add(&cji[idx01.s4 + odx001.s4], vyi[i].s4);
+    atomic_add(&cji[idx01.s4 + odx010.s4], vyi[i].s4);
+    atomic_add(&cji[idx01.s4 + odx011.s4], vyi[i].s4);
+    atomic_add(&cji[idx01.s4 + odx100.s4], vyi[i].s4);
+    atomic_add(&cji[idx01.s4 + odx101.s4], vyi[i].s4);
+    atomic_add(&cji[idx01.s4 + odx110.s4], vyi[i].s4);
+    atomic_add(&cji[idx01.s4 + odx111.s4], vyi[i].s4);
+
+    atomic_add(&cji[idx01.s5 + odx000.s5], vyi[i].s5);
+    atomic_add(&cji[idx01.s5 + odx001.s5], vyi[i].s5);
+    atomic_add(&cji[idx01.s5 + odx010.s5], vyi[i].s5);
+    atomic_add(&cji[idx01.s5 + odx011.s5], vyi[i].s5);
+    atomic_add(&cji[idx01.s5 + odx100.s5], vyi[i].s5);
+    atomic_add(&cji[idx01.s5 + odx101.s5], vyi[i].s5);
+    atomic_add(&cji[idx01.s5 + odx110.s5], vyi[i].s5);
+    atomic_add(&cji[idx01.s5 + odx111.s5], vyi[i].s5);
+
+    atomic_add(&cji[idx01.s6 + odx000.s6], vyi[i].s6);
+    atomic_add(&cji[idx01.s6 + odx001.s6], vyi[i].s6);
+    atomic_add(&cji[idx01.s6 + odx010.s6], vyi[i].s6);
+    atomic_add(&cji[idx01.s6 + odx011.s6], vyi[i].s6);
+    atomic_add(&cji[idx01.s6 + odx100.s6], vyi[i].s6);
+    atomic_add(&cji[idx01.s6 + odx101.s6], vyi[i].s6);
+    atomic_add(&cji[idx01.s6 + odx110.s6], vyi[i].s6);
+    atomic_add(&cji[idx01.s6 + odx111.s6], vyi[i].s6);
+
+    atomic_add(&cji[idx01.s7 + odx000.s7], vyi[i].s7);
+    atomic_add(&cji[idx01.s7 + odx001.s7], vyi[i].s7);
+    atomic_add(&cji[idx01.s7 + odx010.s7], vyi[i].s7);
+    atomic_add(&cji[idx01.s7 + odx011.s7], vyi[i].s7);
+    atomic_add(&cji[idx01.s7 + odx100.s7], vyi[i].s7);
+    atomic_add(&cji[idx01.s7 + odx101.s7], vyi[i].s7);
+    atomic_add(&cji[idx01.s7 + odx110.s7], vyi[i].s7);
+    atomic_add(&cji[idx01.s7 + odx111.s7], vyi[i].s7);
+
+    atomic_add(&cji[idx01.s8 + odx000.s8], vyi[i].s8);
+    atomic_add(&cji[idx01.s8 + odx001.s8], vyi[i].s8);
+    atomic_add(&cji[idx01.s8 + odx010.s8], vyi[i].s8);
+    atomic_add(&cji[idx01.s8 + odx011.s8], vyi[i].s8);
+    atomic_add(&cji[idx01.s8 + odx100.s8], vyi[i].s8);
+    atomic_add(&cji[idx01.s8 + odx101.s8], vyi[i].s8);
+    atomic_add(&cji[idx01.s8 + odx110.s8], vyi[i].s8);
+    atomic_add(&cji[idx01.s8 + odx111.s8], vyi[i].s8);
+
+    atomic_add(&cji[idx01.s9 + odx000.s9], vyi[i].s9);
+    atomic_add(&cji[idx01.s9 + odx001.s9], vyi[i].s9);
+    atomic_add(&cji[idx01.s9 + odx010.s9], vyi[i].s9);
+    atomic_add(&cji[idx01.s9 + odx011.s9], vyi[i].s9);
+    atomic_add(&cji[idx01.s9 + odx100.s9], vyi[i].s9);
+    atomic_add(&cji[idx01.s9 + odx101.s9], vyi[i].s9);
+    atomic_add(&cji[idx01.s9 + odx110.s9], vyi[i].s9);
+    atomic_add(&cji[idx01.s9 + odx111.s9], vyi[i].s9);
+
+    atomic_add(&cji[idx01.sA + odx000.sA], vyi[i].sA);
+    atomic_add(&cji[idx01.sA + odx001.sA], vyi[i].sA);
+    atomic_add(&cji[idx01.sA + odx010.sA], vyi[i].sA);
+    atomic_add(&cji[idx01.sA + odx011.sA], vyi[i].sA);
+    atomic_add(&cji[idx01.sA + odx100.sA], vyi[i].sA);
+    atomic_add(&cji[idx01.sA + odx101.sA], vyi[i].sA);
+    atomic_add(&cji[idx01.sA + odx110.sA], vyi[i].sA);
+    atomic_add(&cji[idx01.sA + odx111.sA], vyi[i].sA);
+
+    atomic_add(&cji[idx01.sB + odx000.sB], vyi[i].sB);
+    atomic_add(&cji[idx01.sB + odx001.sB], vyi[i].sB);
+    atomic_add(&cji[idx01.sB + odx010.sB], vyi[i].sB);
+    atomic_add(&cji[idx01.sB + odx011.sB], vyi[i].sB);
+    atomic_add(&cji[idx01.sB + odx100.sB], vyi[i].sB);
+    atomic_add(&cji[idx01.sB + odx101.sB], vyi[i].sB);
+    atomic_add(&cji[idx01.sB + odx110.sB], vyi[i].sB);
+    atomic_add(&cji[idx01.sB + odx111.sB], vyi[i].sB);
+
+    atomic_add(&cji[idx01.sC + odx000.sC], vyi[i].sC);
+    atomic_add(&cji[idx01.sC + odx001.sC], vyi[i].sC);
+    atomic_add(&cji[idx01.sC + odx010.sC], vyi[i].sC);
+    atomic_add(&cji[idx01.sC + odx011.sC], vyi[i].sC);
+    atomic_add(&cji[idx01.sC + odx100.sC], vyi[i].sC);
+    atomic_add(&cji[idx01.sC + odx101.sC], vyi[i].sC);
+    atomic_add(&cji[idx01.sC + odx110.sC], vyi[i].sC);
+    atomic_add(&cji[idx01.sC + odx111.sC], vyi[i].sC);
+
+    atomic_add(&cji[idx01.sD + odx000.sD], vyi[i].sD);
+    atomic_add(&cji[idx01.sD + odx001.sD], vyi[i].sD);
+    atomic_add(&cji[idx01.sD + odx010.sD], vyi[i].sD);
+    atomic_add(&cji[idx01.sD + odx011.sD], vyi[i].sD);
+    atomic_add(&cji[idx01.sD + odx100.sD], vyi[i].sD);
+    atomic_add(&cji[idx01.sD + odx101.sD], vyi[i].sD);
+    atomic_add(&cji[idx01.sD + odx110.sD], vyi[i].sD);
+    atomic_add(&cji[idx01.sD + odx111.sD], vyi[i].sD);
+
+    atomic_add(&cji[idx01.sE + odx000.sE], vyi[i].sE);
+    atomic_add(&cji[idx01.sE + odx001.sE], vyi[i].sE);
+    atomic_add(&cji[idx01.sE + odx010.sE], vyi[i].sE);
+    atomic_add(&cji[idx01.sE + odx011.sE], vyi[i].sE);
+    atomic_add(&cji[idx01.sE + odx100.sE], vyi[i].sE);
+    atomic_add(&cji[idx01.sE + odx101.sE], vyi[i].sE);
+    atomic_add(&cji[idx01.sE + odx110.sE], vyi[i].sE);
+    atomic_add(&cji[idx01.sE + odx111.sE], vyi[i].sE);
+
+    atomic_add(&cji[idx01.sF + odx000.sF], vyi[i].sF);
+    atomic_add(&cji[idx01.sF + odx001.sF], vyi[i].sF);
+    atomic_add(&cji[idx01.sF + odx010.sF], vyi[i].sF);
+    atomic_add(&cji[idx01.sF + odx011.sF], vyi[i].sF);
+    atomic_add(&cji[idx01.sF + odx100.sF], vyi[i].sF);
+    atomic_add(&cji[idx01.sF + odx101.sF], vyi[i].sF);
+    atomic_add(&cji[idx01.sF + odx110.sF], vyi[i].sF);
+    atomic_add(&cji[idx01.sF + odx111.sF], vyi[i].sF);
+
+    atomic_add(&cji[idx02.s0 + odx000.s0], vzi[i].s0);
+    atomic_add(&cji[idx02.s0 + odx001.s0], vzi[i].s0);
+    atomic_add(&cji[idx02.s0 + odx010.s0], vzi[i].s0);
+    atomic_add(&cji[idx02.s0 + odx011.s0], vzi[i].s0);
+    atomic_add(&cji[idx02.s0 + odx100.s0], vzi[i].s0);
+    atomic_add(&cji[idx02.s0 + odx101.s0], vzi[i].s0);
+    atomic_add(&cji[idx02.s0 + odx110.s0], vzi[i].s0);
+    atomic_add(&cji[idx02.s0 + odx111.s0], vzi[i].s0);
+
+    atomic_add(&cji[idx02.s1 + odx000.s1], vzi[i].s1);
+    atomic_add(&cji[idx02.s1 + odx001.s1], vzi[i].s1);
+    atomic_add(&cji[idx02.s1 + odx010.s1], vzi[i].s1);
+    atomic_add(&cji[idx02.s1 + odx011.s1], vzi[i].s1);
+    atomic_add(&cji[idx02.s1 + odx100.s1], vzi[i].s1);
+    atomic_add(&cji[idx02.s1 + odx101.s1], vzi[i].s1);
+    atomic_add(&cji[idx02.s1 + odx110.s1], vzi[i].s1);
+    atomic_add(&cji[idx02.s1 + odx111.s1], vzi[i].s1);
+
+    atomic_add(&cji[idx02.s2 + odx000.s2], vzi[i].s2);
+    atomic_add(&cji[idx02.s2 + odx001.s2], vzi[i].s2);
+    atomic_add(&cji[idx02.s2 + odx010.s2], vzi[i].s2);
+    atomic_add(&cji[idx02.s2 + odx011.s2], vzi[i].s2);
+    atomic_add(&cji[idx02.s2 + odx100.s2], vzi[i].s2);
+    atomic_add(&cji[idx02.s2 + odx101.s2], vzi[i].s2);
+    atomic_add(&cji[idx02.s2 + odx110.s2], vzi[i].s2);
+    atomic_add(&cji[idx02.s2 + odx111.s2], vzi[i].s2);
+
+    atomic_add(&cji[idx02.s3 + odx000.s3], vzi[i].s3);
+    atomic_add(&cji[idx02.s3 + odx001.s3], vzi[i].s3);
+    atomic_add(&cji[idx02.s3 + odx010.s3], vzi[i].s3);
+    atomic_add(&cji[idx02.s3 + odx011.s3], vzi[i].s3);
+    atomic_add(&cji[idx02.s3 + odx100.s3], vzi[i].s3);
+    atomic_add(&cji[idx02.s3 + odx101.s3], vzi[i].s3);
+    atomic_add(&cji[idx02.s3 + odx110.s3], vzi[i].s3);
+    atomic_add(&cji[idx02.s3 + odx111.s3], vzi[i].s3);
+
+    atomic_add(&cji[idx02.s4 + odx000.s4], vzi[i].s4);
+    atomic_add(&cji[idx02.s4 + odx001.s4], vzi[i].s4);
+    atomic_add(&cji[idx02.s4 + odx010.s4], vzi[i].s4);
+    atomic_add(&cji[idx02.s4 + odx011.s4], vzi[i].s4);
+    atomic_add(&cji[idx02.s4 + odx100.s4], vzi[i].s4);
+    atomic_add(&cji[idx02.s4 + odx101.s4], vzi[i].s4);
+    atomic_add(&cji[idx02.s4 + odx110.s4], vzi[i].s4);
+    atomic_add(&cji[idx02.s4 + odx111.s4], vzi[i].s4);
+
+    atomic_add(&cji[idx02.s5 + odx000.s5], vzi[i].s5);
+    atomic_add(&cji[idx02.s5 + odx001.s5], vzi[i].s5);
+    atomic_add(&cji[idx02.s5 + odx010.s5], vzi[i].s5);
+    atomic_add(&cji[idx02.s5 + odx011.s5], vzi[i].s5);
+    atomic_add(&cji[idx02.s5 + odx100.s5], vzi[i].s5);
+    atomic_add(&cji[idx02.s5 + odx101.s5], vzi[i].s5);
+    atomic_add(&cji[idx02.s5 + odx110.s5], vzi[i].s5);
+    atomic_add(&cji[idx02.s5 + odx111.s5], vzi[i].s5);
+
+    atomic_add(&cji[idx02.s6 + odx000.s6], vzi[i].s6);
+    atomic_add(&cji[idx02.s6 + odx001.s6], vzi[i].s6);
+    atomic_add(&cji[idx02.s6 + odx010.s6], vzi[i].s6);
+    atomic_add(&cji[idx02.s6 + odx011.s6], vzi[i].s6);
+    atomic_add(&cji[idx02.s6 + odx100.s6], vzi[i].s6);
+    atomic_add(&cji[idx02.s6 + odx101.s6], vzi[i].s6);
+    atomic_add(&cji[idx02.s6 + odx110.s6], vzi[i].s6);
+    atomic_add(&cji[idx02.s6 + odx111.s6], vzi[i].s6);
+
+    atomic_add(&cji[idx02.s7 + odx000.s7], vzi[i].s7);
+    atomic_add(&cji[idx02.s7 + odx001.s7], vzi[i].s7);
+    atomic_add(&cji[idx02.s7 + odx010.s7], vzi[i].s7);
+    atomic_add(&cji[idx02.s7 + odx011.s7], vzi[i].s7);
+    atomic_add(&cji[idx02.s7 + odx100.s7], vzi[i].s7);
+    atomic_add(&cji[idx02.s7 + odx101.s7], vzi[i].s7);
+    atomic_add(&cji[idx02.s7 + odx110.s7], vzi[i].s7);
+    atomic_add(&cji[idx02.s7 + odx111.s7], vzi[i].s7);
+
+    atomic_add(&cji[idx02.s8 + odx000.s8], vzi[i].s8);
+    atomic_add(&cji[idx02.s8 + odx001.s8], vzi[i].s8);
+    atomic_add(&cji[idx02.s8 + odx010.s8], vzi[i].s8);
+    atomic_add(&cji[idx02.s8 + odx011.s8], vzi[i].s8);
+    atomic_add(&cji[idx02.s8 + odx100.s8], vzi[i].s8);
+    atomic_add(&cji[idx02.s8 + odx101.s8], vzi[i].s8);
+    atomic_add(&cji[idx02.s8 + odx110.s8], vzi[i].s8);
+    atomic_add(&cji[idx02.s8 + odx111.s8], vzi[i].s8);
+
+    atomic_add(&cji[idx02.s9 + odx000.s9], vzi[i].s9);
+    atomic_add(&cji[idx02.s9 + odx001.s9], vzi[i].s9);
+    atomic_add(&cji[idx02.s9 + odx010.s9], vzi[i].s9);
+    atomic_add(&cji[idx02.s9 + odx011.s9], vzi[i].s9);
+    atomic_add(&cji[idx02.s9 + odx100.s9], vzi[i].s9);
+    atomic_add(&cji[idx02.s9 + odx101.s9], vzi[i].s9);
+    atomic_add(&cji[idx02.s9 + odx110.s9], vzi[i].s9);
+    atomic_add(&cji[idx02.s9 + odx111.s9], vzi[i].s9);
+
+    atomic_add(&cji[idx02.sA + odx000.sA], vzi[i].sA);
+    atomic_add(&cji[idx02.sA + odx001.sA], vzi[i].sA);
+    atomic_add(&cji[idx02.sA + odx010.sA], vzi[i].sA);
+    atomic_add(&cji[idx02.sA + odx011.sA], vzi[i].sA);
+    atomic_add(&cji[idx02.sA + odx100.sA], vzi[i].sA);
+    atomic_add(&cji[idx02.sA + odx101.sA], vzi[i].sA);
+    atomic_add(&cji[idx02.sA + odx110.sA], vzi[i].sA);
+    atomic_add(&cji[idx02.sA + odx111.sA], vzi[i].sA);
+
+    atomic_add(&cji[idx02.sB + odx000.sB], vzi[i].sB);
+    atomic_add(&cji[idx02.sB + odx001.sB], vzi[i].sB);
+    atomic_add(&cji[idx02.sB + odx010.sB], vzi[i].sB);
+    atomic_add(&cji[idx02.sB + odx011.sB], vzi[i].sB);
+    atomic_add(&cji[idx02.sB + odx100.sB], vzi[i].sB);
+    atomic_add(&cji[idx02.sB + odx101.sB], vzi[i].sB);
+    atomic_add(&cji[idx02.sB + odx110.sB], vzi[i].sB);
+    atomic_add(&cji[idx02.sB + odx111.sB], vzi[i].sB);
+
+    atomic_add(&cji[idx02.sC + odx000.sC], vzi[i].sC);
+    atomic_add(&cji[idx02.sC + odx001.sC], vzi[i].sC);
+    atomic_add(&cji[idx02.sC + odx010.sC], vzi[i].sC);
+    atomic_add(&cji[idx02.sC + odx011.sC], vzi[i].sC);
+    atomic_add(&cji[idx02.sC + odx100.sC], vzi[i].sC);
+    atomic_add(&cji[idx02.sC + odx101.sC], vzi[i].sC);
+    atomic_add(&cji[idx02.sC + odx110.sC], vzi[i].sC);
+    atomic_add(&cji[idx02.sC + odx111.sC], vzi[i].sC);
+
+    atomic_add(&cji[idx02.sD + odx000.sD], vzi[i].sD);
+    atomic_add(&cji[idx02.sD + odx001.sD], vzi[i].sD);
+    atomic_add(&cji[idx02.sD + odx010.sD], vzi[i].sD);
+    atomic_add(&cji[idx02.sD + odx011.sD], vzi[i].sD);
+    atomic_add(&cji[idx02.sD + odx100.sD], vzi[i].sD);
+    atomic_add(&cji[idx02.sD + odx101.sD], vzi[i].sD);
+    atomic_add(&cji[idx02.sD + odx110.sD], vzi[i].sD);
+    atomic_add(&cji[idx02.sD + odx111.sD], vzi[i].sD);
+
+    atomic_add(&cji[idx02.sE + odx000.sE], vzi[i].sE);
+    atomic_add(&cji[idx02.sE + odx001.sE], vzi[i].sE);
+    atomic_add(&cji[idx02.sE + odx010.sE], vzi[i].sE);
+    atomic_add(&cji[idx02.sE + odx011.sE], vzi[i].sE);
+    atomic_add(&cji[idx02.sE + odx100.sE], vzi[i].sE);
+    atomic_add(&cji[idx02.sE + odx101.sE], vzi[i].sE);
+    atomic_add(&cji[idx02.sE + odx110.sE], vzi[i].sE);
+    atomic_add(&cji[idx02.sE + odx111.sE], vzi[i].sE);
+
+    atomic_add(&cji[idx02.sF + odx000.sF], vzi[i].sF);
+    atomic_add(&cji[idx02.sF + odx001.sF], vzi[i].sF);
+    atomic_add(&cji[idx02.sF + odx010.sF], vzi[i].sF);
+    atomic_add(&cji[idx02.sF + odx011.sF], vzi[i].sF);
+    atomic_add(&cji[idx02.sF + odx100.sF], vzi[i].sF);
+    atomic_add(&cji[idx02.sF + odx101.sF], vzi[i].sF);
+    atomic_add(&cji[idx02.sF + odx110.sF], vzi[i].sF);
+    atomic_add(&cji[idx02.sF + odx111.sF], vzi[i].sF);
+  }
+}
+
 void kernel densitybylayer(global const float *x0, global const float *y0,
                            global const float *z0, // prev pos
                            global const float *x1, global const float *y1,
@@ -1030,12 +1704,12 @@ void kernel densitynoatomic(global const float *x0, global const float *y0,
   mem_fence(CLK_GLOBAL_MEM_FENCE);
 }
 
-void kernel density_orig(global const float *x0, global const float *y0,
-                         global const float *z0, // prev pos
-                         global const float *x1, global const float *y1,
-                         global const float *z1, // current pos
-                         global int *npi, global int *cji, global const int *q,
-                         const float a0_f) {
+void kernel density(global const float *x0, global const float *y0,
+                    global const float *z0, // prev pos
+                    global const float *x1, global const float *y1,
+                    global const float *z1, // current pos
+                    global int *npi, global int *cji, global const int *q,
+                    const float a0_f) {
   const float DX = DXo * a0_f, DY = DYo * a0_f, DZ = DZo * a0_f;
   const float XLOW = XLOWo * a0_f, YLOW = YLOWo * a0_f, ZLOW = ZLOWo * a0_f;
   const float XHIGH = XHIGHo * a0_f, YHIGH = YHIGHo * a0_f,
@@ -1129,54 +1803,6 @@ void kernel density_orig(global const float *x0, global const float *y0,
     atomic_add(&cji[idx02 + odx101], vzi.s5);
     atomic_add(&cji[idx02 + odx110], vzi.s6);
     atomic_add(&cji[idx02 + odx111], vzi.s7);
-  }
-}
-void kernel density(global const float *x0, global const float *y0,
-                    global const float *z0, // prev pos
-                    global const float *x1, global const float *y1,
-                    global const float *z1, // current pos
-                    global int *npi, global int *cji, global const int *q,
-                    const float a0_f) {
-  const float DX = DXo * a0_f, DY = DYo * a0_f, DZ = DZo * a0_f;
-  const float XLOW = XLOWo * a0_f, YLOW = YLOWo * a0_f, ZLOW = ZLOWo * a0_f;
-  const float XHIGH = XHIGHo * a0_f, YHIGH = YHIGHo * a0_f,
-              ZHIGH = ZHIGHo * a0_f;
-
-  const float invDX = 1.0f / DX, invDY = 1.0f / DY, invDZ = 1.0f / DZ;
-  int f = 128; // = (1, 0, 0, 0, 0, 0, 0, 0);
-  uint size = get_global_size(0);
-  uint id = get_global_id(0);
-  // number of iterations ensure that this is an integer from main code
-  int num = NPART / size;
-  for (int n = 0; n < num; ++n) {
-    int nn = id * num + n;
-    float xprev = x0[nn], yprev = y0[nn], zprev = z0[nn], x = x1[nn],
-          y = y1[nn], z = z1[nn];
-    float fk = (z - ZLOW) * invDZ;
-    float fj = (y - YLOW) * invDY;
-    float fi = (x - XLOW) * invDX;
-    float frk = round(fk);
-    float frj = round(fj);
-    float fri = round(fi);
-    uint k = (uint)frk;
-    uint j = (uint)frj;
-    uint i = (uint)fri;
-    uint idx00 = k * NXNY + j * NX + i;
-    uint idx01 = idx00 + NXNYNZ;
-    uint idx02 = idx01 + NXNYNZ;
-
-    f = q[id] * f;
-
-    // current x,y,z-component
-    int vxi = (int)((x - xprev) * 65536.0f * invDX) * f;
-    int vyi = (int)((y - yprev) * 65536.0f * invDY) * f;
-    int vzi = (int)((z - zprev) * 65536.0f * invDZ) * f;
-    // np density
-    atomic_add(&npi[idx00], f);
-
-    atomic_add(&cji[idx00], vxi);
-    atomic_add(&cji[idx01], vyi);
-    atomic_add(&cji[idx02], vzi);
   }
 }
 

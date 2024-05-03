@@ -48,7 +48,7 @@ constexpr unsigned int ncoeff = 8;
 constexpr int n_output_part = (n_partd > 9369) ? 9369 : n_partd; // maximum number of particles to output to file
 // const int nprtd=floor(n_partd/n_output_part);
 
-constexpr int ndatapoints = 2; // total number of time steps to print
+constexpr int ndatapoints = 10; // total number of time steps to print
 constexpr int nc1 = 1;          // f1 * 1;      // number of times to calculate E and B between printouts total number of electron time steps calculated = ndatapoints *nc1*md_me
 constexpr int md_me = 60;       // ratio of electron speed/deuteron speed at the same KE. Used to calculate electron motion more often than deuteron motion
 
@@ -65,11 +65,11 @@ constexpr int md_me = 60;       // ratio of electron speed/deuteron speed at the
 // #define UB_field // whether to calculate the total energy due to magnetic energy density
 #define EFon_ // whether to apply electric force
 #define BFon_ // whether to apply magnetic force
-#define printDensity
-#define printParticles
+//#define printDensity
+//#define printParticles
 // #define printV // print out V
-#define printB // print out B field
-#define printE // print out E field
+//#define printB // print out B field
+//#define printE // print out E field
 // #define FileIn //whether to load from input file (unused)
 
 constexpr float r_part_spart = target_part / n_partd; // 1e12 / n_partd; // ratio of particles per tracked "super" particle

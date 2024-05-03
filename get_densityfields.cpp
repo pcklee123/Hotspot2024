@@ -40,7 +40,7 @@ void get_densityfields(fields *fi, particles *pt, par *par)
 
    clSetKernelArg(nsumi_kernel, 0, sizeof(cl_mem), &(pt->buff_q_e[0]()));
    clSetKernelArg(nsumi_kernel, 1, sizeof(cl_mem), &par->nt_buffer);
-   clSetKernelArg(nsumi_kernel, 2, sizeof(uint32_t), &np);
+   //clSetKernelArg(nsumi_kernel, 2, sizeof(uint32_t), &np);
    res = clEnqueueNDRangeKernel(commandQueue_g(), nsumi_kernel, 1, NULL, &n_part_2048, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
    if (res)
       cout << "nsumi_kernel e  res: " << res << endl;
@@ -90,9 +90,9 @@ void get_densityfields(fields *fi, particles *pt, par *par)
    res = clSetKernelArg(nsumi_kernel, 1, sizeof(cl_mem), &par->nt_buffer);
    if (res)
       cout << "clSetKernelArg nsumi_kernel i 1 res: " << res << endl;
-   res = clSetKernelArg(nsumi_kernel, 2, sizeof(uint32_t), &np);
-   if (res)
-      cout << "clSetKernelArg nsumi_kernel i 2 res: " << res << endl;
+  // res = clSetKernelArg(nsumi_kernel, 2, sizeof(uint32_t), &np);
+ //  if (res)
+   //   cout << "clSetKernelArg nsumi_kernel i 2 res: " << res << endl;
    res = clEnqueueNDRangeKernel(commandQueue_g(), nsumi_kernel, 1, NULL, &n_part_2048, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
    if (res)
       cout << "nsumi_kernel i  res: " << res << endl;
