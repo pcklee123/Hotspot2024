@@ -1311,11 +1311,11 @@ void kernel nsumi(global const int16 *npi, global int *n0) {
   const uint j1 = j0 + n2;
   int16 sum = 0;
   // Use local memory to reduce global memory access
-  // int16 local_npi[128];
+ //  int16 local_npi[16];
 
   // Load data into local memory
-  // for (uint j = 0; j < n2; ++j) {
-  //   local_npi[j] = npi[j0 + j];
+   //for (uint j = 0; j < n2; ++j) {
+   //  local_npi[j] = npi[j0 + j];
   // }
   // Ensure all work-items have finished loading data into local memory
   // barrier(CLK_LOCAL_MEM_FENCE);
