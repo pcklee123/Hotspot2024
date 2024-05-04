@@ -1179,8 +1179,8 @@ void kernel density(global const float *x0, global const float *y0,
 
 // convert integer density to floating point format multiply in time step and
 // cell size
-void kernel df(global float *np, global const int *npi, global float *currentj,
-               global const int *cji, const float a0_f, const float dt) {
+void kernel df(global float *np, global  int *npi, global float *currentj,
+               global  int *cji, const float a0_f, const float dt) {
   const float dx = DXo * a0_f * 1.1920929e-7f / dt,
               dy = DYo * a0_f * 1.1920929e-7f / dt,
               dz = DZo * a0_f * 1.1920929e-7f / dt;
@@ -1192,6 +1192,10 @@ void kernel df(global float *np, global const int *npi, global float *currentj,
   currentj[idx00] = dx * cji[idx00];
   currentj[idx01] = dy * cji[idx01];
   currentj[idx02] = dz * cji[idx02];
+  npi[idx00] = 0;
+  cji[idx00] = 0;
+  cji[idx01] = 0;
+  cji[idx02] = 0;
 }
 
 void kernel trilin_k(
@@ -1311,11 +1315,11 @@ void kernel nsumi(global const int16 *npi, global int *n0) {
   const uint j1 = j0 + n2;
   int16 sum = 0;
   // Use local memory to reduce global memory access
- //  int16 local_npi[16];
+  //  int16 local_npi[16];
 
   // Load data into local memory
-   //for (uint j = 0; j < n2; ++j) {
-   //  local_npi[j] = npi[j0 + j];
+  // for (uint j = 0; j < n2; ++j) {
+  //  local_npi[j] = npi[j0 + j];
   // }
   // Ensure all work-items have finished loading data into local memory
   // barrier(CLK_LOCAL_MEM_FENCE);

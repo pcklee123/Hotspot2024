@@ -14,8 +14,8 @@ void get_densityfields(fields *fi, particles *pt, par *par)
 
    cl_kernel nsumi_kernel = clCreateKernel(program_g(), "nsumi", NULL);
 
-   commandQueue_g.enqueueFillBuffer(fi->buff_npi[0], 0, 0, n_cellsi);
-   commandQueue_g.enqueueFillBuffer(fi->buff_cji[0], 0, 0, n_cellsi * 3);
+   //commandQueue_g.enqueueFillBuffer(fi->buff_npi[0], 0, 0, n_cellsi);
+  // commandQueue_g.enqueueFillBuffer(fi->buff_cji[0], 0, 0, n_cellsi * 3);
    //  res = clFinish(commandQueue_g());
    if (res)
       cout << "enqueueFillBuffer e  res: " << res << endl;
@@ -63,8 +63,8 @@ void get_densityfields(fields *fi, particles *pt, par *par)
       cout << "kernel_df e  res: " << res << endl;
    commandQueue_g.finish();
 
-   commandQueue_g.enqueueFillBuffer(fi->buff_npi[0], 0, 0, n_cellsi);
-   commandQueue_g.enqueueFillBuffer(fi->buff_cji[0], 0, 0, n_cellsi * 3);
+  // commandQueue_g.enqueueFillBuffer(fi->buff_npi[0], 0, 0, n_cellsi);
+ //  commandQueue_g.enqueueFillBuffer(fi->buff_cji[0], 0, 0, n_cellsi * 3);
    // res = clFinish(commandQueue_g());
    if (res)
       cout << "enqueueFillBuffer i  res: " << res << endl;

@@ -101,6 +101,8 @@ int main()
 
     timer.mark();
     cout << "get_densityfields: ";
+    commandQueue_g.enqueueFillBuffer(fi->buff_npi[0], 0, 0, n_cellsi);
+    commandQueue_g.enqueueFillBuffer(fi->buff_cji[0], 0, 0, n_cellsi * 3);
     get_densityfields(fi, pt, par);
     //   getchar();
     res = clEnqueueReadBuffer(commandQueue_g(), fi->buff_np_e[0](), CL_TRUE, 0, n_cellsf, fi->np[0], 0, NULL, NULL);
