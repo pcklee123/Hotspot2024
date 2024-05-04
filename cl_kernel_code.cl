@@ -1311,7 +1311,7 @@ void kernel nsumi(global const int16 *npi, global int *n0) {
   // const uint j1 = j0 + n2;
   int16 sum = 0;
   // Use local memory to reduce global memory access
-  int16 local_npi[n2];
+  int16 local_npi[128];
 
   // Load data into local memory
   for (uint j = 0; j < n2; ++j) {
