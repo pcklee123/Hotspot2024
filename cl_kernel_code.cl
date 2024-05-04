@@ -1133,12 +1133,12 @@ void kernel density_interpolated(global const float *x0, global const float *y0,
   }
 }
 // density_simple simplest density just add particle to the nearest cell
-void kernel density(global const float *x0, global const float *y0,
-                    global const float *z0, // prev pos
-                    global const float *x1, global const float *y1,
-                    global const float *z1, // current pos
-                    global int *npi, global int *cji, global const int *qq,
-                    const float a0_f) {
+void kernel density_simple(global const float *x0, global const float *y0,
+                           global const float *z0, // prev pos
+                           global const float *x1, global const float *y1,
+                           global const float *z1, // current pos
+                           global int *npi, global int *cji,
+                           global const int *qq, const float a0_f) {
   const float DX = DXo * a0_f, DY = DYo * a0_f, DZ = DZo * a0_f;
   const float XLOW = XLOWo * a0_f, YLOW = YLOWo * a0_f, ZLOW = ZLOWo * a0_f;
   const float XHIGH = XHIGHo * a0_f, YHIGH = YHIGHo * a0_f,
@@ -1176,11 +1176,79 @@ void kernel density(global const float *x0, global const float *y0,
     atomic_add(&cji[idx00], vzi);
   }
 }
+// density_simple16 simplest density just add particle to the nearest cell
+void kernel density(global const float4 *x0, global const float4 *y0,
+                    global const float4 *z0, // prev pos
+                    global const float4 *x1, global const float4 *y1,
+                    global const float4 *z1, // current pos
+                    global int *npi, global int *cji, global const int *qq,
+                    const float a0_f) {
+  const float DX = DXo * a0_f, DY = DYo * a0_f, DZ = DZo * a0_f;
+  const float XLOW = XLOWo * a0_f, YLOW = YLOWo * a0_f, ZLOW = ZLOWo * a0_f;
+  const float XHIGH = XHIGHo * a0_f, YHIGH = YHIGHo * a0_f,
+              ZHIGH = ZHIGHo * a0_f;
+
+  const float invDX = 1.0f / DX, invDY = 1.0f / DY, invDZ = 1.0f / DZ;
+  // int f; // = (1, 0, 0, 0, 0, 0, 0, 0);
+  const uint size = get_global_size(0);
+  const uint id = get_global_id(0);
+  const uint num = NPART / (size * 4);
+  // const uint num = 4;
+  //  number of iterations ensure that this is an integer from main code
+  const uint n0 = id * num;
+  const uint n1 = n0 + num;
+  for (uint nn = n0; nn < n1; ++nn) {
+    float4 x = x1[nn], y = y1[nn], z = z1[nn], xp = x0[nn], yp = y0[nn],
+           zp = z0[nn];
+    int4 f = qq[nn] * 128;
+    float4 f1 = (float4)(f.s0, f.s1, f.s2, f.s3);
+    // current x,y,z-component
+    float4 vxi = ((x - xp) * 65536.0f * invDX) * f1;
+    float4 vyi = ((y - yp) * 65536.0f * invDY) * f1;
+    float4 vzi = ((z - zp) * 65536.0f * invDZ) * f1;
+
+    float4 frk = round((z - ZLOW) * invDZ);
+    float4 frj = round((y - YLOW) * invDY);
+    float4 fri = round((x - XLOW) * invDX);
+
+    int4 k = (int4)((int)frk.s0, (int)frk.s1, (int)frk.s2, (int)frk.s3);
+    int4 j = (int4)((int)frj.s0, (int)frj.s1, (int)frj.s2, (int)frj.s3);
+    int4 i = (int4)((int)fri.s0, (int)fri.s1, (int)fri.s2, (int)fri.s3);
+
+    int4 idx00 = k * NXNY + j * NX + i;
+    // np density
+    atomic_add(&npi[idx00.s0], f.s0);
+    atomic_add(&npi[idx00.s1], f.s1);
+    atomic_add(&npi[idx00.s2], f.s2);
+    atomic_add(&npi[idx00.s3], f.s3);
+
+
+    atomic_add(&cji[idx00.s0], (int)vxi.s0);
+    atomic_add(&cji[idx00.s1], (int)vxi.s1);
+    atomic_add(&cji[idx00.s2], (int)vxi.s2);
+    atomic_add(&cji[idx00.s3], (int)vxi.s3);
+
+
+    idx00 += NXNYNZ;
+    atomic_add(&cji[idx00.s0], (int)vyi.s0);
+    atomic_add(&cji[idx00.s1], (int)vyi.s1);
+    atomic_add(&cji[idx00.s2], (int)vyi.s2);
+    atomic_add(&cji[idx00.s3], (int)vyi.s3);
+
+
+    idx00 += NXNYNZ;
+    atomic_add(&cji[idx00.s0], (int)vzi.s0);
+    atomic_add(&cji[idx00.s1], (int)vzi.s1);
+    atomic_add(&cji[idx00.s2], (int)vzi.s2);
+    atomic_add(&cji[idx00.s3], (int)vzi.s3);
+
+  }
+}
 
 // convert integer density to floating point format multiply in time step and
 // cell size
-void kernel df(global float *np, global  int *npi, global float *currentj,
-               global  int *cji, const float a0_f, const float dt) {
+void kernel df(global float *np, global int *npi, global float *currentj,
+               global int *cji, const float a0_f, const float dt) {
   const float dx = DXo * a0_f * 1.1920929e-7f / dt,
               dy = DYo * a0_f * 1.1920929e-7f / dt,
               dz = DZo * a0_f * 1.1920929e-7f / dt;
