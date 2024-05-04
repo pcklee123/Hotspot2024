@@ -1031,11 +1031,11 @@ void kernel densitynoatomic(global const float *x0, global const float *y0,
 }
 // density_interpolated add a fraction of the density to the 8 surrounding cells
 void kernel density_interpolated(global const float *x0, global const float *y0,
-                    global const float *z0, // prev pos
-                    global const float *x1, global const float *y1,
-                    global const float *z1, // current pos
-                    global int *npi, global int *cji, global const int *q,
-                    const float a0_f) {
+                                 global const float *z0, // prev pos
+                                 global const float *x1, global const float *y1,
+                                 global const float *z1, // current pos
+                                 global int *npi, global int *cji,
+                                 global const int *q, const float a0_f) {
   const float DX = DXo * a0_f, DY = DYo * a0_f, DZ = DZo * a0_f;
   const float XLOW = XLOWo * a0_f, YLOW = YLOWo * a0_f, ZLOW = ZLOWo * a0_f;
   const float XHIGH = XHIGHo * a0_f, YHIGH = YHIGHo * a0_f,
@@ -1134,11 +1134,11 @@ void kernel density_interpolated(global const float *x0, global const float *y0,
 }
 // density_simple simplest density just add particle to the nearest cell
 void kernel density(global const float *x0, global const float *y0,
-                           global const float *z0, // prev pos
-                           global const float *x1, global const float *y1,
-                           global const float *z1, // current pos
-                           global int *npi, global int *cji,
-                           global const int *qq, const float a0_f) {
+                    global const float *z0, // prev pos
+                    global const float *x1, global const float *y1,
+                    global const float *z1, // current pos
+                    global int *npi, global int *cji, global const int *qq,
+                    const float a0_f) {
   const float DX = DXo * a0_f, DY = DYo * a0_f, DZ = DZo * a0_f;
   const float XLOW = XLOWo * a0_f, YLOW = YLOWo * a0_f, ZLOW = ZLOWo * a0_f;
   const float XHIGH = XHIGHo * a0_f, YHIGH = YHIGHo * a0_f,
@@ -1302,27 +1302,27 @@ void kernel dtotal(global const float16 *ne, global const float16 *ni,
 }
 
 void kernel nsumi(global const int16 *npi, global int *n0) {
-  // const uint n1 = get_global_size(0); // n_part_2048
-  // const uint n2 = NPART / 2048 / 16;
-  const uint n2 = 128;
+  const uint n1 = get_global_size(0); // n_part_2048=2048 work items
+  const uint n2 = NPART / (2048 * 16);
+  // const uint n2 = 128;
   // make sure n is divisible by n1*16 from calling code
   const uint i = get_global_id(0); // Get index of current element processed
   const uint j0 = i * n2;
-  // const uint j1 = j0 + n2;
+  const uint j1 = j0 + n2;
   int16 sum = 0;
   // Use local memory to reduce global memory access
-  int16 local_npi[128];
+  // int16 local_npi[128];
 
   // Load data into local memory
-  for (uint j = 0; j < n2; ++j) {
-    local_npi[j] = npi[j0 + j];
-  }
+  // for (uint j = 0; j < n2; ++j) {
+  //   local_npi[j] = npi[j0 + j];
+  // }
   // Ensure all work-items have finished loading data into local memory
   // barrier(CLK_LOCAL_MEM_FENCE);
 
   // Perform computation using data in local memory
-  for (uint j = 0; j < n2; ++j) {
-    sum += local_npi[j];
+  for (uint j = j0; j < j2; ++j) {
+    sum += npi[j];
   }
   n0[i] = sum.s0 + sum.s1 + sum.s2 + sum.s3 + sum.s4 + sum.s5 + sum.s6 +
           sum.s7 + sum.s8 + sum.s9 + sum.sA + sum.sB + sum.sC + sum.sD +
