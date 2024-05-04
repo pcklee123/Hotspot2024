@@ -1321,7 +1321,7 @@ void kernel nsumi(global const int16 *npi, global int *n0) {
   // barrier(CLK_LOCAL_MEM_FENCE);
 
   // Perform computation using data in local memory
-  for (uint j = j0; j < j2; ++j) {
+  for (uint j = j0; j < j1; ++j) {
     sum += npi[j];
   }
   n0[i] = sum.s0 + sum.s1 + sum.s2 + sum.s3 + sum.s4 + sum.s5 + sum.s6 +
