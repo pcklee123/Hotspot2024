@@ -1133,7 +1133,7 @@ void kernel density_interpolated(global const float *x0, global const float *y0,
   }
 }
 // density_simple8 simplest density just add particle to the nearest cell
-void kernel density_simple8(global const float8 *x0, global const float8 *y0,
+void kernel density(global const float8 *x0, global const float8 *y0,
                       global const float8 *z0, // prev pos
                       global const float8 *x1, global const float8 *y1,
                       global const float8 *z1, // current pos
@@ -1237,7 +1237,8 @@ void kernel density_simple8(global const float8 *x0, global const float8 *y0,
     }
   }
 }
-void kernel density_16(global const float *x0, global const float *y0,
+//density_simplearray16 wrong? 
+void kernel density_simplearray16(global const float *x0, global const float *y0,
                        global const float *z0, // prev pos
                        global const float *x1, global const float *y1,
                        global const float *z1, // current pos
@@ -1259,7 +1260,7 @@ void kernel density_16(global const float *x0, global const float *y0,
   const uint n0 = id * num;
   const uint n1 = n0 + num;
   __private float xp[16], yp[16], zp[16], x[16], y[16], z[16];
-  int f1[16];
+  __private int f1[16];
   for (uint nn = n0; nn < n1; nn++) {
     for (uint ss = 0; ss < s; ss++)
       xp[ss] = x0[nn + ss];
@@ -1298,8 +1299,8 @@ void kernel density_16(global const float *x0, global const float *y0,
     }
   }
 }
-// density_simple4 simplest density just add particle to the nearest cell
-void kernel density_simple4(global const float4 *x0, global const float4 *y0,
+// density_simplevector4 simplest density just add particle to the nearest cell
+void kernel density_simplevector4(global const float4 *x0, global const float4 *y0,
                     global const float4 *z0, // prev pos
                     global const float4 *x1, global const float4 *y1,
                     global const float4 *z1, // current pos
