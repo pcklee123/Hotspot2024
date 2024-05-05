@@ -1051,7 +1051,7 @@ void kernel density_interpolated(global const float *x0, global const float *y0,
   const int n0 = id * num;
   const int n1 = n0 + num;
   for (int nn = n0; nn < n1; ++nn) {
-    float xprev = x0[nn], yprev = y0[nn], zprev = z0[nn], x = x1[nn],
+    __private float xprev = x0[nn], yprev = y0[nn], zprev = z0[nn], x = x1[nn],
           y = y1[nn], z = z1[nn];
     float fk = (z - ZLOW) * invDZ;
     float fj = (y - YLOW) * invDY;
@@ -1132,13 +1132,13 @@ void kernel density_interpolated(global const float *x0, global const float *y0,
     atomic_add(&cji[idx.s7], vzi.s7);
   }
 }
-// density_simple simplest density just add particle to the nearest cell
-void kernel density(global const float8 *x0, global const float8 *y0,
-                    global const float8 *z0, // prev pos
-                    global const float8 *x1, global const float8 *y1,
-                    global const float8 *z1, // current pos
-                    global int *npi, global int *cji, global const int8 *qq,
-                    const float a0_f) {
+// density_simple8 simplest density just add particle to the nearest cell
+void kernel density_simple8(global const float8 *x0, global const float8 *y0,
+                      global const float8 *z0, // prev pos
+                      global const float8 *x1, global const float8 *y1,
+                      global const float8 *z1, // current pos
+                      global int *npi, global int *cji, global const int8 *qq,
+                      const float a0_f) {
   const float DX = DXo * a0_f, DY = DYo * a0_f, DZ = DZo * a0_f;
   const float XLOW = XLOWo * a0_f, YLOW = YLOWo * a0_f, ZLOW = ZLOWo * a0_f;
   const float XHIGH = XHIGHo * a0_f, YHIGH = YHIGHo * a0_f,
@@ -1156,17 +1156,66 @@ void kernel density(global const float8 *x0, global const float8 *y0,
   const uint n1 = n0 + num;
 
   for (uint nn = n0; nn < n1; nn++) {
-    float8 x04 = x0[nn], y04 = y0[nn], z04 = z0[nn], x14 = x1[nn], y14 = y1[nn],
+    __private float8 x04 = x0[nn], y04 = y0[nn], z04 = z0[nn], x14 = x1[nn], y14 = y1[nn],
            z14 = z1[nn];
     int8 f1 = qq[nn] * 128;
     for (uint i = 0; i < s; i++) {
-      float x = i == 0 ? x04.s0 : i == 1 ? x04.s1 : i == 2 ? x04.s2 : x04.s3: i == 4 ? x04.s4 : i == 5 ? x04.s5 : i == 6 ? x04.s6 : x04.s7;
-      float y = i == 0 ? y04.s0 : i == 1 ? y04.s1 : i == 2 ? y04.s2 : y04.s3: i == 4 ? y04.s4 : i == 5 ? y04.s5 : i == 6 ? y04.s6 : y04.s7;
-      float z = i == 0 ? z04.s0 : i == 1 ? z04.s1 : i == 2 ? z04.s2 : z04.s3: i == 4 ? z04.s4 : i == 5 ? z04.s5 : i == 6 ? z04.s6 : z04.s7;
-      float xp = i == 0 ? x14.s0 : i == 1 ? x14.s1 : i == 2 ? x14.s2 : x14.s3: i == 4 ? x14.s4 : i == 5 ? x14.s5 : i == 6 ? x14.s6 : x14.s7;
-      float yp = i == 0 ? y14.s0 : i == 1 ? y14.s1 : i == 2 ? y14.s2 : y14.s3: i == 4 ? y14.s4 : i == 5 ? y14.s5 : i == 6 ? y14.s6 : y14.s7;
-      float zp = i == 0 ? z14.s0 : i == 1 ? z14.s1 : i == 2 ? z14.s2 : z14.s3: i == 4 ? z14.s4 : i == 5 ? z14.s5 : i == 6 ? z14.s6 : z14.s7;
-      int f = i == 0 ? f1.s0 : i == 1 ? f1.s1 : i == 2 ? f1.s2 : f1.s3: i == 4 ? f1.s4 : i == 5 ? f1.s5 : i == 6 ? f1.s6 : f1.s7;
+      float x = i == 0   ? x04.s0
+                : i == 1 ? x04.s1
+                : i == 2 ? x04.s2
+                : i == 3 ? x04.s3
+                : i == 4 ? x04.s4
+                : i == 5 ? x04.s5
+                : i == 6 ? x04.s6
+                         : x04.s7;
+      float y = i == 0   ? y04.s0
+                : i == 1 ? y04.s1
+                : i == 2 ? y04.s2
+                : i == 3 ? y04.s3
+                : i == 4 ? y04.s4
+                : i == 5 ? y04.s5
+                : i == 6 ? y04.s6
+                         : y04.s7;
+      float z = i == 0   ? z04.s0
+                : i == 1 ? z04.s1
+                : i == 2 ? z04.s2
+                : i == 3 ? z04.s3
+                : i == 4 ? z04.s4
+                : i == 5 ? z04.s5
+                : i == 6 ? z04.s6
+                         : z04.s7;
+      float xp = i == 0   ? x14.s0
+                 : i == 1 ? x14.s1
+                 : i == 2 ? x14.s2
+                 : i == 3 ? x14.s3
+                 : i == 4 ? x14.s4
+                 : i == 5 ? x14.s5
+                 : i == 6 ? x14.s6
+                          : x14.s7;
+      float yp = i == 0   ? y14.s0
+                 : i == 1 ? y14.s1
+                 : i == 2 ? y14.s2
+                 : i == 3 ? y14.s3
+                 : i == 4 ? y14.s4
+                 : i == 5 ? y14.s5
+                 : i == 6 ? y14.s6
+                          : y14.s7;
+      float zp = i == 0   ? z14.s0
+                 : i == 1 ? z14.s1
+                 : i == 2 ? z14.s2
+                 : i == 3 ? z14.s3
+                 : i == 4 ? z14.s4
+                 : i == 5 ? z14.s5
+                 : i == 6 ? z14.s6
+                          : z14.s7;
+      int f = i == 0   ? f1.s0
+              : i == 1 ? f1.s1
+              : i == 2 ? f1.s2
+              : i == 3 ? f1.s3
+              : i == 4 ? f1.s4
+              : i == 5 ? f1.s5
+              : i == 6 ? f1.s6
+                       : f1.s7;
 
       // current x,y,z-component
       int vxi = (int)((x - xp) * 65536.0f * invDX) * f;
@@ -1188,13 +1237,74 @@ void kernel density(global const float8 *x0, global const float8 *y0,
     }
   }
 }
+void kernel density_16(global const float *x0, global const float *y0,
+                       global const float *z0, // prev pos
+                       global const float *x1, global const float *y1,
+                       global const float *z1, // current pos
+                       global int *npi, global int *cji, global const int *qq,
+                       const float a0_f) {
+  const float DX = DXo * a0_f, DY = DYo * a0_f, DZ = DZo * a0_f;
+  const float XLOW = XLOWo * a0_f, YLOW = YLOWo * a0_f, ZLOW = ZLOWo * a0_f;
+  const float XHIGH = XHIGHo * a0_f, YHIGH = YHIGHo * a0_f,
+              ZHIGH = ZHIGHo * a0_f;
+
+  const float invDX = 1.0f / DX, invDY = 1.0f / DY, invDZ = 1.0f / DZ;
+  // int f; // = (1, 0, 0, 0, 0, 0, 0, 0);
+  const uint size = get_global_size(0);
+  const uint id = get_global_id(0);
+  const uint s = 16;
+  const uint num = NPART / (size * s);
+  // const uint num = 16;
+  //  number of iterations ensure that this is an integer from main code
+  const uint n0 = id * num;
+  const uint n1 = n0 + num;
+  __private float xp[16], yp[16], zp[16], x[16], y[16], z[16];
+  int f1[16];
+  for (uint nn = n0; nn < n1; nn++) {
+    for (uint ss = 0; ss < s; ss++)
+      xp[ss] = x0[nn + ss];
+    for (uint ss = 0; ss < s; ss++)
+      yp[ss] = y0[nn + ss];
+    for (uint ss = 0; ss < s; ss++)
+      zp[ss] = z0[nn + ss];
+    for (uint ss = 0; ss < s; ss++)
+      x[ss] = x1[nn + ss];
+    for (uint ss = 0; ss < s; ss++)
+      y[ss] = y1[nn + ss];
+    for (uint ss = 0; ss < s; ss++)
+      z[ss] = z1[nn + ss];
+    for (uint ss = 0; ss < s; ss++)
+      f1[ss] = qq[nn + ss];
+
+    for (uint ss = 0; ss < s; ss++) {
+      int f = f1[ss] * 128;
+      // current x,y,z-component
+      int vxi = (int)((x[ss] - xp[ss]) * 65536.0f * invDX) * f;
+      int vyi = (int)((y[ss] - yp[ss]) * 65536.0f * invDY) * f;
+      int vzi = (int)((z[ss] - zp[ss]) * 65536.0f * invDZ) * f;
+
+      uint k = (uint)round((z[ss] - ZLOW) * invDZ);
+      uint j = (uint)round((y[ss] - YLOW) * invDY);
+      uint i = (uint)round((x[ss] - XLOW) * invDX);
+
+      uint idx00 = k * NXNY + j * NX + i;
+      // np density
+      atomic_add(&npi[idx00], f);
+      atomic_add(&cji[idx00], vxi);
+      idx00 += NXNYNZ;
+      atomic_add(&cji[idx00], vyi);
+      idx00 += NXNYNZ;
+      atomic_add(&cji[idx00], vzi);
+    }
+  }
+}
 // density_simple4 simplest density just add particle to the nearest cell
 void kernel density_simple4(global const float4 *x0, global const float4 *y0,
-                            global const float4 *z0, // prev pos
-                            global const float4 *x1, global const float4 *y1,
-                            global const float4 *z1, // current pos
-                            global int *npi, global int *cji,
-                            global const int *qq, const float a0_f) {
+                    global const float4 *z0, // prev pos
+                    global const float4 *x1, global const float4 *y1,
+                    global const float4 *z1, // current pos
+                    global int *npi, global int *cji, global const int *qq,
+                    const float a0_f) {
   const float DX = DXo * a0_f, DY = DYo * a0_f, DZ = DZo * a0_f;
   const float XLOW = XLOWo * a0_f, YLOW = YLOWo * a0_f, ZLOW = ZLOWo * a0_f;
   const float XHIGH = XHIGHo * a0_f, YHIGH = YHIGHo * a0_f,
@@ -1210,10 +1320,10 @@ void kernel density_simple4(global const float4 *x0, global const float4 *y0,
   const uint n0 = id * num;
   const uint n1 = n0 + num;
   for (uint nn = n0; nn < n1; ++nn) {
-    float4 x = x1[nn], y = y1[nn], z = z1[nn], xp = x0[nn], yp = y0[nn],
-           zp = z0[nn];
-    int4 f = qq[nn] * 128;
-    float4 f1 = (float4)(f.s0, f.s1, f.s2, f.s3);
+    __private float4 x = x1[nn], y = y1[nn], z = z1[nn], xp = x0[nn],
+                     yp = y0[nn], zp = z0[nn];
+    __private int4 f = qq[nn] * 128;
+    __private float4 f1 = (float4)(f.s0, f.s1, f.s2, f.s3);
     // current x,y,z-component
     float4 vxi = ((x - xp) * 65536.0f * invDX) * f1;
     float4 vyi = ((y - yp) * 65536.0f * invDY) * f1;
