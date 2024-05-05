@@ -1133,12 +1133,12 @@ void kernel density_interpolated(global const float *x0, global const float *y0,
   }
 }
 // density_simple simplest density just add particle to the nearest cell
-void kernel density_simple(global const float *x0, global const float *y0,
-                           global const float *z0, // prev pos
-                           global const float *x1, global const float *y1,
-                           global const float *z1, // current pos
-                           global int *npi, global int *cji,
-                           global const int *qq, const float a0_f) {
+void kernel density(global const float8 *x0, global const float8 *y0,
+                    global const float8 *z0, // prev pos
+                    global const float8 *x1, global const float8 *y1,
+                    global const float8 *z1, // current pos
+                    global int *npi, global int *cji, global const int8 *qq,
+                    const float a0_f) {
   const float DX = DXo * a0_f, DY = DYo * a0_f, DZ = DZo * a0_f;
   const float XLOW = XLOWo * a0_f, YLOW = YLOWo * a0_f, ZLOW = ZLOWo * a0_f;
   const float XHIGH = XHIGHo * a0_f, YHIGH = YHIGHo * a0_f,
@@ -1148,41 +1148,53 @@ void kernel density_simple(global const float *x0, global const float *y0,
   // int f; // = (1, 0, 0, 0, 0, 0, 0, 0);
   const uint size = get_global_size(0);
   const uint id = get_global_id(0);
-  const uint num = NPART / size;
+  const uint s = 8;
+  const uint num = NPART / (size * s);
   // const uint num = 16;
   //  number of iterations ensure that this is an integer from main code
   const uint n0 = id * num;
   const uint n1 = n0 + num;
-  for (uint nn = n0; nn < n1; ++nn) {
-    float x = x1[nn], y = y1[nn], z = z1[nn], xp = x0[nn], yp = y0[nn],
-          zp = z0[nn];
-    int f = qq[nn] * 128;
-    // current x,y,z-component
-    int vxi = (int)((x - xp) * 65536.0f * invDX) * f;
-    int vyi = (int)((y - yp) * 65536.0f * invDY) * f;
-    int vzi = (int)((z - zp) * 65536.0f * invDZ) * f;
 
-    uint k = (uint)round((z - ZLOW) * invDZ);
-    uint j = (uint)round((y - YLOW) * invDY);
-    uint i = (uint)round((x - XLOW) * invDX);
+  for (uint nn = n0; nn < n1; nn++) {
+    float8 x04 = x0[nn], y04 = y0[nn], z04 = z0[nn], x14 = x1[nn], y14 = y1[nn],
+           z14 = z1[nn];
+    int8 f1 = qq[nn] * 128;
+    for (uint i = 0; i < s; i++) {
+      float x = i == 0 ? x04.s0 : i == 1 ? x04.s1 : i == 2 ? x04.s2 : x04.s3: i == 4 ? x04.s4 : i == 5 ? x04.s5 : i == 6 ? x04.s6 : x04.s7;
+      float y = i == 0 ? y04.s0 : i == 1 ? y04.s1 : i == 2 ? y04.s2 : y04.s3: i == 4 ? y04.s4 : i == 5 ? y04.s5 : i == 6 ? y04.s6 : y04.s7;
+      float z = i == 0 ? z04.s0 : i == 1 ? z04.s1 : i == 2 ? z04.s2 : z04.s3: i == 4 ? z04.s4 : i == 5 ? z04.s5 : i == 6 ? z04.s6 : z04.s7;
+      float xp = i == 0 ? x14.s0 : i == 1 ? x14.s1 : i == 2 ? x14.s2 : x14.s3: i == 4 ? x14.s4 : i == 5 ? x14.s5 : i == 6 ? x14.s6 : x14.s7;
+      float yp = i == 0 ? y14.s0 : i == 1 ? y14.s1 : i == 2 ? y14.s2 : y14.s3: i == 4 ? y14.s4 : i == 5 ? y14.s5 : i == 6 ? y14.s6 : y14.s7;
+      float zp = i == 0 ? z14.s0 : i == 1 ? z14.s1 : i == 2 ? z14.s2 : z14.s3: i == 4 ? z14.s4 : i == 5 ? z14.s5 : i == 6 ? z14.s6 : z14.s7;
+      int f = i == 0 ? f1.s0 : i == 1 ? f1.s1 : i == 2 ? f1.s2 : f1.s3: i == 4 ? f1.s4 : i == 5 ? f1.s5 : i == 6 ? f1.s6 : f1.s7;
 
-    uint idx00 = k * NXNY + j * NX + i;
-    // np density
-    atomic_add(&npi[idx00], f);
-    atomic_add(&cji[idx00], vxi);
-    idx00 += NXNYNZ;
-    atomic_add(&cji[idx00], vyi);
-    idx00 += NXNYNZ;
-    atomic_add(&cji[idx00], vzi);
+      // current x,y,z-component
+      int vxi = (int)((x - xp) * 65536.0f * invDX) * f;
+      int vyi = (int)((y - yp) * 65536.0f * invDY) * f;
+      int vzi = (int)((z - zp) * 65536.0f * invDZ) * f;
+
+      uint k = (uint)round((z - ZLOW) * invDZ);
+      uint j = (uint)round((y - YLOW) * invDY);
+      uint i = (uint)round((x - XLOW) * invDX);
+
+      uint idx00 = k * NXNY + j * NX + i;
+      // np density
+      atomic_add(&npi[idx00], f);
+      atomic_add(&cji[idx00], vxi);
+      idx00 += NXNYNZ;
+      atomic_add(&cji[idx00], vyi);
+      idx00 += NXNYNZ;
+      atomic_add(&cji[idx00], vzi);
+    }
   }
 }
-// density_simple16 simplest density just add particle to the nearest cell
-void kernel density(global const float4 *x0, global const float4 *y0,
-                    global const float4 *z0, // prev pos
-                    global const float4 *x1, global const float4 *y1,
-                    global const float4 *z1, // current pos
-                    global int *npi, global int *cji, global const int *qq,
-                    const float a0_f) {
+// density_simple4 simplest density just add particle to the nearest cell
+void kernel density_simple4(global const float4 *x0, global const float4 *y0,
+                            global const float4 *z0, // prev pos
+                            global const float4 *x1, global const float4 *y1,
+                            global const float4 *z1, // current pos
+                            global int *npi, global int *cji,
+                            global const int *qq, const float a0_f) {
   const float DX = DXo * a0_f, DY = DYo * a0_f, DZ = DZo * a0_f;
   const float XLOW = XLOWo * a0_f, YLOW = YLOWo * a0_f, ZLOW = ZLOWo * a0_f;
   const float XHIGH = XHIGHo * a0_f, YHIGH = YHIGHo * a0_f,
@@ -1222,12 +1234,10 @@ void kernel density(global const float4 *x0, global const float4 *y0,
     atomic_add(&npi[idx00.s2], f.s2);
     atomic_add(&npi[idx00.s3], f.s3);
 
-
     atomic_add(&cji[idx00.s0], (int)vxi.s0);
     atomic_add(&cji[idx00.s1], (int)vxi.s1);
     atomic_add(&cji[idx00.s2], (int)vxi.s2);
     atomic_add(&cji[idx00.s3], (int)vxi.s3);
-
 
     idx00 += NXNYNZ;
     atomic_add(&cji[idx00.s0], (int)vyi.s0);
@@ -1235,13 +1245,11 @@ void kernel density(global const float4 *x0, global const float4 *y0,
     atomic_add(&cji[idx00.s2], (int)vyi.s2);
     atomic_add(&cji[idx00.s3], (int)vyi.s3);
 
-
     idx00 += NXNYNZ;
     atomic_add(&cji[idx00.s0], (int)vzi.s0);
     atomic_add(&cji[idx00.s1], (int)vzi.s1);
     atomic_add(&cji[idx00.s2], (int)vzi.s2);
     atomic_add(&cji[idx00.s3], (int)vzi.s3);
-
   }
 }
 
