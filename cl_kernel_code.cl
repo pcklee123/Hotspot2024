@@ -1029,6 +1029,7 @@ void kernel densitynoatomic(global const float *x0, global const float *y0,
   cji[idx02 + odx111] += vzi.s7;
   mem_fence(CLK_GLOBAL_MEM_FENCE);
 }
+
 // density_interpolated add a fraction of the density to the 8 surrounding cells
 void kernel density(global const float4 *x0, global const float4 *y0,
                     global const float4 *z0, // prev pos
@@ -1037,25 +1038,27 @@ void kernel density(global const float4 *x0, global const float4 *y0,
                     global int *npi, global int *cji, global const int4 *q,
                     const float a0_f) {
   const float DX = DXo * a0_f, DY = DYo * a0_f, DZ = DZo * a0_f;
-  const float XLOW = XLOWo * a0_f, YLOW = YLOWo * a0_f, ZLOW = ZLOWo * a0_f;
-  const float XHIGH = XHIGHo * a0_f, YHIGH = YHIGHo * a0_f,
-              ZHIGH = ZHIGHo * a0_f;
+
+  // const float XHIGH = XHIGHo * a0_f, YHIGH = YHIGHo * a0_f,          ZHIGH =
+  // ZHIGHo * a0_f;
 
   const float invDX = 1.0f / DX, invDY = 1.0f / DY, invDZ = 1.0f / DZ;
+  const float XLOW_DX = -XLOWo * invDX * a0_f, YLOW_DY = -YLOWo * invDY * a0_f,
+              ZLOW_DZ = -ZLOWo * invDZ * a0_f;
   // = (1, 0, 0, 0, 0, 0, 0, 0);
   const int8 ones = (int8)(1, 1, 1, 1, 1, 1, 1, 1);
   const uint size = get_global_size(0);
   const uint ss = 4;
   const uint id = get_global_id(0);
   // number of iterations ensure that this is an integer from main code
-  const int num = NPART / (size * ss);
-  const int n0 = id * num;
-  const int n1 = n0 + num;
-  for (int nn = n0; nn < n1; ++nn) {
+  const uint num = NPART / (size * ss);
+  const uint n0 = id * num;
+  const uint n1 = n0 + num;
+  for (uint nn = n0; nn < n1; ++nn) {
     __private float4 x1t = x1[nn], y1t = y1[nn], z1t = z1[nn], x0t = x0[nn],
                      y0t = y0[nn], z0t = z0[nn];
     __private int4 qt = q[nn];
-    for (int s = 0; s < ss; ++s) {
+    for (uint s = 0; s < ss; ++s) {
       float x = s == 0 ? x1t.s0 : s == 1 ? x1t.s1 : s == 2 ? x1t.s2 : x1t.s3;
       float y = s == 0 ? y1t.s0 : s == 1 ? y1t.s1 : s == 2 ? y1t.s2 : y1t.s3;
       float z = s == 0 ? z1t.s0 : s == 1 ? z1t.s1 : s == 2 ? z1t.s2 : z1t.s3;
@@ -1074,39 +1077,39 @@ void kernel density(global const float4 *x0, global const float4 *y0,
                              : z0t.s3;
       int q = s == 0 ? qt.s0 : s == 1 ? qt.s1 : s == 2 ? qt.s2 : qt.s3;
 
-      float fk = (z - ZLOW) * invDZ;
-      float fj = (y - YLOW) * invDY;
-      float fi = (x - XLOW) * invDX;
-      float frk = round(fk);
-      float frj = round(fj);
-      float fri = round(fi);
-      int k = (int)frk;
-      int j = (int)frj;
-      int i = (int)fri;
-      int ofx = (fi - fri) * 256.0f;
-      int ofy = (fj - frj) * 256.0f;
-      int ofz = (fk - frk) * 256.0f;
-      // oct 000,001,010,011,100,101,110,111 - 0-7
-      int8 odx = (int8)(0, ofx > 0 ? 1 : -1, ofy > 0 ? NX : -NX, 0,
-                        ofz > 0 ? NXNY : -NXNY, 0, 0, 0);
+      float fk = fma(z, invDZ, ZLOW_DZ);
+      float fj = fma(y, invDY, YLOW_DY);
+      float fi = fma(x, invDX, XLOW_DX);
+
+      int k = (int)fk;
+      int j = (int)fj;
+      int i = (int)fi;
+      int ofx = (int)(fi * 256.0f) - (i << 8);
+      int ofy = (int)(fj * 256.0f) - (j << 8);
+      int ofz = (int)(fk * 256.0f) - (k << 8);
+
+        // oct 000,001,010,011,100,101,110,111 - 0-7
+      int8 odx = (int8)(0, ofx > 127, ofy > 127 ? NX : 0, 0,
+                        ofz > 127 ? NXNY : 0, 0, 0, 0);
       odx.s3 = odx.s1 + odx.s2;
       odx.s5 = odx.s4 + odx.s1;
       odx.s6 = odx.s4 + odx.s2;
       odx.s7 = odx.s4 + odx.s3;
       int8 idx = (k * NXNY + j * NX + i) * ones + odx;
 
-      int fx0 = abs(ofx);
-      int fy0 = abs(ofy);
-      int fz0 = abs(ofz);
-      int fx1 = 128 - fx0;
-      int fy1 = 128 - fy0;
-      int fz1 = 128 - fz0;
+      int fx0 = 256 - ofx;
+      int fy0 = 256 - ofy;
+      int fz0 = 256 - ofz;
+      int fx1 = ofx;
+      int fy1 = ofy;
+      int fz1 = ofz;
       //  arithmetic shift right by 14 equivalent to division by 16384
-      int8 f = (int8)(fx1, fx0, fx1, fx0, fx1, fx0, fx1, fx0);
-      f *= (int8)(fy1, fy1, fy0, fy0, fy1, fy1, fy0, fy0);
-      f *= (int8)(fz1, fz1, fz1, fz1, fz0, fz0, fz0, fz0);
+      int8 f = (int8)(fx0, fx1, fx0, fx1, fx0, fx1, fx0, fx1);
+      f *= (int8)(fy0, fy0, fy1, fy1, fy0, fy0, fy1, fy1);
+      f *= (int8)(fz0, fz0, fz0, fz0, fz1, fz1, fz1, fz1);
+      // sum of the 8 components = 128 *2^17
+      f = f >> 17; //normalize to 128
       f *= q;
-      f = f >> 14;
 
       // current x,y,z-component
       int8 vxi = (int)((x - xprev) * 65536.0f * invDX) * f;
