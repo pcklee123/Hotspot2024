@@ -1029,136 +1029,157 @@ void kernel densitynoatomic(global const float *x0, global const float *y0,
   cji[idx02 + odx111] += vzi.s7;
   mem_fence(CLK_GLOBAL_MEM_FENCE);
 }
+
 // density_interpolated add a fraction of the density to the 8 surrounding cells
-void kernel density_interpolated(global const float *x0, global const float *y0,
-                                 global const float *z0, // prev pos
-                                 global const float *x1, global const float *y1,
-                                 global const float *z1, // current pos
-                                 global int *npi, global int *cji,
-                                 global const int *q, const float a0_f) {
+void kernel density(global const float4 *x0, global const float4 *y0,
+                    global const float4 *z0, // prev pos
+                    global const float4 *x1, global const float4 *y1,
+                    global const float4 *z1, // current pos
+                    global int *npi, global int *cji, global const int4 *q,
+                    const float a0_f) {
   const float DX = DXo * a0_f, DY = DYo * a0_f, DZ = DZo * a0_f;
-  const float XLOW = XLOWo * a0_f, YLOW = YLOWo * a0_f, ZLOW = ZLOWo * a0_f;
-  const float XHIGH = XHIGHo * a0_f, YHIGH = YHIGHo * a0_f,
-              ZHIGH = ZHIGHo * a0_f;
+
+  // const float XHIGH = XHIGHo * a0_f, YHIGH = YHIGHo * a0_f,          ZHIGH =
+  // ZHIGHo * a0_f;
 
   const float invDX = 1.0f / DX, invDY = 1.0f / DY, invDZ = 1.0f / DZ;
+  const float XLOW_DX = -XLOWo * invDX * a0_f, YLOW_DY = -YLOWo * invDY * a0_f,
+              ZLOW_DZ = -ZLOWo * invDZ * a0_f;
   // = (1, 0, 0, 0, 0, 0, 0, 0);
   const int8 ones = (int8)(1, 1, 1, 1, 1, 1, 1, 1);
   const uint size = get_global_size(0);
+  const uint ss = 4;
   const uint id = get_global_id(0);
   // number of iterations ensure that this is an integer from main code
-  const int num = NPART / size;
-  const int n0 = id * num;
-  const int n1 = n0 + num;
-  for (int nn = n0; nn < n1; ++nn) {
-    __private float xprev = x0[nn], yprev = y0[nn], zprev = z0[nn], x = x1[nn],
-          y = y1[nn], z = z1[nn];
-    float fk = (z - ZLOW) * invDZ;
-    float fj = (y - YLOW) * invDY;
-    float fi = (x - XLOW) * invDX;
-    float frk = round(fk);
-    float frj = round(fj);
-    float fri = round(fi);
-    int k = (int)frk;
-    int j = (int)frj;
-    int i = (int)fri;
-    int ofx = (fi - fri) * 256.0f;
-    int ofy = (fj - frj) * 256.0f;
-    int ofz = (fk - frk) * 256.0f;
-    // oct 000,001,010,011,100,101,110,111 - 0-7
-    int8 odx = (int8)(0, ofx > 0 ? 1 : -1, ofy > 0 ? NX : -NX, 0,
-                      ofz > 0 ? NXNY : -NXNY, 0, 0, 0);
-    odx.s3 = odx.s1 + odx.s2;
-    odx.s5 = odx.s4 + odx.s1;
-    odx.s6 = odx.s4 + odx.s2;
-    odx.s7 = odx.s4 + odx.s3;
-    int fx0 = abs(ofx);
-    int fy0 = abs(ofy);
-    int fz0 = abs(ofz);
-    int fx1 = 128 - fx0;
-    int fy1 = 128 - fy0;
-    int fz1 = 128 - fz0;
-    int8 idx = (k * NXNY + j * NX + i) * ones + odx;
-    //  arithmetic shift right by 14 equivalent to division by 16384
-    int8 f = (int8)((fz1 * fy1 * fx1) >> 14, (fz1 * fy1 * fx0) >> 14,
-                    (fz1 * fy0 * fx1) >> 14, (fz1 * fy0 * fx0) >> 14,
-                    (fz0 * fy1 * fx1) >> 14, (fz0 * fy1 * fx0) >> 14,
-                    (fz0 * fy0 * fx1) >> 14, (fz0 * fy0 * fx0) >> 14);
-    // f.s0 = ((fz1 * fy1 * fx1) >> 14), f.s1 = ((fz1 * fy1 * fx0) >> 14),
-    // f.s2 = ((fz1 * fy0 * fx1) >> 14), f.s3 = ((fz1 * fy0 * fx0) >> 14),
-    // f.s3 = ((fz0 * fy1 * fx1) >> 14), f.s5 = ((fz0 * fy1 * fx0) >> 14),
-    // f.s6 = ((fz0 * fy0 * fx1) >> 14), f.s7 = ((fz0 * fy0 * fx0) >> 14);
-    f = q[nn] * f;
+  const uint num = NPART / (size * ss);
+  const uint n0 = id * num;
+  const uint n1 = n0 + num;
+  for (uint nn = n0; nn < n1; ++nn) {
+    __private float4 x1t = x1[nn], y1t = y1[nn], z1t = z1[nn], x0t = x0[nn],
+                     y0t = y0[nn], z0t = z0[nn];
+    __private int4 qt = q[nn];
+    for (uint s = 0; s < ss; ++s) {
+      float x = s == 0 ? x1t.s0 : s == 1 ? x1t.s1 : s == 2 ? x1t.s2 : x1t.s3;
+      float y = s == 0 ? y1t.s0 : s == 1 ? y1t.s1 : s == 2 ? y1t.s2 : y1t.s3;
+      float z = s == 0 ? z1t.s0 : s == 1 ? z1t.s1 : s == 2 ? z1t.s2 : z1t.s3;
 
-    // current x,y,z-component
-    int8 vxi = (int)((x - xprev) * 65536.0f * invDX) * f;
-    int8 vyi = (int)((y - yprev) * 65536.0f * invDY) * f;
-    int8 vzi = (int)((z - zprev) * 65536.0f * invDZ) * f;
-    // np density
-    atomic_add(&npi[idx.s0], f.s0);
-    atomic_add(&npi[idx.s1], f.s1);
-    atomic_add(&npi[idx.s2], f.s2);
-    atomic_add(&npi[idx.s3], f.s3);
-    atomic_add(&npi[idx.s4], f.s4);
-    atomic_add(&npi[idx.s5], f.s5);
-    atomic_add(&npi[idx.s6], f.s6);
-    atomic_add(&npi[idx.s7], f.s7);
+      float xprev = s == 0   ? x0t.s0
+                    : s == 1 ? x0t.s1
+                    : s == 2 ? x0t.s2
+                             : x0t.s3;
+      float yprev = s == 0   ? y0t.s0
+                    : s == 1 ? y0t.s1
+                    : s == 2 ? y0t.s2
+                             : y0t.s3;
+      float zprev = s == 0   ? z0t.s0
+                    : s == 1 ? z0t.s1
+                    : s == 2 ? z0t.s2
+                             : z0t.s3;
+      int q = s == 0 ? qt.s0 : s == 1 ? qt.s1 : s == 2 ? qt.s2 : qt.s3;
 
-    atomic_add(&cji[idx.s0], vxi.s0);
-    atomic_add(&cji[idx.s1], vxi.s1);
-    atomic_add(&cji[idx.s2], vxi.s2);
-    atomic_add(&cji[idx.s3], vxi.s3);
-    atomic_add(&cji[idx.s4], vxi.s4);
-    atomic_add(&cji[idx.s5], vxi.s5);
-    atomic_add(&cji[idx.s6], vxi.s6);
-    atomic_add(&cji[idx.s7], vxi.s7);
-    idx += NXNYNZ * ones;
-    atomic_add(&cji[idx.s0], vyi.s0);
-    atomic_add(&cji[idx.s1], vyi.s1);
-    atomic_add(&cji[idx.s2], vyi.s2);
-    atomic_add(&cji[idx.s3], vyi.s3);
-    atomic_add(&cji[idx.s4], vyi.s4);
-    atomic_add(&cji[idx.s5], vyi.s5);
-    atomic_add(&cji[idx.s6], vyi.s6);
-    atomic_add(&cji[idx.s7], vyi.s7);
-    idx += NXNYNZ * ones;
-    atomic_add(&cji[idx.s0], vzi.s0);
-    atomic_add(&cji[idx.s1], vzi.s1);
-    atomic_add(&cji[idx.s2], vzi.s2);
-    atomic_add(&cji[idx.s3], vzi.s3);
-    atomic_add(&cji[idx.s4], vzi.s4);
-    atomic_add(&cji[idx.s5], vzi.s5);
-    atomic_add(&cji[idx.s6], vzi.s6);
-    atomic_add(&cji[idx.s7], vzi.s7);
+      float fk = fma(z, invDZ, ZLOW_DZ);
+      float fj = fma(y, invDY, YLOW_DY);
+      float fi = fma(x, invDX, XLOW_DX);
+
+      int k = (int)fk;
+      int j = (int)fj;
+      int i = (int)fi;
+      int ofx = (int)(fi * 256.0f) - (i << 8);
+      int ofy = (int)(fj * 256.0f) - (j << 8);
+      int ofz = (int)(fk * 256.0f) - (k << 8);
+
+        // oct 000,001,010,011,100,101,110,111 - 0-7
+      int8 odx = (int8)(0, ofx > 127, ofy > 127 ? NX : 0, 0,
+                        ofz > 127 ? NXNY : 0, 0, 0, 0);
+      odx.s3 = odx.s1 + odx.s2;
+      odx.s5 = odx.s4 + odx.s1;
+      odx.s6 = odx.s4 + odx.s2;
+      odx.s7 = odx.s4 + odx.s3;
+      int8 idx = (k * NXNY + j * NX + i) * ones + odx;
+
+      int fx0 = 256 - ofx;
+      int fy0 = 256 - ofy;
+      int fz0 = 256 - ofz;
+      int fx1 = ofx;
+      int fy1 = ofy;
+      int fz1 = ofz;
+      //  arithmetic shift right by 14 equivalent to division by 16384
+      int8 f = (int8)(fx0, fx1, fx0, fx1, fx0, fx1, fx0, fx1);
+      f *= (int8)(fy0, fy0, fy1, fy1, fy0, fy0, fy1, fy1);
+      f *= (int8)(fz0, fz0, fz0, fz0, fz1, fz1, fz1, fz1);
+      // sum of the 8 components = 128 *2^17
+      f = f >> 17; //normalize to 128
+      f *= q;
+
+      // current x,y,z-component
+      int8 vxi = (int)((x - xprev) * 65536.0f * invDX) * f;
+      int8 vyi = (int)((y - yprev) * 65536.0f * invDY) * f;
+      int8 vzi = (int)((z - zprev) * 65536.0f * invDZ) * f;
+      // np density
+      atomic_add(&npi[idx.s0], f.s0);
+      atomic_add(&npi[idx.s1], f.s1);
+      atomic_add(&npi[idx.s2], f.s2);
+      atomic_add(&npi[idx.s3], f.s3);
+      atomic_add(&npi[idx.s4], f.s4);
+      atomic_add(&npi[idx.s5], f.s5);
+      atomic_add(&npi[idx.s6], f.s6);
+      atomic_add(&npi[idx.s7], f.s7);
+
+      atomic_add(&cji[idx.s0], vxi.s0);
+      atomic_add(&cji[idx.s1], vxi.s1);
+      atomic_add(&cji[idx.s2], vxi.s2);
+      atomic_add(&cji[idx.s3], vxi.s3);
+      atomic_add(&cji[idx.s4], vxi.s4);
+      atomic_add(&cji[idx.s5], vxi.s5);
+      atomic_add(&cji[idx.s6], vxi.s6);
+      atomic_add(&cji[idx.s7], vxi.s7);
+      idx += NXNYNZ * ones;
+      atomic_add(&cji[idx.s0], vyi.s0);
+      atomic_add(&cji[idx.s1], vyi.s1);
+      atomic_add(&cji[idx.s2], vyi.s2);
+      atomic_add(&cji[idx.s3], vyi.s3);
+      atomic_add(&cji[idx.s4], vyi.s4);
+      atomic_add(&cji[idx.s5], vyi.s5);
+      atomic_add(&cji[idx.s6], vyi.s6);
+      atomic_add(&cji[idx.s7], vyi.s7);
+      idx += NXNYNZ * ones;
+      atomic_add(&cji[idx.s0], vzi.s0);
+      atomic_add(&cji[idx.s1], vzi.s1);
+      atomic_add(&cji[idx.s2], vzi.s2);
+      atomic_add(&cji[idx.s3], vzi.s3);
+      atomic_add(&cji[idx.s4], vzi.s4);
+      atomic_add(&cji[idx.s5], vzi.s5);
+      atomic_add(&cji[idx.s6], vzi.s6);
+      atomic_add(&cji[idx.s7], vzi.s7);
+    }
   }
 }
+
 // density_simple8 simplest density just add particle to the nearest cell
-void kernel density(global const float8 *x0, global const float8 *y0,
-                      global const float8 *z0, // prev pos
-                      global const float8 *x1, global const float8 *y1,
-                      global const float8 *z1, // current pos
-                      global int *npi, global int *cji, global const int8 *qq,
-                      const float a0_f) {
+void kernel density_simple8(global const float8 *x0, global const float8 *y0,
+                            global const float8 *z0, // prev pos
+                            global const float8 *x1, global const float8 *y1,
+                            global const float8 *z1, // current pos
+                            global int *npi, global int *cji,
+                            global const int8 *qq, const float a0_f) {
   const float DX = DXo * a0_f, DY = DYo * a0_f, DZ = DZo * a0_f;
   const float XLOW = XLOWo * a0_f, YLOW = YLOWo * a0_f, ZLOW = ZLOWo * a0_f;
   const float XHIGH = XHIGHo * a0_f, YHIGH = YHIGHo * a0_f,
               ZHIGH = ZHIGHo * a0_f;
 
   const float invDX = 1.0f / DX, invDY = 1.0f / DY, invDZ = 1.0f / DZ;
-  // int f; // = (1, 0, 0, 0, 0, 0, 0, 0);
   const uint size = get_global_size(0);
   const uint id = get_global_id(0);
   const uint s = 8;
   const uint num = NPART / (size * s);
-  // const uint num = 16;
   //  number of iterations ensure that this is an integer from main code
   const uint n0 = id * num;
   const uint n1 = n0 + num;
 
   for (uint nn = n0; nn < n1; nn++) {
-    __private float8 x04 = x0[nn], y04 = y0[nn], z04 = z0[nn], x14 = x1[nn], y14 = y1[nn],
-           z14 = z1[nn];
-    int8 f1 = qq[nn] * 128;
+    __private float8 x04 = x0[nn], y04 = y0[nn], z04 = z0[nn], x14 = x1[nn],
+                     y14 = y1[nn], z14 = z1[nn];
+    __private int8 f1 = qq[nn] * 128;
     for (uint i = 0; i < s; i++) {
       float x = i == 0   ? x04.s0
                 : i == 1 ? x04.s1
@@ -1237,13 +1258,184 @@ void kernel density(global const float8 *x0, global const float8 *y0,
     }
   }
 }
-//density_simplearray16 wrong? 
-void kernel density_simplearray16(global const float *x0, global const float *y0,
-                       global const float *z0, // prev pos
-                       global const float *x1, global const float *y1,
-                       global const float *z1, // current pos
-                       global int *npi, global int *cji, global const int *qq,
-                       const float a0_f) {
+
+// density_simple16 simplest density just add particle to the nearest cell
+// size_t ntry = n_partd/16;
+void kernel density_simple16(global const float16 *x0, global const float16 *y0,
+                             global const float16 *z0, // prev pos
+                             global const float16 *x1, global const float16 *y1,
+                             global const float16 *z1, // current pos
+                             global int *npi, global int *cji,
+                             global const int16 *qq, const float a0_f) {
+  const float DX = DXo * a0_f, DY = DYo * a0_f, DZ = DZo * a0_f;
+  const float XLOW = XLOWo * a0_f, YLOW = YLOWo * a0_f, ZLOW = ZLOWo * a0_f;
+  const float XHIGH = XHIGHo * a0_f, YHIGH = YHIGHo * a0_f,
+              ZHIGH = ZHIGHo * a0_f;
+
+  const float invDX = 1.0f / DX, invDY = 1.0f / DY, invDZ = 1.0f / DZ;
+  // const uint size = get_global_size(0);
+  const uint nn = get_global_id(0);
+  const uint s = 16;
+  // const uint num = NPART / (size * s);
+
+  //  number of iterations ensure that this is an integer from main code
+  // const uint n0 = id * num;
+  // const uint n1 = n0 + num;
+
+  // for (uint nn = n0; nn < n1; nn++)
+  // {
+  __private float16 x04 = x0[nn], y04 = y0[nn], z04 = z0[nn], x14 = x1[nn],
+                    y14 = y1[nn], z14 = z1[nn];
+  __private int16 f1 = qq[nn] * 128;
+  for (uint i = 0; i < s; i++) {
+    float x = i == 0    ? x04.s0
+              : i == 1  ? x04.s1
+              : i == 2  ? x04.s2
+              : i == 3  ? x04.s3
+              : i == 4  ? x04.s4
+              : i == 5  ? x04.s5
+              : i == 6  ? x04.s6
+              : i == 7  ? x04.s7
+              : i == 8  ? x04.s8
+              : i == 9  ? x04.s9
+              : i == 10 ? x04.sA
+              : i == 11 ? x04.sB
+              : i == 12 ? x04.sC
+              : i == 13 ? x04.sD
+              : i == 14 ? x04.sE
+                        : x04.sF;
+
+    float y = i == 0    ? y04.s0
+              : i == 1  ? y04.s1
+              : i == 2  ? y04.s2
+              : i == 3  ? y04.s3
+              : i == 4  ? y04.s4
+              : i == 5  ? y04.s5
+              : i == 6  ? y04.s6
+              : i == 7  ? y04.s7
+              : i == 8  ? y04.s8
+              : i == 9  ? y04.s9
+              : i == 10 ? y04.sA
+              : i == 11 ? y04.sB
+              : i == 12 ? y04.sC
+              : i == 13 ? y04.sD
+              : i == 14 ? y04.sE
+                        : y04.sF;
+
+    float z = i == 0    ? z04.s0
+              : i == 1  ? z04.s1
+              : i == 2  ? z04.s2
+              : i == 3  ? z04.s3
+              : i == 4  ? z04.s4
+              : i == 5  ? z04.s5
+              : i == 6  ? z04.s6
+              : i == 7  ? z04.s7
+              : i == 8  ? z04.s8
+              : i == 9  ? z04.s9
+              : i == 10 ? z04.sA
+              : i == 11 ? z04.sB
+              : i == 12 ? z04.sC
+              : i == 13 ? z04.sD
+              : i == 14 ? z04.sE
+                        : z04.sF;
+
+    float xp = i == 0    ? x14.s0
+               : i == 1  ? x14.s1
+               : i == 2  ? x14.s2
+               : i == 3  ? x14.s3
+               : i == 4  ? x14.s4
+               : i == 5  ? x14.s5
+               : i == 6  ? x14.s6
+               : i == 7  ? x14.s7
+               : i == 8  ? x14.s8
+               : i == 9  ? x14.s9
+               : i == 10 ? x14.sA
+               : i == 11 ? x14.sB
+               : i == 12 ? x14.sC
+               : i == 13 ? x14.sD
+               : i == 14 ? x14.sE
+                         : x14.sF;
+
+    float yp = i == 0    ? y14.s0
+               : i == 1  ? y14.s1
+               : i == 2  ? y14.s2
+               : i == 3  ? y14.s3
+               : i == 4  ? y14.s4
+               : i == 5  ? y14.s5
+               : i == 6  ? y14.s6
+               : i == 7  ? y14.s7
+               : i == 8  ? y14.s8
+               : i == 9  ? y14.s9
+               : i == 10 ? y14.sA
+               : i == 11 ? y14.sB
+               : i == 12 ? y14.sC
+               : i == 13 ? y14.sD
+               : i == 14 ? y14.sE
+                         : y14.sF;
+
+    float zp = i == 0    ? z14.s0
+               : i == 1  ? z14.s1
+               : i == 2  ? z14.s2
+               : i == 3  ? z14.s3
+               : i == 4  ? z14.s4
+               : i == 5  ? z14.s5
+               : i == 6  ? z14.s6
+               : i == 7  ? z14.s7
+               : i == 8  ? z14.s8
+               : i == 9  ? z14.s9
+               : i == 10 ? z14.sA
+               : i == 11 ? z14.sB
+               : i == 12 ? z14.sC
+               : i == 13 ? z14.sD
+               : i == 14 ? z14.sE
+                         : z14.sF;
+
+    int f = i == 0    ? f1.s0
+            : i == 1  ? f1.s1
+            : i == 2  ? f1.s2
+            : i == 3  ? f1.s3
+            : i == 4  ? f1.s4
+            : i == 5  ? f1.s5
+            : i == 6  ? f1.s6
+            : i == 7  ? f1.s7
+            : i == 8  ? f1.s8
+            : i == 9  ? f1.s9
+            : i == 10 ? f1.sA
+            : i == 11 ? f1.sB
+            : i == 12 ? f1.sC
+            : i == 13 ? f1.sD
+            : i == 14 ? f1.sE
+                      : f1.sF;
+
+    // current x,y,z-component
+    int vxi = (int)((x - xp) * 65536.0f * invDX) * f;
+    int vyi = (int)((y - yp) * 65536.0f * invDY) * f;
+    int vzi = (int)((z - zp) * 65536.0f * invDZ) * f;
+
+    uint kk = (uint)round((z - ZLOW) * invDZ);
+    uint jj = (uint)round((y - YLOW) * invDY);
+    uint ii = (uint)round((x - XLOW) * invDX);
+
+    uint idx00 = kk * NXNY + jj * NX + ii;
+    // np density
+    atomic_add(&npi[idx00], f);
+    atomic_add(&cji[idx00], vxi);
+    idx00 += NXNYNZ;
+    atomic_add(&cji[idx00], vyi);
+    idx00 += NXNYNZ;
+    atomic_add(&cji[idx00], vzi);
+    // }
+  }
+}
+// density_simplearray16 wrong?
+void kernel density_simplearray16(global const float *x0,
+                                  global const float *y0,
+                                  global const float *z0, // prev pos
+                                  global const float *x1,
+                                  global const float *y1,
+                                  global const float *z1, // current pos
+                                  global int *npi, global int *cji,
+                                  global const int *qq, const float a0_f) {
   const float DX = DXo * a0_f, DY = DYo * a0_f, DZ = DZo * a0_f;
   const float XLOW = XLOWo * a0_f, YLOW = YLOWo * a0_f, ZLOW = ZLOWo * a0_f;
   const float XHIGH = XHIGHo * a0_f, YHIGH = YHIGHo * a0_f,
@@ -1300,12 +1492,14 @@ void kernel density_simplearray16(global const float *x0, global const float *y0
   }
 }
 // density_simplevector4 simplest density just add particle to the nearest cell
-void kernel density_simplevector4(global const float4 *x0, global const float4 *y0,
-                    global const float4 *z0, // prev pos
-                    global const float4 *x1, global const float4 *y1,
-                    global const float4 *z1, // current pos
-                    global int *npi, global int *cji, global const int *qq,
-                    const float a0_f) {
+void kernel density_simplevector4(global const float4 *x0,
+                                  global const float4 *y0,
+                                  global const float4 *z0, // prev pos
+                                  global const float4 *x1,
+                                  global const float4 *y1,
+                                  global const float4 *z1, // current pos
+                                  global int *npi, global int *cji,
+                                  global const int *qq, const float a0_f) {
   const float DX = DXo * a0_f, DY = DYo * a0_f, DZ = DZo * a0_f;
   const float XLOW = XLOWo * a0_f, YLOW = YLOWo * a0_f, ZLOW = ZLOWo * a0_f;
   const float XHIGH = XHIGHo * a0_f, YHIGH = YHIGHo * a0_f,

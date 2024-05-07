@@ -123,7 +123,7 @@ int calcEBV(fields *fi, par *par)
     sumFftFieldB_kernel = clCreateKernel(program_g(), "sumFftFieldBq", NULL); // want rollover fields in x,y no z
 #else
     sumFftField_kernel = clCreateKernel(program_g(), "sumFftField", NULL);
-    sumFftFieldB_kernel = = clCreateKernel(program_g(), "sumFftField", NULL);
+    sumFftFieldB_kernel = clCreateKernel(program_g(), "sumFftField", NULL);
 #endif
 #endif
     sumFftSField_kernel = clCreateKernel(program_g(), "sumFftSField", NULL);
