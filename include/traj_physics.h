@@ -5,7 +5,7 @@
 #define spherez    // but allow particles to rollover in the z direction
 // #define octant     // do hot spot problem 1/8 sphere. Magnetic fields do not make sense as will break symmetry
 // #define cylinder //do hot rod problem
- #define quadrant // do problem 1/4 sphere or cylinder
+ //#define quadrant // do problem 1/4 sphere or cylinder
 #define Weibull
 constexpr float weibullb = 2; // b factor for weibull distribn. larger means closer to a shell. ~1 means filled more at the center.
 #define Temp_e 1e5            // in Kelvin 1e7 ~1keV
