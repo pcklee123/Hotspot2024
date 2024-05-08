@@ -3,9 +3,9 @@
 #define cldevice 1 // 0 usually means integrated GPU
 #define sphere     // do hot spot  problem
 #define spherez    // but allow particles to rollover in the z direction
-//  #define octant     // do hot spot problem 1/8 sphere. Magnetic fields do not make sense as will break symmetry
-//  #define cylinder //do hot rod problem
-// #define quadrant // do problem 1/4 sphere or cylinder
+// #define octant     // do hot spot problem 1/8 sphere. Magnetic fields do not make sense as will break symmetry
+// #define cylinder //do hot rod problem
+ #define quadrant // do problem 1/4 sphere or cylinder
 #define Weibull
 constexpr float weibullb = 2; // b factor for weibull distribn. larger means closer to a shell. ~1 means filled more at the center.
 #define Temp_e 1e5            // in Kelvin 1e7 ~1keV
@@ -17,7 +17,7 @@ constexpr float decf = 1.0f / incf; // decrement factor
 
 constexpr int n_space = 128; // should be 2 to power of n for faster FFT e.g. 32,64,128,256 (128 is 2 million cells, ~ 1gB of ram, 256 is not practical for systems with 8GB or less GPU ram)
 
-constexpr size_t n_partd = 2 * 1024 * 1024; // n_space * n_space * n_space ; // must be 2 to power of n
+constexpr size_t n_partd = 1 * 1024 * 1024; // n_space * n_space * n_space ; // must be 2 to power of n
 constexpr size_t n_parte = n_partd;
 constexpr size_t nback = n_partd / 2; // background stationary particles distributed over all cells - improves stability
 
@@ -49,7 +49,7 @@ constexpr int n_output_part = (n_partd > 9369) ? 9369 : n_partd; // maximum numb
 // const int nprtd=floor(n_partd/n_output_part);
 
 constexpr int ndatapoints = 10; // total number of time steps to print
-constexpr int nc1 = 300;          // f1 * 1;      // number of times to calculate E and B between printouts total number of electron time steps calculated = ndatapoints *nc1*md_me
+constexpr int nc1 = 1;          // f1 * 1;      // number of times to calculate E and B between printouts total number of electron time steps calculated = ndatapoints *nc1*md_me
 constexpr int md_me = 60;       // ratio of electron speed/deuteron speed at the same KE. Used to calculate electron motion more often than deuteron motion
 
 #define Hist_n 512
@@ -83,6 +83,7 @@ constexpr int n_space_divy2 = n_space_divy * 2;
 constexpr int n_space_divz2 = n_space_divz * 2;
 constexpr size_t n_cells = n_space_divx * n_space_divy * n_space_divz; // number of cells
 constexpr size_t n_cells8 = n_cells * 8;                               // number of cells * 8 = cells for FFT to prevent rollover fields
+constexpr size_t n_cells_2 = n_cells / 2;                              // number of n_cells8/16 for float16
 constexpr size_t n_cellsf = n_cells * sizeof(float);                   // number of cells * sizeof(float) (4bytes)
 constexpr size_t n_cellsi = n_cells * sizeof(int);
 constexpr size_t n_partf = n_partd * sizeof(float); // number of particles * sizeof(float)

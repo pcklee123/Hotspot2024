@@ -85,13 +85,30 @@ void kernel copy3Data(global const float *jc, global float *fft_real) {
   fft_real[idx + N0N1N2 * 2] = (in) ? jc[s_idx + NXNYNZ * 2] : 0;
 }
 
+void kernel copyData16(global const float16 *npt, global float16 *fft_real) {
+  // get global indices
+  uint idx = get_global_id(0);
+  // Compute 3D index for dest array
+  uint i = idx % (N0/16);
+  uint j = (idx / (N0/16)) % N1;
+  uint k = (idx / (N0N1/16)) % N2;
+
+  // Check if in range of source
+  uint in = (i < NX/16) && (j < NY) && (k < NZ);
+
+  // Compute global index for source array
+  uint source_index = (in) ? k * NY * NX + j * NX + i : 0;
+  //  Copy element from source to destination array or with zeroes
+  fft_real[idx] = (in) ? npt[source_index] : 0;
+}
+
 void kernel copyData(global const float *npt, global float *fft_real) {
   // get global indices
   uint idx = get_global_id(0);
   // Compute 3D index for dest array
-  uint i = idx % N0;
-  uint j = (idx / N0) % N1;
-  uint k = (idx / N0N1) % N2;
+  uint i = idx % (N0);
+  uint j = (idx / (N0)) % N1;
+  uint k = (idx / (N0N1)) % N2;
 
   // Check if in range of source
   uint in = (i < NX) && (j < NY) && (k < NZ);
