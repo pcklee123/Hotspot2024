@@ -1150,9 +1150,6 @@ void kernel trilin_k(
                  E_flat[odx.s7]);
     odx += n_cells;
     int oa = (offset * 3 + co);
-    /*
-
-        */
     // Ea[oa].s0 =
     //     (-c000 * x1y1z1 + c001 * x1y1z0 + c010 * x1y0z1 - c011 * x1y0z0 +
     //      c100 * x0y1z1 - c101 * x0y1z0 - c110 * x0y0z1 + c111 * x0y0z0);
