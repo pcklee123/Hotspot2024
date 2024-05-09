@@ -85,7 +85,7 @@ void kernel copy3Data(global const float *jc, global float *fft_real) {
   fft_real[idx + N0N1N2 * 2] = (in) ? jc[s_idx + NXNYNZ * 2] : 0;
 }
 
-void kernel copyData16(global const float16 *npt, global float16 *fft_real) {
+void kernel copyData(global const float16 *npt, global float16 *fft_real) {
   // get global indices
  // const float16 zeroes = (float16)(0);
   uint idx = get_global_id(0);
@@ -103,7 +103,7 @@ void kernel copyData16(global const float16 *npt, global float16 *fft_real) {
   fft_real[idx] = (in) ? (float16)npt[source_index] : (float16)(0);
 }
 
-void kernel copyData(global const float *npt, global float *fft_real) {
+void kernel copyData_o(global const float *npt, global float *fft_real) {
   // get global indices
   uint idx = get_global_id(0);
   // Compute 3D index for dest array
