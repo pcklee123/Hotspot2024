@@ -547,7 +547,7 @@ int calcEBV(fields *fi, par *par)
     res = clEnqueueReadBuffer(vkGPU.commandQueue, par->maxval_buffer, CL_TRUE, 0, sizeof(float) * n2048, par->maxval_array, 0, NULL, NULL);
     if (res)
         cout << "maxval3f_kernel readbuffer res: " << res << endl;
-    par->Emax = sqrtf(maxvalf(par->maxval_array, n_cells_16));
+    par->Emax = sqrtf(maxvalf(par->maxval_array, n2048));
     // cout << "Emax = " << par->Emax << endl;
 #endif
 
