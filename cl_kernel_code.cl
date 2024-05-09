@@ -1796,19 +1796,18 @@ void kernel maxvalf(global const float16 *In, global float *Ou) {
 }
 
 void kernel maxval3f(global const float16 *In, global float *Ou) {
-  // get global indices
+  // intermediate step to gettin maximum value of vector filed
   const uint i = get_global_id(0);
-  const uint n = get_global_size(0);
-  const uint n2 = n + n;
-  const uint j0 = i * NXNYNZ / n / 16;
-  const uint j1 = (i + 1) * NXNYNZ / n / 16;
+  const uint n0 = get_global_size(0); //2048 work items
+  const uint j0 = i * NXNYNZ / n0 / 16; // starting point
+  const uint j1 = (i + 1) * NXNYNZ / n0 / 16;
   float m = 0;
   float16 Ix1, Iy1, Iz1, I;
 
   for (uint j = j0; j < j1; ++j) {
     Ix1 = In[j];
-    Iy1 = In[j + NXNYNZ];
-    Iz1 = In[j + NXNYNZ * 2];
+    Iy1 = In[j + NXNYNZ/16];
+    Iz1 = In[j + NXNYNZ/8];
 
     I = fma(Ix1, Ix1, 0);
     I = fma(Iy1, Iy1, I);
