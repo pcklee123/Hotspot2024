@@ -1186,13 +1186,13 @@ float4 z = (float4)(z1, z0, z1, z0);
 Ea[oa].s0123 = dot(diff, xy * z);
 
 float4 zy = (float4)(z1, z0, y1, y0);
-Ea[oa].s4 = dot(diff.s01, zy);
+Ea[oa].s4 = dot(diff.s01, zy.s01);
 
 float4 zx = (float4)(z1, z0, x1, x0);
-Ea[oa].s5 = dot(diff.s02, zx);
+Ea[oa].s5 = dot(diff.s02, zy.s23);
 
 float4 yx = (float4)(y1, y0, x1, x0);
-Ea[oa].s6 = dot(diff.s03, yx);
+Ea[oa].s6 = dot(diff.s03, yx.s23);
 
 Ea[oa].s7 = dot(diff, (float4)(1.0f, -1.0f, 1.0f, -1.0f));
 
