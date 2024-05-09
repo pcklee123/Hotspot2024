@@ -550,12 +550,12 @@ int calcEBV(fields *fi, par *par)
 #ifdef Bon_
     clSetKernelArg(maxval3f_kernel, 0, sizeof(cl_mem), &fi->B_buffer);
     clSetKernelArg(maxval3f_kernel, 1, sizeof(cl_mem), &par->maxval_buffer);
-    res = clEnqueueNDRangeKernel(vkGPU.commandQueue, maxval3f_kernel, 1, NULL, &n_cells_16, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
+    res = clEnqueueNDRangeKernel(vkGPU.commandQueue, maxval3f_kernel, 1, NULL, &n2048, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
     if (res)
         cout << "maxval3f_kernel res: " << res << endl;
     res = clFinish(commandQueue_g());
-    res = clEnqueueReadBuffer(vkGPU.commandQueue, par->maxval_buffer, CL_TRUE, 0, sizeof(float) * n_cells_16, par->maxval_array, 0, NULL, NULL);
-    par->Bmax = sqrtf(maxvalf(par->maxval_array, n_cells_16));
+    res = clEnqueueReadBuffer(vkGPU.commandQueue, par->maxval_buffer, CL_TRUE, 0, sizeof(float) * n2048, par->maxval_array, 0, NULL, NULL);
+    par->Bmax = sqrtf(maxvalf(par->maxval_array, n2048));
 #endif
 
     int E_exceeds = 0,

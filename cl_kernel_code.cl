@@ -87,18 +87,18 @@ void kernel copy3Data(global const float *jc, global float *fft_real) {
 
 void kernel copyData(global const float16 *npt, global float16 *fft_real) {
   // get global indices
- // const float16 zeroes = (float16)(0);
+  // const float16 zeroes = (float16)(0);
   uint idx = get_global_id(0);
   // Compute 3D index for dest array
-  uint i = idx % (N0/16);
-  uint j = (idx / (N0/16)) % N1;
-  uint k = (idx / (N0N1/16)) % N2;
+  uint i = idx % (N0 / 16);
+  uint j = (idx / (N0 / 16)) % N1;
+  uint k = (idx / (N0N1 / 16)) % N2;
 
   // Check if in range of source
-  uint in = (i < NX/16) && (j < NY) && (k < NZ);
+  uint in = (i < NX / 16) && (j < NY) && (k < NZ);
 
   // Compute global index for source array
-  uint source_index = (in) ? k * NXNY/16 + j * NX/16 + i : 0;
+  uint source_index = (in) ? k * NXNY / 16 + j * NX / 16 + i : 0;
   //  Copy element from source to destination array or with zeroes
   fft_real[idx] = (in) ? (float16)npt[source_index] : (float16)(0);
 }
@@ -1106,7 +1106,7 @@ void kernel density(global const float4 *x0, global const float4 *y0,
       int ofy = (int)(fj * 256.0f) - (j << 8);
       int ofz = (int)(fk * 256.0f) - (k << 8);
 
-        // oct 000,001,010,011,100,101,110,111 - 0-7
+      // oct 000,001,010,011,100,101,110,111 - 0-7
       int8 odx = (int8)(0, ofx > 127, ofy > 127 ? NX : 0, 0,
                         ofz > 127 ? NXNY : 0, 0, 0, 0);
       odx.s3 = odx.s1 + odx.s2;
@@ -1126,7 +1126,7 @@ void kernel density(global const float4 *x0, global const float4 *y0,
       f *= (int8)(fy0, fy0, fy1, fy1, fy0, fy0, fy1, fy1);
       f *= (int8)(fz0, fz0, fz0, fz0, fz1, fz1, fz1, fz1);
       // sum of the 8 components = 128 *2^17
-      f = f >> 17; //normalize to 128
+      f = f >> 17; // normalize to 128
       f *= q;
 
       // current x,y,z-component
@@ -1796,6 +1796,45 @@ void kernel maxvalf(global const float16 *In, global float *Ou) {
 }
 
 void kernel maxval3f(global const float16 *In, global float *Ou) {
+  // get global indices
+  const uint i = get_global_id(0);
+  const uint n = get_global_size(0);
+  const uint n2 = n + n;
+  const uint j0 = i * NXNYNZ / n / 16;
+  const uint j1 = (i + 1) * NXNYNZ / n / 16;
+  float m = 0;
+  float16 Ix1, Iy1, Iz1, I;
+
+  for (uint j = j0; j < j1; ++j) {
+    Ix1 = In[j];
+    Iy1 = In[j + NXNYNZ];
+    Iz1 = In[j + NXNYNZ * 2];
+
+    I = fma(Ix1, Ix1, 0);
+    I = fma(Iy1, Iy1, I);
+    I = fma(Iz1, Iz1, I);
+
+    m = m > I.s0 ? m : I.s0;
+    m = m > I.s1 ? m : I.s1;
+    m = m > I.s2 ? m : I.s2;
+    m = m > I.s3 ? m : I.s3;
+    m = m > I.s4 ? m : I.s4;
+    m = m > I.s5 ? m : I.s5;
+    m = m > I.s6 ? m : I.s6;
+    m = m > I.s7 ? m : I.s7;
+    m = m > I.s8 ? m : I.s8;
+    m = m > I.s9 ? m : I.s9;
+    m = m > I.sA ? m : I.sA;
+    m = m > I.sB ? m : I.sB;
+    m = m > I.sC ? m : I.sC;
+    m = m > I.sD ? m : I.sD;
+    m = m > I.sE ? m : I.sE;
+    m = m > I.sF ? m : I.sF;
+  }
+  Ou[i] = m;
+}
+
+void kernel maxval3fo(global const float16 *In, global float *Ou) {
   // get global indices
   uint i = get_global_id(0);
   uint n = get_global_size(0);

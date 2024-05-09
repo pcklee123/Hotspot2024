@@ -37,9 +37,9 @@ int main()
     omp_set_nested(true);
     nthreads = omp_get_max_threads(); // omp_set_num_threads(nthreads);
                                       // allocate memory for particles assume default value of cl_align.
-    static float *maxval_array = (float *)_aligned_malloc(sizeof(float) * n_cells_16, par->cl_align);
+    static float *maxval_array = (float *)_aligned_malloc(sizeof(float) * n2048, par->cl_align);
     par->maxval_array = maxval_array;
-    static int *nt_array = (int *)_aligned_malloc(sizeof(int) * n_part_2048, par->cl_align);
+    static int *nt_array = (int *)_aligned_malloc(sizeof(int) * n2048, par->cl_align);
     par->nt_array = nt_array;
     particles *pt = alloc_particles(par);
     fields *fi = alloc_fields(par);
