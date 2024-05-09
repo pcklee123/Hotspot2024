@@ -1143,60 +1143,43 @@ void kernel trilin_k(
               x0y1z1 = x0 * y1z1;
   const float x1y0z0 = x1 * y0z0, x1y0z1 = x1 * y0z1, x1y1z0 = x1 * y1z0,
               x1y1z1 = x1 * y1z1;
+  float8 c, Eat;
+  for (int co = 0; co < 3; ++co) {
+    c = (float8)(E_flat[odx.s0], E_flat[odx.s1], E_flat[odx.s2], E_flat[odx.s3],
+                 E_flat[odx.s4], E_flat[odx.s5], E_flat[odx.s6],
+                 E_flat[odx.s7]);
+    odx += n_cells;
+    int oa = (offset * 3 + co);
+    /*
 
-  for (int c = 0; c < 3; ++c, co += n_cells) {
-
-    const float c000 = E_flat[co + odx.s0]; // E[c][k][j][i];
-    const float c001 = E_flat[co + odx.s1]; // E[c][k1][j][i];
-    const float c010 = E_flat[co + odx.s2]; // E[c][k][j1][i];
-    const float c011 = E_flat[co + odx.s3]; // E[c][k1][j1][i];
-    const float c100 = E_flat[co + odx.s4]; // E[c][k][j][i1];
-    const float c101 = E_flat[co + odx.s5]; // E[c][k1][j][i1];
-    const float c110 = E_flat[co + odx.s6]; // E[c][k][j1][i1];
-    const float c111 = E_flat[co + odx.s7]; // E[c][k1][j1][i1];
-
-    int oa = (offset * 3 + c);
-
-/*    Ea[oa].s0 =
-        (-c000 * x1y1z1 + c001 * x1y1z0 + c010 * x1y0z1 - c011 * x1y0z0 +
-         c100 * x0y1z1 - c101 * x0y1z0 - c110 * x0y0z1 + c111 * x0y0z0) ;
-    Ea[oa].s1 = ((c000 - c100) * y1z1 + (-c001 + c101) * y1z0 +
-                 (-c010 + c110) * y0z1 + (c011 - c111) * y0z0) ;
-    Ea[oa].s2 = ((c000 - c010) * x1z1 + (-c001 + c011) * x1z0 +
-                 (-c100 + c110) * x0z1 + (c101 - c111) * x0z0) ;
-    Ea[oa].s3 = ((c000 - c001) * x1y1 + (-c010 + c011) * x1y0 +
-                 (-c100 + c101) * x0y1 + (c110 - c111) * x0y0) ;
-    Ea[oa].s4 =
-        ((-c000 + c010 + c100 - c110) * z1 + (c001 - c011 - c101 + c111) * z0) ;
-    Ea[oa].s5 =
-        ((-c000 + c001 + c100 - c101) * y1 + (c010 - c011 - c110 + c111) * y0);
-    Ea[oa].s6 =
-        ((-c000 + c001 + c010 - c011) * x1 + (c100 - c101 - c110 + c111) * x0) ;
-    Ea[oa].s7 = (c000 - c001 - c010 + c011 - c100 + c101 + c110 - c111) ;
-    Ea[oa] *= dV1;
-    */
-
-float4 c0 = (float4)(c000, c001, c010, c011);
-float4 c1 = (float4)(c100, c101, c110, c111);
-float4 diff = c0 - c1;
-
-float4 xy = (float4)(x1y1, x1y0, x0y1, x0y0);
-float4 z = (float4)(z1, z0, z1, z0);
-
-//Ea[oa].s0123 = dot(diff, xy * z);
-Ea[oa].s0 = dot(diff, xy * z);
-float4 zy = (float4)(z1, z0, y1, y0);
-Ea[oa].s4 = dot(diff.s01, zy.s01);
-
-float4 zx = (float4)(z1, z0, x1, x0);
-Ea[oa].s5 = dot(diff.s02, zy.s23);
-
-float4 yx = (float4)(y1, y0, x1, x0);
-Ea[oa].s6 = dot(diff.s03, yx.s23);
-
-Ea[oa].s7 = dot(diff, (float4)(1.0f, -1.0f, -1.0f, 1.0f));
-
-Ea[oa] *= dV1;
+        */
+    // Ea[oa].s0 =
+    //     (-c000 * x1y1z1 + c001 * x1y1z0 + c010 * x1y0z1 - c011 * x1y0z0 +
+    //      c100 * x0y1z1 - c101 * x0y1z0 - c110 * x0y0z1 + c111 * x0y0z0);
+    Eat.s0 = dot((float4)(-c.s0356), (float4)(x1y1z1, x1y0z0, x0y1z0, x0y0z1)) +
+             dot((float4)(c.s1247), (float4)(x1y1z0, x1y0z1, x0y1z1, x0y0z0));
+    // Ea[oa].s1 = ((c000 - c100) * y1z1 + (-c001 + c101) * y1z0 +
+    //              (-c010 + c110) * y0z1 + (c011 - c111) * y0z0);
+    Eat.s1 = dot((c.s0563 - c.s4127), (float4)(y1z1, y1z0, y0z1, y0z0));
+    // Ea[oa].s2 = ((c000 - c010) * x1z1 + (-c001 + c011) * x1z0 +
+    //              (-c100 + c110) * x0z1 + (c101 - c111) * x0z0);
+    Eat.s2 = dot(c.s0365 - c.s2147, (float4)(x1z1, x1z0, x0z1, x0z0));
+    // Ea[oa].s3 = ((c000 - c001) * x1y1 + (-c010 + c011) * x1y0 +
+    //              (-c100 + c101) * x0y1 + (c110 - c111) * x0y0);
+    Eat.s3 = dot(c.s0356 - c.s1247, (float4)(x1y1, x1y0, x0y1, x0y0));
+    // Ea[oa].s4 =
+    //((-c000 + c010 + c100 - c110) * z1 + (c001 - c011 - c101 + c111) *z0);
+    Eat.s4 = dot(-c.s03 + c.s21 + c.s47 - c.s65, (float2)(z1, z0));
+    // Ea[oa].s5 =
+    //((-c000 + c001 + c100 - c101) * y1 + (c010 - c011 - c110 + c111) * y0);
+    Eat.s5 = dot(-c.s03 + c.s12 + c.s47 - c.s56, (float2)(y1, y0));
+    // Ea[oa].s6 =
+    //  ((-c000 + c001 + c010 - c011) * x1 + (c100 - c101 - c110 + c111) * x0);
+    Eat.s6 = dot(-c.s05 + c.s14 + c.s27 - c.s36, (float2)(x1, x0));
+    //Ea[oa].s7 = (c000 - c001 - c010 + c011 - c100 + c101 + c110 - c111);
+    Eat.s7 = c.s0 - c.s1 - c.s2 + c.s3 - c.s4 + c.s5 + c.s6 - c.s7;
+    Eat *= dV1;
+    Ea[oa] = Eat;
   }
 }
 
