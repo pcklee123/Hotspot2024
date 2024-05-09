@@ -160,7 +160,7 @@ void cl_start(fields *fi, particles *pt, par *par)
     cl_bool temp;
     default_device_g.getInfo(CL_DEVICE_HOST_UNIFIED_MEMORY, &temp);
     if (temp == true)
-        info_file << "Using unified memory: " << ((temp == CL_TRUE) ? "TRUE" : "FALSE" ) << " \n";
+        info_file << "Using unified memory: " << ((temp == CL_TRUE) ? "TRUE" : "FALSE") << " \n";
     else
         info_file << "No unified memory: " << temp << " \n";
     fastIO = temp;
@@ -199,6 +199,8 @@ void cl_start(fields *fi, particles *pt, par *par)
     static cl::Buffer buff_q_i(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n4, fastIO ? pt->q[1] : NULL); // q
 
     //  cout << "buffers " << endl;
+    //        pt->pos = reinterpret_cast<float(&)[2][3][2][n_partd]>(*((float *)_aligned_malloc(sizeof(float) * par->n_part[0] * 2 * 3 * 2, par->cl_align)));
+
     static cl::Buffer buff_x0_e(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n4, fastIO ? pt->pos0x[0] : NULL); // x0
     static cl::Buffer buff_y0_e(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n4, fastIO ? pt->pos0y[0] : NULL); // y0
     static cl::Buffer buff_z0_e(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n4, fastIO ? pt->pos0z[0] : NULL); // z0
