@@ -1109,14 +1109,14 @@ void kernel trilin_k(
   int co = 0;
 
   for (int c = 0; c < 3; ++c, co += n_cells) {
-    unsigned int k = (offset / (NX * NY)) % NZ;
+    unsigned int k = (offset / (NXNY)) % NZ;
     unsigned int j = (offset / NX) % NY;
     unsigned int i = offset % NX;
     const int odx000 = 0;
     const int odx001 = i < NX ? 1 : 0;  // iskip
     const int odx010 = j < NY ? NX : 0; // jskip
     const int odx011 = odx001 + odx010;
-    const int odx100 = k < NZ ? NY * NX : 0;
+    const int odx100 = k < NZ ? NXNY : 0;
     const int odx101 = odx100 + odx001;
     const int odx110 = odx100 + odx010;
     const int odx111 = odx100 + odx011;
