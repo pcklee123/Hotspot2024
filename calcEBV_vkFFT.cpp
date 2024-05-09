@@ -475,7 +475,7 @@ int calcEBV(fields *fi, par *par)
         res = clSetKernelArg(copy3Data_kernel, 1, sizeof(cl_mem), &fi->fft_real_buffer);
         if (res)
             cout << "clSetKernelArg copy3Data_kernel 1 res: " << res << endl;
-        res = clEnqueueNDRangeKernel(vkGPU.commandQueue, copy3Data_kernel, 1, NULL, &n_cells8, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
+        res = clEnqueueNDRangeKernel(vkGPU.commandQueue, copy3Data_kernel, 1, NULL, &n_cells_2, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
         if (res)
             cout << "copy3Data_kernel B  res: " << res << endl;
         res = clFinish(vkGPU.commandQueue);
