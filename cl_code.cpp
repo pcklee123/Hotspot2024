@@ -7,7 +7,7 @@ cl::Device default_device_g;
 cl::Program program_g;
 cl::CommandQueue commandQueue_g;
 int device_id_g;
-bool fastIO;
+cl_bool fastIO;
 
 stringstream cl_build_options;
 void add_build_option(string name, string param)
@@ -160,11 +160,11 @@ void cl_start(fields *fi, particles *pt, par *par)
     cl_bool temp;
     default_device_g.getInfo(CL_DEVICE_HOST_UNIFIED_MEMORY, &temp);
     if (temp == true)
-        info_file << "Using unified memory: " << temp << " \n";
+        info_file << "Using unified memory: " << ((temp == CL_TRUE) ? "TRUE" : "FALSE" ) << " \n";
     else
         info_file << "No unified memory: " << temp << " \n";
     fastIO = temp;
-    fastIO = false;
+    //    fastIO = CL_FALSE;
 
     // cout << "allocating buffers\n";
     //  create buffers on the device
