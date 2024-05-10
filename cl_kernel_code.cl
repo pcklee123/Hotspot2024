@@ -80,21 +80,20 @@ void kernel jcxPrecalc(global const float2 *r3, global float2 *jc) {
   float2 t1, t2, t3;
   uint x = get_global_id(0), y = x + NC4, z = y + NC4, x1 = z + NC4,
        y1 = x1 + NC4, z1 = y1 + NC4;
-  t1 = (float2)(jc[y].s0 * r3[z1].s0 - jc[y].s1 * r3[z1].s1,
-                jc[y].s0 * r3[z1].s1 + jc[y].s1 * r3[z1].s0) -
-       (float2)(jc[z].s0 * r3[y1].s0 - jc[z].s1 * r3[y1].s1,
-                jc[z].s0 * r3[y1].s1 + jc[z].s1 * r3[y1].s0);
-  t2 = (float2)(jc[z].s0 * r3[x1].s0 - jc[z].s1 * r3[x1].s1,
-                jc[z].s0 * r3[x1].s1 + jc[z].s1 * r3[x1].s0) -
-       (float2)(jc[x].s0 * r3[z1].s0 - jc[x].s1 * r3[z1].s1,
-                jc[x].s0 * r3[z1].s1 + jc[x].s1 * r3[z1].s0);
-  t3 = (float2)(jc[x].s0 * r3[y1].s0 - jc[x].s1 * r3[y1].s1,
-                jc[x].s0 * r3[y1].s1 + jc[x].s1 * r3[y1].s0) -
-       (float2)(jc[y].s0 * r3[x1].s0 - jc[y].s1 * r3[x1].s1,
-                jc[y].s0 * r3[x1].s1 + jc[y].s1 * r3[x1].s0);
-  jc[x] = (float2)t1;
-  jc[y] = (float2)t2;
-  jc[z] = (float2)t3;
+  float2 jcx = jc[x], jcy = jc[y], jcz = jc[z], r3x = r3[x1], r3y = r3[y1],
+         r3z = r3[z1];
+  jc[x] = (float2)(jcy.s0 * r3z.s0 - jcy.s1 * r3z.s1,
+                   jcy.s0 * r3z.s1 + jcy.s1 * r3z.s0) -
+          (float2)(jcz.s0 * r3y.s0 - jcz.s1 * r3y.s1,
+                   jcz.s0 * r3y.s1 + jcz.s1 * r3y.s0);
+  jc[y] = (float2)(jcz.s0 * r3x.s0 - jcz.s1 * r3x.s1,
+                   jcz.s0 * r3x.s1 + jcz.s1 * r3x.s0) -
+          (float2)(jcx.s0 * r3z.s0 - jcx.s1 * r3z.s1,
+                   jcx.s0 * r3z.s1 + jcx.s1 * r3z.s0);
+  jc[z] = (float2)(jcx.s0 * r3y.s0 - jcx.s1 * r3y.s1,
+                   jcx.s0 * r3y.s1 + jcx.s1 * r3y.s0) -
+          (float2)(jcy.s0 * r3x.s0 - jcy.s1 * r3x.s1,
+                   jcy.s0 * r3x.s1 + jcy.s1 * r3x.s0);
 }
 
 void kernel NxPrecalcr2(global const float2 *r2, global const float2 *r3,
@@ -407,13 +406,13 @@ void kernel tnp_k_implicitz(global const float8 *a1,
                             global int *q) {
 
   uint id = get_global_id(0);
-  uint prev_idx = UINT_MAX;
+  // uint prev_idx = UINT_MAX;
   float xprev = x0[id], yprev = y0[id], zprev = z0[id], x = x1[id], y = y1[id],
         z = z1[id];
-  float8 temp, pos;
+  float4 posl, posh;
   float r1 = 1.0f;
   float r2 = r1 * r1;
-  float8 store0, store1, store2, store3, store4, store5;
+  __private float8 store0, store1, store2, store3, store4, store5;
   const float Bcoeff = Bcoef / r1;
   const float Ecoeff = Ecoef / r1;
   const float DX = DXo * a0_f, DY = DYo * a0_f, DZ = DZo * a0_f;
@@ -432,42 +431,31 @@ void kernel tnp_k_implicitz(global const float8 *a1,
         ((uint)((z - ZLOW) / DZ) * NZ + (uint)((y - YLOW) / DY)) * NY +
         (uint)((x - XLOW) / DX); // round down the cells - this is intentional
     idx *= 3;
-    pos = (float8)(1.f, x, y, z, xy, xz, yz, xyz);
-    // Is there no better way to do this? Why does float8 not have dot()?
-    if (prev_idx != idx) {
-      store0 = a1[idx]; // Ex
-      store1 = a1[idx + 1];
-      store2 = a1[idx + 2];
-      store3 = a2[idx]; // Bx
-      store4 = a2[idx + 1];
-      store5 = a2[idx + 2];
-      prev_idx = idx;
-    }
-    temp = store0 * pos;
-    float xE = temp.s0 + temp.s1 + temp.s2 + temp.s3 + temp.s4 + temp.s5 +
-               temp.s6 + temp.s7;
-    temp = store1 * pos;
-    float yE = temp.s0 + temp.s1 + temp.s2 + temp.s3 + temp.s4 + temp.s5 +
-               temp.s6 + temp.s7;
-    temp = store2 * pos;
-    float zE = temp.s0 + temp.s1 + temp.s2 + temp.s3 + temp.s4 + temp.s5 +
-               temp.s6 + temp.s7;
-    temp = store3 * pos;
-    float xP = temp.s0 + temp.s1 + temp.s2 + temp.s3 + temp.s4 + temp.s5 +
-               temp.s6 + temp.s7;
-    temp = store4 * pos;
-    float yP = temp.s0 + temp.s1 + temp.s2 + temp.s3 + temp.s4 + temp.s5 +
-               temp.s6 + temp.s7;
-    temp = store5 * pos;
-    float zP = temp.s0 + temp.s1 + temp.s2 + temp.s3 + temp.s4 + temp.s5 +
-               temp.s6 + temp.s7;
 
-    xP *= Bcoeff;
-    yP *= Bcoeff;
-    zP *= Bcoeff;
+    // Is there no better way to do this? Why does float8 not have dot()?
+    // if (prev_idx != idx) {
+    store0 = a1[idx]; // Ex
+    store1 = a1[idx + 1];
+    store2 = a1[idx + 2];
+    store3 = a2[idx]; // Bx
+    store4 = a2[idx + 1];
+    store5 = a2[idx + 2];
+    // prev_idx = idx;
+    // }
+    posl = (float4)(1.f, x, y, z);
+    posh = (float4)(xy, xz, yz, xyz);
+    float xE = dot(store0.s0123, posl) + dot(store0.s4567, posh);
     xE *= Ecoeff;
+    float yE = dot(store1.s0123, posl) + dot(store1.s4567, posh);
     yE *= Ecoeff;
+    float zE = dot(store2.s0123, posl) + dot(store2.s4567, posh);
     zE *= Ecoeff;
+    float xP = dot(store3.s0123, posl) + dot(store3.s4567, posh);
+    xP *= Bcoeff;
+    float yP = dot(store4.s0123, posl) + dot(store4.s4567, posh);
+    yP *= Bcoeff;
+    float zP = dot(store5.s0123, posl) + dot(store5.s4567, posh);
+    zP *= Bcoeff;
 
     float xyP = xP * yP, yzP = yP * zP, xzP = xP * zP;
     float xxP = xP * xP, yyP = yP * yP, zzP = zP * zP;
@@ -785,7 +773,6 @@ void kernel density(global const float4 *x0, global const float4 *y0,
   const float invDX = 1.0f / DX, invDY = 1.0f / DY, invDZ = 1.0f / DZ;
   const float XLOW_DX = -XLOWo * invDX * a0_f, YLOW_DY = -YLOWo * invDY * a0_f,
               ZLOW_DZ = -ZLOWo * invDZ * a0_f;
-  // = (1, 0, 0, 0, 0, 0, 0, 0);
   const int8 ones = (int8)(1, 1, 1, 1, 1, 1, 1, 1);
   const uint size = get_global_size(0);
   const uint ss = 4;
@@ -1073,8 +1060,8 @@ void kernel df(global float *np, global int *npi, global float *currentj,
               dz = DZo * a0_f * 1.1920929e-7f / dt;
   const float dn = 0.0078125f;
   uint idx00 = get_global_id(0);
-  uint idx01 = idx00 + NZ * NY * NX;
-  uint idx02 = idx01 + NZ * NY * NX;
+  uint idx01 = idx00 + NXNYNZ;
+  uint idx02 = idx01 + NXNYNZ;
   np[idx00] = dn * npi[idx00];
   currentj[idx00] = dx * cji[idx00];
   currentj[idx01] = dy * cji[idx01];
@@ -1089,20 +1076,11 @@ void kernel trilin_k(
     global float8 *Ea, // E, B coeff Ea[k][j][i][3][8] according to tnp_k
     global const float *E_flat, // E or B 3 components per cell E[3][k][j][i]
     float a0_f) {
-  // return;
   const float DX = DXo * a0_f, DY = DYo * a0_f, DZ = DZo * a0_f;
   const float XLOW = XLOWo * a0_f, YLOW = YLOWo * a0_f, ZLOW = ZLOWo * a0_f;
-  const float XHIGH = XHIGHo * a0_f, YHIGH = YHIGHo * a0_f,
-              ZHIGH = ZHIGHo * a0_f;
 
   const float dV = DX * DY * DZ;
   const float dV1 = 1.0f / dV;
-  const float dx2 = DX * DX;
-  const float dy2 = DY * DY;
-  const float dz2 = DZ * DZ;
-  const float dxdy = DX * DY;
-  const float dydz = DY * DZ;
-  const float dzdx = DZ * DX;
 
   const unsigned int n_cells = NX * NY * NZ;
   uint offset = get_global_id(0);
@@ -1110,72 +1088,61 @@ void kernel trilin_k(
   uint k = (offset / (NXNY)) % NZ;
   uint j = (offset / NX) % NY;
   uint i = offset % NX;
-  uint8 odx;
-  odx.s0 = 0;
-  odx.s1 = i < NX ? 1 : 0;  // iskip
-  odx.s2 = j < NY ? NX : 0; // jskip
+  uint8 odx = {0, i < NX ? 1 : 0, j < NY ? NX : 0, 0, k < NZ ? NXNY : 0, 0, 0,
+               0};
   odx.s3 = odx.s1 + odx.s2;
-  odx.s4 = k < NZ ? NXNY : 0;
   odx.s5 = odx.s4 + odx.s1;
   odx.s6 = odx.s4 + odx.s2;
   odx.s7 = odx.s4 + odx.s3;
   odx += offset;
-  //  const int odx000 = 0;
-  //  const int odx001 = i < NX ? 1 : 0;  // iskip
-  // const int odx010 = j < NY ? NX : 0; // jskip
-  // const int odx011 = odx001 + odx010;
-  // const int odx100 = k < NZ ? NXNY : 0;
-  // const int odx101 = odx100 + odx001;
-  // const int odx110 = odx100 + odx010;
-  // const int odx111 = odx100 + odx011;
+
   const float z0 = k * DZ + ZLOW;
   const float z1 = z0 + DZ;
+  const float2 z = (float2)(z1, z0);
   const float y0 = j * DY + YLOW;
   const float y1 = y0 + DY;
+  const float2 y = (float2)(y1, y0);
   const float x0 = i * DX + XLOW;
   const float x1 = x0 + DX;
+  const float2 x = (float2)(x1, x0);
+  const float4 xs1 = (float4)(y1 * z, y0 * z);
+  const float4 xs2 = (float4)(x1 * z, x0 * z);
+  const float4 xs3 = (float4)(x1 * y, x0 * y);
+  const float4 xs0a = (float4)(xs3 * (float4)(z, z.s10));
+  const float4 xs0b = (float4)(xs3 * (float4)(z.s10, z));
 
-  const float x0y0 = x0 * y0, x0y1 = x0 * y1, x1y0 = x1 * y0, x1y1 = x1 * y1;
-  const float y0z0 = y0 * z0, y0z1 = y0 * z1, y1z0 = y1 * z0, y1z1 = y1 * z1;
-  const float x0z0 = x0 * z0, x0z1 = x0 * z1, x1z0 = x1 * z0, x1z1 = x1 * z1;
-
-  const float x0y0z0 = x0 * y0z0, x0y0z1 = x0 * y0z1, x0y1z0 = x0 * y1z0,
-              x0y1z1 = x0 * y1z1;
-  const float x1y0z0 = x1 * y0z0, x1y0z1 = x1 * y0z1, x1y1z0 = x1 * y1z0,
-              x1y1z1 = x1 * y1z1;
-  float8 c, Eat;
+  __private float8 c, Eat;
   for (int co = 0; co < 3; ++co) {
     c = (float8)(E_flat[odx.s0], E_flat[odx.s1], E_flat[odx.s2], E_flat[odx.s3],
                  E_flat[odx.s4], E_flat[odx.s5], E_flat[odx.s6],
                  E_flat[odx.s7]);
     odx += n_cells;
-    int oa = (offset * 3 + co);
     // Ea[oa].s0 =
     //     (-c000 * x1y1z1 + c001 * x1y1z0 + c010 * x1y0z1 - c011 * x1y0z0 +
     //      c100 * x0y1z1 - c101 * x0y1z0 - c110 * x0y0z1 + c111 * x0y0z0);
-    Eat.s0 = dot((float4)(-c.s0356), (float4)(x1y1z1, x1y0z0, x0y1z0, x0y0z1)) +
-             dot((float4)(c.s1247), (float4)(x1y1z0, x1y0z1, x0y1z1, x0y0z0));
+    Eat.s0 = dot(-c.s0356, xs0a) + dot(c.s1247, xs0b);
     // Ea[oa].s1 = ((c000 - c100) * y1z1 + (-c001 + c101) * y1z0 +
     //              (-c010 + c110) * y0z1 + (c011 - c111) * y0z0);
-    Eat.s1 = dot((c.s0563 - c.s4127), (float4)(y1z1, y1z0, y0z1, y0z0));
+    Eat.s1 = dot((c.s0563 - c.s4127), xs1);
     // Ea[oa].s2 = ((c000 - c010) * x1z1 + (-c001 + c011) * x1z0 +
     //              (-c100 + c110) * x0z1 + (c101 - c111) * x0z0);
-    Eat.s2 = dot(c.s0365 - c.s2147, (float4)(x1z1, x1z0, x0z1, x0z0));
+    Eat.s2 = dot(c.s0365 - c.s2147, xs2);
     // Ea[oa].s3 = ((c000 - c001) * x1y1 + (-c010 + c011) * x1y0 +
     //              (-c100 + c101) * x0y1 + (c110 - c111) * x0y0);
-    Eat.s3 = dot(c.s0356 - c.s1247, (float4)(x1y1, x1y0, x0y1, x0y0));
+    Eat.s3 = dot(c.s0356 - c.s1247, xs3);
     // Ea[oa].s4 =
     //((-c000 + c010 + c100 - c110) * z1 + (c001 - c011 - c101 + c111) *z0);
-    Eat.s4 = dot(-c.s03 + c.s21 + c.s47 - c.s65, (float2)(z1, z0));
+    Eat.s4 = dot(-c.s03 + c.s21 + c.s47 - c.s65, z);
     // Ea[oa].s5 =
     //((-c000 + c001 + c100 - c101) * y1 + (c010 - c011 - c110 + c111) * y0);
-    Eat.s5 = dot(-c.s03 + c.s12 + c.s47 - c.s56, (float2)(y1, y0));
+    Eat.s5 = dot(-c.s03 + c.s12 + c.s47 - c.s56, y);
     // Ea[oa].s6 =
     //  ((-c000 + c001 + c010 - c011) * x1 + (c100 - c101 - c110 + c111) * x0);
-    Eat.s6 = dot(-c.s05 + c.s14 + c.s27 - c.s36, (float2)(x1, x0));
-    //Ea[oa].s7 = (c000 - c001 - c010 + c011 - c100 + c101 + c110 - c111);
+    Eat.s6 = dot(-c.s05 + c.s14 + c.s27 - c.s36, x);
+    // Ea[oa].s7 = (c000 - c001 - c010 + c011 - c100 + c101 + c110 - c111);
     Eat.s7 = c.s0 - c.s1 - c.s2 + c.s3 - c.s4 + c.s5 + c.s6 - c.s7;
     Eat *= dV1;
+    uint oa = (offset * 3 + co);
     Ea[oa] = Eat;
   }
 }
@@ -1208,17 +1175,6 @@ void kernel nsumi(global const int16 *npi, global int *n0) {
   const uint j0 = i * n2;
   const uint j1 = j0 + n2;
   int16 sum = 0;
-  // Use local memory to reduce global memory access
-  //  int16 local_npi[16];
-
-  // Load data into local memory
-  // for (uint j = 0; j < n2; ++j) {
-  //  local_npi[j] = npi[j0 + j];
-  // }
-  // Ensure all work-items have finished loading data into local memory
-  // barrier(CLK_LOCAL_MEM_FENCE);
-
-  // Perform computation using data in local memory
   for (uint j = j0; j < j1; ++j) {
     sum += npi[j];
   }
