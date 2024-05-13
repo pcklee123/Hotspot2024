@@ -473,7 +473,7 @@ int calcEBV(fields *fi, par *par)
 #endif
 #ifdef dE_dton_
     // estimate dE/dt and add epsilon0 dE/dt to total current
-    float dedtcoeff =  epsilon0 / (par->dt[0] * par->ncalcp[0]);
+    float dedtcoeff = epsilon0 / (par->dt[0] * par->ncalcp[0]);
     clSetKernelArg(jd_kernel, 0, sizeof(cl_mem), &fi->E0_buffer); // real[0-2] is E field
     clSetKernelArg(jd_kernel, 1, sizeof(cl_mem), &fi->E_buffer);
     clSetKernelArg(jd_kernel, 2, sizeof(cl_mem), &(fi->buff_jc[0]()));
@@ -516,8 +516,11 @@ int calcEBV(fields *fi, par *par)
         resFFT = VkFFTAppend(&appbac3, 1, &launchParams); // 1 = inverse FFT// cout << "execute plan bac E resFFT = " << resFFT << endl;
         if (resFFT)
             cout << "appbac3 B resFFT: " << resFFT << endl;
-        res = clFinish(vkGPU.commandQueue);                                           // cout << "execute plan bac E ,clFinish res = " << res << endl;
-                                                                                      // resFFT = transferDataToCPU(&vkGPU, &fft_real[0][0], &fi->fft_real_buffer, bufferSize_R3);
+        res = clFinish(vkGPU.commandQueue); // cout << "execute plan bac E ,clFinish res = " << res << endl;
+// resFFT = transferDataToCPU(&vkGPU, &fft_real[0][0], &fi->fft_real_buffer, bufferSize_R3);
+#ifdef dB_dton_
+        clEnqueueCopyBuffer(vkGPU.commandQueue, fi->B_buffer, fi->B0_buffer, 0, 0, n_cellsf * 3, 0, NULL, NULL);
+#endif
         clSetKernelArg(sumFftFieldB_kernel, 0, sizeof(cl_mem), &fi->fft_real_buffer); // real[0-2] is E field
         clSetKernelArg(sumFftFieldB_kernel, 1, sizeof(cl_mem), &fi->Be_buffer);
         clSetKernelArg(sumFftFieldB_kernel, 2, sizeof(cl_mem), &fi->B_buffer);
