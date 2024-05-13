@@ -90,12 +90,12 @@ void log_entry(int i_time, int ntime, int total_ncalc[2], double t, par *par)
     logger.write(t * 1e12);   // in ps
     logger.write(par->nt[0]); // number of super particles
     logger.write(par->nt[1]);
-    logger.write(-par->KEtot[0] / ((float)par->nt[0] * r_part_spart));//eV per particle
+    logger.write(-par->KEtot[0] / ((float)par->nt[0] * r_part_spart)); // eV per particle
     logger.write(par->KEtot[1] / ((float)par->nt[1] * r_part_spart));
     logger.write(par->UE / ntall);
     logger.write(par->UB / ntall);
     logger.write((par->KEtot[0] + par->KEtot[1] + par->UB + par->UE * 0.5) / ntall);
-    logger.write(par->Emax*1e-6); // MV/m
+    logger.write(par->Emax * 1e-6); // MV/m
     logger.write(par->Bmax * 1000); // mT
     logger.write(par->Ecoef[0] * 1e21);
     logger.write(par->Bcoef[0] * 1e9);
@@ -183,6 +183,9 @@ fields *alloc_fields(par *par)
     f->B = static_cast<float(*)[n_space_divz][n_space_divy][n_space_divx]>(_aligned_malloc(sizeof(float) * n_cells * 3, par->cl_align));                   // selfgenerated E field
     f->Be = static_cast<float(*)[n_space_divz][n_space_divy][n_space_divx]>(_aligned_malloc(sizeof(float) * n_cells * 3, par->cl_align));                  // External E field
     f->Ba = static_cast<float(*)[n_space_divz][n_space_divy][n_space_divx][ncoeff]>(_aligned_malloc(sizeof(float) * n_cells * 3 * ncoeff, par->cl_align)); // coefficients for Trilinear interpolation Magnetic field
+
+    f->E0 = static_cast<float(*)[n_space_divz][n_space_divy][n_space_divx]>(_aligned_malloc(sizeof(float) * n_cells * 3, par->cl_align)); // E0 to calculate dE/dt
+    f->B0 = static_cast<float(*)[n_space_divz][n_space_divy][n_space_divx]>(_aligned_malloc(sizeof(float) * n_cells * 3, par->cl_align)); // dB/dt
 
     f->V = static_cast<float(*)[n_space_divy][n_space_divx]>(_aligned_malloc(sizeof(float) * n_cells, par->cl_align));
 

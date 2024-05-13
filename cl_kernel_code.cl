@@ -1166,6 +1166,12 @@ void kernel dtotal(global const float16 *ne, global const float16 *ni,
   jt[n2 + i] = je[n2 + i] + ji[n2 + i];
 }
 
+void kernel jd(global const float16 *E0, global const float16 *E,
+               global float16 *jc, const float e0dt) {
+  const uint i = get_global_id(0); // Get index of current element processed
+  jc[i] += (E[i] - E0[i]) * e0dt;
+}
+
 void kernel nsumi(global const int16 *npi, global int *n0) {
   const uint n1 = get_global_size(0); // n_part_2048=2048 work items
   const uint n2 = NPART / (2048 * 16);
