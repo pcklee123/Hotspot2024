@@ -204,9 +204,10 @@ int main()
                           // float max_jc = maxvalf((reinterpret_cast<float *>(fi->jc)), n_cells * 3);
                           //  cout << "max current density  = " << max_jc << endl;
         // getchar();
-        for (int p = 0; p < 2; ++p)
-            total_ncalc[p] += par->nc * par->ncalcp[p];
-        t += par->dt[0] * par->ncalcp[0] * par->nc;
+        //for (int p = 0; p < 2; ++p)
+        //    total_ncalc[p] += par->nc * par->ncalcp[p];
+        //t += par->dt[0] * par->ncalcp[0] * par->nc;
+        t+=par->ndeltat;
         cout << i_time << "." << par->nc << " t = " << t << "(compute_time = " << timer.elapsed() << "s) : ";
 
         timer.mark();

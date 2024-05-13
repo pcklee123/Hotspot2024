@@ -63,7 +63,7 @@ void tnp(fields *fi, particles *pt, par *par)
    {
       // commandQueue_g.enqueueUnmapMemObject(pt->buff_x0_e[0], pt->pos0x[0]);
    }
-
+   par->ndeltat = 0;
    for (uint32_t ntime = 0; ntime < par->nc; ntime++)
    {
       // timer.mark();
@@ -141,6 +141,7 @@ void tnp(fields *fi, particles *pt, par *par)
       generateField(fi, par); // find E field must work out every i,j,k depends on charge in every other cell
       */
       par->cdt = calcEBV(fi, par);
+      par->ndeltat += par->dt[0] * par->ncalcp[0];
       changedt(pt, par->cdt, par);
       // cout << changedt(pt, par->cdt, par) << ", ";
       // cout << "change dt: " << par->cdt << ",  dt= " << par->dt[0] << endl;

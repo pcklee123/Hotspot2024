@@ -178,6 +178,8 @@ void cl_start(fields *fi, particles *pt, par *par)
     static cl::Buffer buff_Ba(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cells3x8f, fastIO ? fi->Ba : NULL, &cl_err);
     static cl::Buffer buff_E(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cellsf * 3, fastIO ? fi->E : NULL, &cl_err);
     static cl::Buffer buff_B(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cellsf * 3, fastIO ? fi->B : NULL, &cl_err);
+    static cl::Buffer buff_E0(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cellsf * 3, fastIO ? fi->E0 : NULL, &cl_err);
+    static cl::Buffer buff_B0(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cellsf * 3, fastIO ? fi->B0 : NULL, &cl_err);
     static cl::Buffer buff_Ee(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cellsf * 3, fastIO ? fi->Ee : NULL, &cl_err);
     static cl::Buffer buff_Be(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cellsf * 3, fastIO ? fi->Be : NULL, &cl_err);
     static cl::Buffer buff_npt(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cellsf, fastIO ? fi->npt : NULL, &cl_err); // cannot be static?
@@ -240,6 +242,8 @@ void cl_start(fields *fi, particles *pt, par *par)
     fi->buff_Ba = &buff_Ba;
     fi->buff_E = &buff_E;
     fi->buff_B = &buff_B;
+    fi->buff_E0 = &buff_E0;
+    fi->buff_B0 = &buff_B0;
     fi->buff_Ee = &buff_Ee;
     fi->buff_Be = &buff_Be;
     fi->buff_npt = &buff_npt;
@@ -274,9 +278,12 @@ void cl_start(fields *fi, particles *pt, par *par)
     // because some code is in C not C++
     fi->E_buffer = buff_E();
     fi->B_buffer = buff_B();
+    fi->E0_buffer = buff_E0();
+    fi->B0_buffer = buff_B0();
     fi->Ee_buffer = buff_Ee();
     fi->Be_buffer = buff_Be();
     fi->npt_buffer = buff_npt();
     fi->jc_buffer = buff_jc();
     fi->V_buffer = buff_V();
+    clEnqueueFillBuffer(commandQueue_g(), fi->E_buffer, 0, n_cellsf * 3, 0, 0, 0, 0, 0);
 }

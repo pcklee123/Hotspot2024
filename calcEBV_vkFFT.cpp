@@ -58,6 +58,7 @@ int calcEBV(fields *fi, par *par)
     static cl_kernel copy3Data_kernel;
 
     static cl_kernel jcxPrecalc_kernel;
+    static cl_kernel jd_kernel;
     static cl_kernel sumFftField_kernel;
     static cl_kernel sumFftFieldB_kernel;
     static cl_kernel sumFftSField_kernel;
@@ -104,6 +105,7 @@ int calcEBV(fields *fi, par *par)
     // Create the OpenCL kernel for copying "density" or "current density" to the fft buffer
     copyData_kernel = clCreateKernel(program_g(), "copyData", NULL);
     copy3Data_kernel = clCreateKernel(program_g(), "copy3Data", NULL);
+    jd_kernel = clCreateKernel(program_g(), "jd", NULL);
 #ifdef Uon_
     static cl_kernel NxPrecalcr2_kernel = clCreateKernel(program_g(), "NxPrecalcr2", NULL);
 #else
@@ -449,9 +451,13 @@ int calcEBV(fields *fi, par *par)
         res = clFinish(vkGPU.commandQueue); // cout << "execute plan bac E ,clFinish res = " << res << endl;
 
 #endif
+#ifdef dE_dton_
+        clEnqueueCopyBuffer(vkGPU.commandQueue, fi->E_buffer, fi->E0_buffer, 0, 0, n_cellsf * 3, 0, NULL, NULL);
+#endif
         clSetKernelArg(sumFftField_kernel, 0, sizeof(cl_mem), &fi->fft_real_buffer); // real[0-2] is E field
         clSetKernelArg(sumFftField_kernel, 1, sizeof(cl_mem), &fi->Ee_buffer);
         clSetKernelArg(sumFftField_kernel, 2, sizeof(cl_mem), &fi->E_buffer);
+
         res = clEnqueueNDRangeKernel(vkGPU.commandQueue, sumFftField_kernel, 1, NULL, &n_cells, NULL, 0, NULL, NULL); //  kernel is different for octant, ... selected in the beginning
         if (res)
             cout << "sumFftField_kernel E  res: " << res << endl;
@@ -464,6 +470,18 @@ int calcEBV(fields *fi, par *par)
         res = clEnqueueNDRangeKernel(vkGPU.commandQueue, copyextField_kernel, 1, NULL, &nc3_16, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
         res = clFinish(vkGPU.commandQueue);
     }
+#endif
+#ifdef dE_dton_
+    // estimate dE/dt and add epsilon0 dE/dt to total current
+    float dedtcoeff =  epsilon0 / (par->dt[0] * par->ncalcp[0]);
+    clSetKernelArg(jd_kernel, 0, sizeof(cl_mem), &fi->E0_buffer); // real[0-2] is E field
+    clSetKernelArg(jd_kernel, 1, sizeof(cl_mem), &fi->E_buffer);
+    clSetKernelArg(jd_kernel, 2, sizeof(cl_mem), &(fi->buff_jc[0]()));
+    clSetKernelArg(jd_kernel, 3, sizeof(float), &dedtcoeff);
+    res = clEnqueueNDRangeKernel(vkGPU.commandQueue, jd_kernel, 1, NULL, &nc3_16, NULL, 0, NULL, NULL); //
+    if (res)
+        cout << "jd_kernel res: " << res << endl;
+    res = clFinish(vkGPU.commandQueue);
 #endif
     //                  cout << "E done\n";
 
