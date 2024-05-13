@@ -49,7 +49,7 @@ constexpr int n_output_part = (n_partd > 9369) ? 9369 : n_partd; // maximum numb
 // const int nprtd=floor(n_partd/n_output_part);
 
 constexpr int ndatapoints = 10; // total number of time steps to print
-constexpr int nc1 = 10;          // f1 * 1;      // number of times to calculate E and B between printouts total number of electron time steps calculated = ndatapoints *nc1*md_me
+constexpr int nc1 = 1;          // f1 * 1;      // number of times to calculate E and B between printouts total number of electron time steps calculated = ndatapoints *nc1*md_me
 constexpr int md_me = 60;       // ratio of electron speed/deuteron speed at the same KE. Used to calculate electron motion more often than deuteron motion
 
 #define Hist_n 512
@@ -62,7 +62,7 @@ constexpr int md_me = 60;       // ratio of electron speed/deuteron speed at the
 // #define UE_field // whether to calculate the total energy due to electric energy density
 // #define UE_cell // whether to calculate the EPE due to particles within a cell
 #define Bon_     // whether to calculate the internally generated magnetic (B) field
-#define dE_dton_ // whether to calculate the displacement current
+//#define dE_dton_ // whether to calculate the displacement current
 // #define UB_field // whether to calculate the total energy due to magnetic energy density
 #define EFon_ // whether to apply electric force
 #define BFon_ // whether to apply magnetic force
