@@ -1171,13 +1171,13 @@ void kernel jd(global float16 *E0, global const float16 *E, global float16 *jc,
   const uint i = get_global_id(0); // Get index of current element processed
   float16 Edot = (E[i] - E0[i]) * e0dt;
   jc[i] += Edot;
- // E0[i] = E[i];
+  // E0[i] = E[i];
 }
 
 void kernel Bdot(global float16 *B0, global const float16 *B, const float udt) {
-  const uint i = get_global_id(0); // Get index of current element processed
-  float16 Bdot = (B[i] - B0[i]) * udt;//-1/u0 * dB/dt
-  B0[i] = Bdot; 
+  const uint i = get_global_id(0);     // Get index of current element processed
+  float16 Bdot = (B[i] - B0[i]) * udt; //-1/u0 * dB/dt
+  B0[i] = Bdot;
 }
 
 void kernel nsumi(global const int16 *npi, global int *n0) {
@@ -1259,4 +1259,26 @@ void kernel recalcposchangedt(global float16 *x0, global float16 *y0,
   x0[n] = fma(xprev - x, inc, x);
   y0[n] = fma(yprev - y, inc, y);
   z0[n] = fma(zprev - z, inc, z);
+}
+
+void kernel hist(global float16 *x0, global float16 *y0,
+                 global float16 *z0, // prev pos
+                 global const float16 *x1, global const float16 *y1,
+                 global const float16 *z1, // current pos
+                 global ulong *KEhist, float const coeff,
+                 float const hist_n) // increment
+{
+  int n = get_global_id(0);
+  float16 x = x1[n], y = y1[n], z = z1[n], xprev = x0[n], yprev = y0[n],
+          zprev = z0[n];
+  float16 vx = x - xprev, vy = y - yprev, vz = z - zprev;
+  float16 KE = fma(vx, vx, 0);
+  KE = fma(vy, vy, KE);
+  KE = fma(vz, vz, KE);
+  uint16 index = convert_uint16(KE * coeff);
+  uint16 hist_n_vector = (uint16)(hist_n);
+  index = index > hist_n ? hist_n : index;
+  for (int i = 0; i < 16; i++) {
+    atomic_add(&KEhist[index[i]], 1);
+  }
 }

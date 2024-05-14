@@ -33,7 +33,7 @@ void save_hist(int i_time, double t, particles *pt, par *par)
       KEhist[p][index]++;
     }
     par->KEtot[p] = KE * 0.5 * mp[p] / (e_charge_mass * par->dt[p] * par->dt[p]) * r_part_spart; // as if these particles were actually samples of the greater thing
-   // par->nt[p] = nt;// * r_part_spart;
+                                                                                                 // par->nt[p] = nt;// * r_part_spart;
     //   cout << "p = " << p << ", KE = " << par->KEtot[p] << ", npart[p]" << par->n_part[p] << endl;
   }
 
@@ -83,13 +83,9 @@ void save_hist(int i_time, double t, particles *pt, par *par)
   writer->Write();
 }
 
-// void save_vti_c(string filename, int i,
-//               int ncomponents, double t,
-//             float (*data1)[n_space_divz][n_space_divy][n_space_divz], par *par){
 void save_vti_c(string filename, int i,
                 int ncomponents, double t,
                 float (*data1)[n_space_divz][n_space_divy][n_space_divx], par *par)
-//(const std::string& filename, int nx, int ny, int nz, double spacing, double origin[3], double (*electricVector)[3])
 {
   // Create structured grid
   vtkSmartPointer<vtkStructuredGrid> structuredGrid = vtkSmartPointer<vtkStructuredGrid>::New();
@@ -120,10 +116,10 @@ void save_vti_c(string filename, int i,
   structuredGrid->SetPoints(points);
   // Set field vector data
   vtkSmartPointer<vtkDoubleArray> FieldVectorArray = vtkSmartPointer<vtkDoubleArray>::New();
-  FieldVectorArray->SetName(filename.c_str()); // cout << filename << ", " <<nx*ny*nz << endl;
-   FieldVectorArray->SetNumberOfComponents(ncomponents); // Three components (Ex, Ey, Ez)
-  FieldVectorArray->SetNumberOfTuples((nx) * (ny) * (nz)); //average cells shifted by half cell?
-  for (int k = 0; k < nz; ++k) 
+  FieldVectorArray->SetName(filename.c_str());             // cout << filename << ", " <<nx*ny*nz << endl;
+  FieldVectorArray->SetNumberOfComponents(ncomponents);    // Three components (Ex, Ey, Ez)
+  FieldVectorArray->SetNumberOfTuples((nx) * (ny) * (nz)); // average cells shifted by half cell?
+  for (int k = 0; k < nz; ++k)
   {
     for (int j = 0; j < ny; ++j)
     {
@@ -173,61 +169,6 @@ void save_vti_c(string filename, int i,
   writer->SetInputData(structuredGrid);
   writer->Write();
 }
-
-/**
- * This corrects the order of dimensions for view in paraview, as opposed to save_vti which prints the raw data.
-
-void save_vti_c(string filename, int i,
-                int ncomponents, double t,
-                float(*data1)[n_space_divz][n_space_divy][n_space_divz], par *par)
-{
-  if (ncomponents > 3)
-  {
-    cout << "Error: Cannot write file " << filename << " - too many components" << endl;
-    return;
-  }
-  // cout << "save_vti_c"<<endl;
-  int xi = (par->n_space_div[0] - 1) / maxcells + 1;
-  int yj = (par->n_space_div[0] - 1) / maxcells + 1;
-  int zk = (par->n_space_div[0] - 1) / maxcells + 1;
-  int nx = par->n_space_div[0] / xi;
-  int ny = par->n_space_div[1] / yj;
-  int nz = par->n_space_div[2] / zk;
-
-  vtkSmartPointer<vtkImageData> imageData = vtkSmartPointer<vtkImageData>::New(); // Create the vtkImageData object
-  imageData->SetDimensions(nx, ny, nz);                                           // Set the dimensions of the image data
-  imageData->SetSpacing(par->dd[0] * xi, par->dd[1] * yj, par->dd[2] * zk);
-  imageData->SetOrigin(par->posL[0], par->posL[1], par->posL[2]); // Set the origin of the image data
-  imageData->AllocateScalars(VTK_FLOAT, ncomponents);
-  imageData->GetPointData()->GetScalars()->SetName(filename.c_str());
-  float *data2 = static_cast<float *>(imageData->GetScalarPointer()); // Get a pointer to the density field array
-  for (int k = 0; k < nz; ++k)
-    for (int j = 0; j < ny; ++j)
-      for (int i = 0; i < nx; ++i)
-        for (int c = 0; c < ncomponents; ++c)
-          data2[(k * ny + j) * nx * ncomponents + i * ncomponents + c] = data1[c][k * zk][j * yj][i * xi];
-
-  // Create a vtkDoubleArray to hold the field data
-  vtkSmartPointer<vtkDoubleArray> timeArray = vtkSmartPointer<vtkDoubleArray>::New();
-  timeArray->SetName("TimeValue");
-  timeArray->SetNumberOfTuples(1);
-  timeArray->SetValue(0, t);
-
-  // Add the field data to the image data
-  vtkSmartPointer<vtkFieldData> fieldData = imageData->GetFieldData();
-  fieldData->AddArray(timeArray);
-
-  vtkSmartPointer<vtkXMLImageDataWriter> writer = vtkSmartPointer<vtkXMLImageDataWriter>::New(); // Create the vtkXMLImageDataWriter object
-  writer->SetFileName((par->outpath + filename + "_" + to_string(i) + ".vti").c_str());          // Set the output file name                                                                     // Set the time value
-  writer->SetDataModeToBinary();
-  // writer->SetCompressorTypeToLZ4();
-  writer->SetCompressorTypeToZLib(); // Enable compression
-  writer->SetCompressionLevel(9);    // Set the level of compression (0-9)
-  writer->SetInputData(imageData);   // Set the input image data
-                                     // Set the time step value
-  writer->Write();                   // Write the output file
-}
-*/
 
 void save_vtp(string filename, int i, uint64_t num, double t, int p, particles *pt, par *par)
 {
