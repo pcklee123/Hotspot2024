@@ -454,7 +454,7 @@ int calcEBV(fields *fi, par *par)
 
 #endif
 #ifdef dE_dton_
-        clEnqueueCopyBuffer(vkGPU.commandQueue, fi->E_buffer, fi->E0_buffer, 0, 0, n_cellsf * 3, 0, NULL, NULL); // store E(t) in E0_buffer will replace this with dE/dt later
+        clEnqueueCopyBuffer(vkGPU.commandQueue, fi->E_buffer, fi->E0_buffer, 0, 0, n_cellsf * 3, 0, NULL, NULL); // store E(t) in E0_buffer will replace this with dE/dt later B calcluation will use most recent dE/dt
         res = clFinish(vkGPU.commandQueue);
 #endif
         clSetKernelArg(sumFftField_kernel, 0, sizeof(cl_mem), &fi->fft_real_buffer); // real[0-2] is E field
@@ -467,7 +467,7 @@ int calcEBV(fields *fi, par *par)
         res = clFinish(vkGPU.commandQueue);
 #ifdef dB_dton_
         // calculate E due to dB/dt
-        res = clSetKernelArg(copy3Data_kernel, 0, sizeof(cl_mem), &fi->B0_buffer); // this should - 4pi/mu0 * (B(t+dt)-B(t))/dt B0 is used for both B(t) and dB/dt
+        res = clSetKernelArg(copy3Data_kernel, 0, sizeof(cl_mem), &fi->B0_buffer); // this should - 1/mu0 * (B(t+dt)-B(t))/dt B0 is used for both B(t) and dB/dt (0 for t=0) use old value of dB/dt cause B not calculated yet
         if (res)
             cout << "clSetKernelArg copy3Data_kernel 0 res: " << res << endl;
         res = clSetKernelArg(copy3Data_kernel, 1, sizeof(cl_mem), &fi->fft_real_buffer);
@@ -516,22 +516,23 @@ int calcEBV(fields *fi, par *par)
         res = clFinish(vkGPU.commandQueue);
     }
 #endif
-#ifdef dE_dton_
-    // estimate dE/dt and add epsilon0 dE/dt to total current
-    float dedtcoeff = epsilon0 / (par->dt[0] * par->ncalcp[0]);
-    clSetKernelArg(jd_kernel, 0, sizeof(cl_mem), &fi->E0_buffer); // real[0-2] is E field
-    clSetKernelArg(jd_kernel, 1, sizeof(cl_mem), &fi->E_buffer);
-    clSetKernelArg(jd_kernel, 2, sizeof(cl_mem), &(fi->buff_jc[0]()));
-    clSetKernelArg(jd_kernel, 3, sizeof(float), &dedtcoeff);
-    res = clEnqueueNDRangeKernel(vkGPU.commandQueue, jd_kernel, 1, NULL, &nc3_16, NULL, 0, NULL, NULL); //
-    if (res)
-        cout << "jd_kernel res: " << res << endl;
-    res = clFinish(vkGPU.commandQueue);
-#endif
+
     //                  cout << "E done\n";
 
 #ifdef Bon_
     {
+#ifdef dE_dton_
+        // add displacement current epsilon0 dE/dt to total current
+        float dedtcoeff = epsilon0 / (par->dt[0] * par->ncalcp[0]);
+        clSetKernelArg(jd_kernel, 0, sizeof(cl_mem), &fi->E0_buffer); // previous E field
+        clSetKernelArg(jd_kernel, 1, sizeof(cl_mem), &fi->E_buffer);  // recently calculated E field
+        clSetKernelArg(jd_kernel, 2, sizeof(cl_mem), &(fi->buff_jc[0]()));
+        clSetKernelArg(jd_kernel, 3, sizeof(float), &dedtcoeff);
+        res = clEnqueueNDRangeKernel(vkGPU.commandQueue, jd_kernel, 1, NULL, &nc3_16, NULL, 0, NULL, NULL); //
+        if (res)
+            cout << "jd_kernel res: " << res << endl;
+        res = clFinish(vkGPU.commandQueue);
+#endif
         res = clSetKernelArg(copy3Data_kernel, 0, sizeof(cl_mem), &(fi->buff_jc[0]()));
         if (res)
             cout << "clSetKernelArg copy3Data_kernel 0 res: " << res << endl;
@@ -577,8 +578,8 @@ int calcEBV(fields *fi, par *par)
         res = clFinish(vkGPU.commandQueue);
 #ifdef dB_dton_
         // estimate dE/dt and add epsilon0 dE/dt to total current
-        float dBdtcoeff = 1e-7/ (par->dt[0] * par->ncalcp[0]);
-        clSetKernelArg(Bdot_kernel, 0, sizeof(cl_mem), &fi->B0_buffer); // real[0-2] is E field
+        float dBdtcoeff = -1.0 / (u0 * par->dt[0] * par->ncalcp[0]);
+        clSetKernelArg(Bdot_kernel, 0, sizeof(cl_mem), &fi->B0_buffer); // replace B0_buffer with -1/u0 * dB/dt
         clSetKernelArg(Bdot_kernel, 1, sizeof(cl_mem), &fi->B_buffer);
         clSetKernelArg(Bdot_kernel, 2, sizeof(float), &dBdtcoeff);
         res = clEnqueueNDRangeKernel(vkGPU.commandQueue, Bdot_kernel, 1, NULL, &nc3_16, NULL, 0, NULL, NULL); //
@@ -637,7 +638,7 @@ int calcEBV(fields *fi, par *par)
     if (res)
         cout << "maxval3f_kernel res: " << res << endl;
     res = clFinish(commandQueue_g());
-        if (res)
+    if (res)
         cout << "maxval3f_kernel clfinish B res: " << res << endl;
     res = clEnqueueReadBuffer(vkGPU.commandQueue, par->maxval_buffer, CL_TRUE, 0, sizeof(float) * n2048, par->maxval_array, 0, NULL, NULL);
     par->Bmax = sqrtf(maxvalf(par->maxval_array, n2048));

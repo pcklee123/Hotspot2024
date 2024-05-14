@@ -1171,13 +1171,13 @@ void kernel jd(global float16 *E0, global const float16 *E, global float16 *jc,
   const uint i = get_global_id(0); // Get index of current element processed
   float16 Edot = (E[i] - E0[i]) * e0dt;
   jc[i] += Edot;
-  E0[i] = Edot;
+ // E0[i] = E[i];
 }
 
 void kernel Bdot(global float16 *B0, global const float16 *B, const float udt) {
   const uint i = get_global_id(0); // Get index of current element processed
-  float16 Bdot = (B0[i] - B[i]) * udt;
-  B0[i] = Bdot; //-dB/dt
+  float16 Bdot = (B[i] - B0[i]) * udt;//-1/u0 * dB/dt
+  B0[i] = Bdot; 
 }
 
 void kernel nsumi(global const int16 *npi, global int *n0) {

@@ -287,4 +287,6 @@ void cl_start(fields *fi, particles *pt, par *par)
     fi->V_buffer = buff_V();
     clEnqueueFillBuffer(commandQueue_g(), fi->E_buffer, 0, n_cellsf * 3, 0, 0, 0, 0, 0);
     clEnqueueFillBuffer(commandQueue_g(), fi->B_buffer, 0, n_cellsf * 3, 0, 0, 0, 0, 0);
+    clEnqueueFillBuffer(commandQueue_g(), fi->E0_buffer, 0, n_cellsf * 3, 0, 0, 0, 0, 0);
+    clEnqueueFillBuffer(commandQueue_g(), fi->B0_buffer, 0, n_cellsf * 3, 0, 0, 0, 0, 0);
 }
