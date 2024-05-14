@@ -59,10 +59,15 @@ void tnp(fields *fi, particles *pt, par *par)
    // cout << " Bconst=" << par->Bcoef[0] << ", Econst=" << par->Ecoef[0] << endl;
 
    int cdt;
+   if (fastIO)
+   {
+      // commandQueue_g.enqueueUnmapMemObject(pt->buff_x0_e[0], pt->pos0x[0]);
+   }
+   par->ndeltat = 0;
    for (uint32_t ntime = 0; ntime < par->nc; ntime++)
    {
       // timer.mark();
-      kernel_trilin.setArg(0, fi->buff_Ea[0]);               // the 1st argument to the kernel program Ea
+      kernel_trilin.setArg(0, fi->buff_Ea[0]);            // the 1st argument to the kernel program Ea
       kernel_trilin.setArg(1, fi->buff_E[0]);             // Ba
       kernel_trilin.setArg(2, sizeof(float), &par->a0_f); // scale
       res = commandQueue_g.enqueueNDRangeKernel(kernel_trilin, cl::NullRange, cl::NDRange(n_cells), cl::NullRange);
@@ -70,7 +75,7 @@ void tnp(fields *fi, particles *pt, par *par)
          cout << "kernel_trilin E  res: " << res << endl;
       commandQueue_g.finish(); // wait for the end of the kernel program
 
-      kernel_trilin.setArg(0, fi->buff_Ba[0]);               // the 1st argument to the kernel program Ea
+      kernel_trilin.setArg(0, fi->buff_Ba[0]);            // the 1st argument to the kernel program Ea
       kernel_trilin.setArg(1, fi->buff_B[0]);             // Ba
       kernel_trilin.setArg(2, sizeof(float), &par->a0_f); // scale
       res = commandQueue_g.enqueueNDRangeKernel(kernel_trilin, cl::NullRange, cl::NDRange(n_cells), cl::NullRange);
@@ -78,8 +83,8 @@ void tnp(fields *fi, particles *pt, par *par)
          cout << "kernel_trilin B  res: " << res << endl;
       commandQueue_g.finish(); //      cout << "\ntrilin " << timer.elapsed() << "s, \n";
 
-      kernel_tnp.setArg(0, fi->buff_Ea[0]);                         // the 1st argument to the kernel program Ea
-      kernel_tnp.setArg(1, fi->buff_Ba[0]);                         // Ba
+      kernel_tnp.setArg(0, fi->buff_Ea[0]);                      // the 1st argument to the kernel program Ea
+      kernel_tnp.setArg(1, fi->buff_Ba[0]);                      // Ba
       kernel_tnp.setArg(2, pt->buff_x0_e[0]);                    // x0
       kernel_tnp.setArg(3, pt->buff_y0_e[0]);                    // y0
       kernel_tnp.setArg(4, pt->buff_z0_e[0]);                    // z0
@@ -100,8 +105,8 @@ void tnp(fields *fi, particles *pt, par *par)
       commandQueue_g.finish();
 
       //  set arguments to be fed into the kernel program
-      kernel_tnp.setArg(0, fi->buff_Ea[0]);                         // the 1st argument to the kernel program Ea
-      kernel_tnp.setArg(1, fi->buff_Ba[0]);                         // Ba
+      kernel_tnp.setArg(0, fi->buff_Ea[0]);                      // the 1st argument to the kernel program Ea
+      kernel_tnp.setArg(1, fi->buff_Ba[0]);                      // Ba
       kernel_tnp.setArg(2, pt->buff_x0_i[0]);                    // x0
       kernel_tnp.setArg(3, pt->buff_y0_i[0]);                    // y0
       kernel_tnp.setArg(4, pt->buff_z0_i[0]);                    // z0
@@ -136,6 +141,7 @@ void tnp(fields *fi, particles *pt, par *par)
       generateField(fi, par); // find E field must work out every i,j,k depends on charge in every other cell
       */
       par->cdt = calcEBV(fi, par);
+      par->ndeltat += par->dt[0] * par->ncalcp[0];
       changedt(pt, par->cdt, par);
       // cout << changedt(pt, par->cdt, par) << ", ";
       // cout << "change dt: " << par->cdt << ",  dt= " << par->dt[0] << endl;
@@ -144,6 +150,7 @@ void tnp(fields *fi, particles *pt, par *par)
    if (!fastIO)
    {
       // cout << "for saving to disk"<<endl;
+
       commandQueue_g.enqueueReadBuffer(pt->buff_x0_e[0], CL_TRUE, 0, n_partf, pt->pos0x[0]);
       commandQueue_g.enqueueReadBuffer(pt->buff_y0_e[0], CL_TRUE, 0, n_partf, pt->pos0y[0]);
       commandQueue_g.enqueueReadBuffer(pt->buff_z0_e[0], CL_TRUE, 0, n_partf, pt->pos0z[0]);
@@ -170,5 +177,15 @@ void tnp(fields *fi, particles *pt, par *par)
       commandQueue_g.enqueueReadBuffer(fi->buff_currentj_e[0], CL_TRUE, 0, n_cellsf * 3, fi->currentj[0]);
       // commandQueue_g.enqueueReadBuffer(fi->buff_jc[0], CL_TRUE, 0, n_cellsf * 3, fi->currentj[0]);
       commandQueue_g.enqueueReadBuffer(fi->buff_currentj_i[0], CL_TRUE, 0, n_cellsf * 3, fi->currentj[1]);
+   }
+   else
+   {
+      // pt->pos0x = reinterpret_cast<float(&)[2][n_partd]>(*(float *)(commandQueue_g.enqueueMapBuffer(pt->buff_x0_e[0], CL_TRUE, CL_MAP_READ, 0, n_partf)));
+      // pt->pos0y = reinterpret_cast<float(&)[2][n_partd]>(*(float *)(commandQueue_g.enqueueMapBuffer(pt->buff_y0_e[0], CL_TRUE, CL_MAP_READ, 0, n_partf)));
+      // pt->pos0z = reinterpret_cast<float(&)[2][n_partd]>(*(float *)(commandQueue_g.enqueueMapBuffer(pt->buff_z0_e[0], CL_TRUE, CL_MAP_READ, 0, n_partf)));
+      // pt->pos1x = reinterpret_cast<float(&)[2][n_partd]>(*(float *)(commandQueue_g.enqueueMapBuffer(pt->buff_x1_e[0], CL_TRUE, CL_MAP_READ, 0, n_partf)));
+      // pt->pos1y = reinterpret_cast<float(&)[2][n_partd]>(*(float *)(commandQueue_g.enqueueMapBuffer(pt->buff_y1_e[0], CL_TRUE, CL_MAP_READ, 0, n_partf)));
+      // pt->pos1z = reinterpret_cast<float(&)[2][n_partd]>(*(float *)(commandQueue_g.enqueueMapBuffer(pt->buff_z1_e[0], CL_TRUE, CL_MAP_READ, 0, n_partf)));
+      //  Repeat for other buffers...
    }
 }
