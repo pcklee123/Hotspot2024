@@ -1166,10 +1166,18 @@ void kernel dtotal(global const float16 *ne, global const float16 *ni,
   jt[n2 + i] = je[n2 + i] + ji[n2 + i];
 }
 
-void kernel jd(global const float16 *E0, global const float16 *E,
-               global float16 *jc, const float e0dt) {
+void kernel jd(global float16 *E0, global const float16 *E, global float16 *jc,
+               const float e0dt) {
   const uint i = get_global_id(0); // Get index of current element processed
-  jc[i] += (E[i] - E0[i]) * e0dt;
+  float16 Edot = (E[i] - E0[i]) * e0dt;
+  jc[i] += Edot;
+  E0[i] = Edot;
+}
+
+void kernel Bdot(global float16 *B0, global const float16 *B, const float udt) {
+  const uint i = get_global_id(0); // Get index of current element processed
+  float16 Bdot = (B0[i] - B[i]) * udt;
+  B0[i] = Bdot; //-dB/dt
 }
 
 void kernel nsumi(global const int16 *npi, global int *n0) {

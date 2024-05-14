@@ -189,8 +189,7 @@ int main()
     log_headers();                        // log file start with headers
     log_entry(0, 0, total_ncalc, t, par); // Write everything to log
                                           //  getchar();
-    // nt0prev = par->nt[0];
-    //   cout << par->nt[0] << " " << nt0prev << endl;
+
 #pragma omp barrier
 
     cout
@@ -204,9 +203,6 @@ int main()
                           // float max_jc = maxvalf((reinterpret_cast<float *>(fi->jc)), n_cells * 3);
                           //  cout << "max current density  = " << max_jc << endl;
         // getchar();
-        //for (int p = 0; p < 2; ++p)
-        //    total_ncalc[p] += par->nc * par->ncalcp[p];
-        //t += par->dt[0] * par->ncalcp[0] * par->nc;
         t+=par->ndeltat;
         cout << i_time << "." << par->nc << " t = " << t << "(compute_time = " << timer.elapsed() << "s) : ";
 

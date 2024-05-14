@@ -59,6 +59,7 @@ int calcEBV(fields *fi, par *par)
 
     static cl_kernel jcxPrecalc_kernel;
     static cl_kernel jd_kernel;
+    static cl_kernel Bdot_kernel;
     static cl_kernel sumFftField_kernel;
     static cl_kernel sumFftFieldB_kernel;
     static cl_kernel sumFftSField_kernel;
@@ -106,6 +107,7 @@ int calcEBV(fields *fi, par *par)
     copyData_kernel = clCreateKernel(program_g(), "copyData", NULL);
     copy3Data_kernel = clCreateKernel(program_g(), "copy3Data", NULL);
     jd_kernel = clCreateKernel(program_g(), "jd", NULL);
+    Bdot_kernel = clCreateKernel(program_g(), "Bdot", NULL);
 #ifdef Uon_
     static cl_kernel NxPrecalcr2_kernel = clCreateKernel(program_g(), "NxPrecalcr2", NULL);
 #else
@@ -403,7 +405,7 @@ int calcEBV(fields *fi, par *par)
     }
 
 #ifdef Eon_
-    {
+    {                                                                        //  E field due to charges
         clSetKernelArg(copyData_kernel, 0, sizeof(cl_mem), &fi->npt_buffer); // Set the arguments of the kernel must be done every time. not just on first run
         clSetKernelArg(copyData_kernel, 1, sizeof(cl_mem), &fi->fft_real_buffer);
         res = clEnqueueNDRangeKernel(vkGPU.commandQueue, copyData_kernel, 1, NULL, &n_cells_2, NULL, 0, NULL, NULL); //  copy density into zero padded double(8x) cube
@@ -452,16 +454,59 @@ int calcEBV(fields *fi, par *par)
 
 #endif
 #ifdef dE_dton_
-        clEnqueueCopyBuffer(vkGPU.commandQueue, fi->E_buffer, fi->E0_buffer, 0, 0, n_cellsf * 3, 0, NULL, NULL);
+        clEnqueueCopyBuffer(vkGPU.commandQueue, fi->E_buffer, fi->E0_buffer, 0, 0, n_cellsf * 3, 0, NULL, NULL); // store E(t) in E0_buffer will replace this with dE/dt later
+        res = clFinish(vkGPU.commandQueue);
 #endif
         clSetKernelArg(sumFftField_kernel, 0, sizeof(cl_mem), &fi->fft_real_buffer); // real[0-2] is E field
         clSetKernelArg(sumFftField_kernel, 1, sizeof(cl_mem), &fi->Ee_buffer);
-        clSetKernelArg(sumFftField_kernel, 2, sizeof(cl_mem), &fi->E_buffer);
+        clSetKernelArg(sumFftField_kernel, 2, sizeof(cl_mem), &fi->E_buffer); // make E_buffer to be E due to charges + External applied E
 
         res = clEnqueueNDRangeKernel(vkGPU.commandQueue, sumFftField_kernel, 1, NULL, &n_cells, NULL, 0, NULL, NULL); //  kernel is different for octant, ... selected in the beginning
         if (res)
             cout << "sumFftField_kernel E  res: " << res << endl;
         res = clFinish(vkGPU.commandQueue);
+#ifdef dB_dton_
+        // calculate E due to dB/dt
+        res = clSetKernelArg(copy3Data_kernel, 0, sizeof(cl_mem), &fi->B0_buffer); // this should - 4pi/mu0 * (B(t+dt)-B(t))/dt B0 is used for both B(t) and dB/dt
+        if (res)
+            cout << "clSetKernelArg copy3Data_kernel 0 res: " << res << endl;
+        res = clSetKernelArg(copy3Data_kernel, 1, sizeof(cl_mem), &fi->fft_real_buffer);
+        if (res)
+            cout << "clSetKernelArg copy3Data_kernel 1 res: " << res << endl;
+        res = clEnqueueNDRangeKernel(vkGPU.commandQueue, copy3Data_kernel, 1, NULL, &n_cells_2, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
+        if (res)
+            cout << "copy3Data_kernel dB/dt  res: " << res << endl;
+        res = clFinish(vkGPU.commandQueue);
+        if (res)
+            cout << "copy3Data_kernel dB/dt clFinish  res: " << res << endl;
+        resFFT = VkFFTAppend(&app3, -1, &launchParams); // -1 = forward transform // cout << "execute plan for E resFFT = " << resFFT << endl;
+        if (resFFT)
+            cout << "app3 B resFFT: " << resFFT << endl;
+        res = clFinish(vkGPU.commandQueue); //  cout << "execute plan for dB/dt" << endl;
+        res = clSetKernelArg(jcxPrecalc_kernel, 0, sizeof(cl_mem), &fi->r3_buffer);
+        if (res)
+            cout << "clSetKernelArg jcxPrecalc_kernel 0 res: " << res << endl;
+        res = clSetKernelArg(jcxPrecalc_kernel, 1, sizeof(cl_mem), &fi->fft_complex_buffer);
+        if (res)
+            cout << "clSetKernelArg jcxPrecalc_kernel 1 res: " << res << endl;
+        res = clEnqueueNDRangeKernel(vkGPU.commandQueue, jcxPrecalc_kernel, 1, NULL, &n_cells4, NULL, 0, NULL, NULL);
+        if (res)
+            cout << "jcxPrecalc_kernel B  res: " << res << endl;
+        res = clFinish(vkGPU.commandQueue);
+        resFFT = VkFFTAppend(&appbac3, 1, &launchParams); // 1 = inverse FFT// cout << "execute plan bac E resFFT = " << resFFT << endl;
+        if (resFFT)
+            cout << "appbac3 B resFFT: " << resFFT << endl;
+        res = clFinish(vkGPU.commandQueue); // cout << "execute plan bac E ,clFinish res = " << res << endl;
+                                            // resFFT = transferDataToCPU(&vkGPU, &fft_real[0][0], &fi->fft_real_buffer, bufferSize_R3);
+
+        clSetKernelArg(sumFftFieldB_kernel, 0, sizeof(cl_mem), &fi->fft_real_buffer); // real[0-2] is E due to dB/dt field
+        clSetKernelArg(sumFftFieldB_kernel, 1, sizeof(cl_mem), &fi->E_buffer);
+        clSetKernelArg(sumFftFieldB_kernel, 2, sizeof(cl_mem), &fi->E_buffer);
+        res = clEnqueueNDRangeKernel(vkGPU.commandQueue, sumFftFieldB_kernel, 1, NULL, &n_cells, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel
+        if (res)
+            cout << "sumFftFieldB_kernel B  res: " << res << endl;
+        res = clFinish(vkGPU.commandQueue);
+#endif
     }
 #else
     {
@@ -517,9 +562,11 @@ int calcEBV(fields *fi, par *par)
         if (resFFT)
             cout << "appbac3 B resFFT: " << resFFT << endl;
         res = clFinish(vkGPU.commandQueue); // cout << "execute plan bac E ,clFinish res = " << res << endl;
-// resFFT = transferDataToCPU(&vkGPU, &fft_real[0][0], &fi->fft_real_buffer, bufferSize_R3);
+                                            // resFFT = transferDataToCPU(&vkGPU, &fft_real[0][0], &fi->fft_real_buffer, bufferSize_R3);
+
 #ifdef dB_dton_
-        clEnqueueCopyBuffer(vkGPU.commandQueue, fi->B_buffer, fi->B0_buffer, 0, 0, n_cellsf * 3, 0, NULL, NULL);
+        clEnqueueCopyBuffer(vkGPU.commandQueue, fi->B_buffer, fi->B0_buffer, 0, 0, n_cellsf * 3, 0, NULL, NULL); // store B(t) in B0 will replace thist with Bdot later
+        res = clFinish(vkGPU.commandQueue);
 #endif
         clSetKernelArg(sumFftFieldB_kernel, 0, sizeof(cl_mem), &fi->fft_real_buffer); // real[0-2] is E field
         clSetKernelArg(sumFftFieldB_kernel, 1, sizeof(cl_mem), &fi->Be_buffer);
@@ -528,6 +575,17 @@ int calcEBV(fields *fi, par *par)
         if (res)
             cout << "sumFftFieldB_kernel B  res: " << res << endl;
         res = clFinish(vkGPU.commandQueue);
+#ifdef dB_dton_
+        // estimate dE/dt and add epsilon0 dE/dt to total current
+        float dBdtcoeff = 1e7 / (par->dt[0] * par->ncalcp[0]);
+        clSetKernelArg(Bdot_kernel, 0, sizeof(cl_mem), &fi->B0_buffer); // real[0-2] is E field
+        clSetKernelArg(Bdot_kernel, 1, sizeof(cl_mem), &fi->B_buffer);
+        clSetKernelArg(Bdot_kernel, 2, sizeof(float), &dBdtcoeff);
+        res = clEnqueueNDRangeKernel(vkGPU.commandQueue, Bdot_kernel, 1, NULL, &nc3_16, NULL, 0, NULL, NULL); //
+        if (res)
+            cout << "Bdot_kernel res: " << res << endl;
+        res = clFinish(vkGPU.commandQueue);
+#endif
     }
 #else
     clSetKernelArg(copyextField_kernel, 0, sizeof(cl_mem), &fi->Be_buffer);
@@ -564,7 +622,7 @@ int calcEBV(fields *fi, par *par)
         cout << "maxval3f_kernel res: " << res << endl;
     res = clFinish(commandQueue_g());
     if (res)
-        cout << "maxval3f_kernel clfinish res: " << res << endl;
+        cout << "maxval3f_kernel clfinish E res: " << res << endl;
     res = clEnqueueReadBuffer(vkGPU.commandQueue, par->maxval_buffer, CL_TRUE, 0, sizeof(float) * n2048, par->maxval_array, 0, NULL, NULL);
     if (res)
         cout << "maxval3f_kernel readbuffer res: " << res << endl;
@@ -579,6 +637,8 @@ int calcEBV(fields *fi, par *par)
     if (res)
         cout << "maxval3f_kernel res: " << res << endl;
     res = clFinish(commandQueue_g());
+        if (res)
+        cout << "maxval3f_kernel clfinish B res: " << res << endl;
     res = clEnqueueReadBuffer(vkGPU.commandQueue, par->maxval_buffer, CL_TRUE, 0, sizeof(float) * n2048, par->maxval_array, 0, NULL, NULL);
     par->Bmax = sqrtf(maxvalf(par->maxval_array, n2048));
 #endif
