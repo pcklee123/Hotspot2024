@@ -23,17 +23,15 @@ void generate_rand_sphere(particles *pt, par *par)
             float r = r0[2] * pow(uniform_dist(gen), 0.5f);
             float x, y, z;
             z = uniform_dist(gen) * (par->posH_1[2] - par->posL_1[2]) + par->posL_1[2];
+#if defined(octant) || defined(quadrant)
+            float theta = 0.5* pi * uniform_dist(gen);
+            x = cosf(theta);
+            y = sinf(theta);
+#else
             float theta = 2.0f * pi * uniform_dist(gen);
             float phi = acosf(2.0f * uniform_dist(gen) - 1.0f);
             x = sinf(phi) * cosf(theta);
             y = sinf(phi) * sinf(theta);
-#ifdef octant
-            x = abs(x);
-            y = abs(y);
-#endif
-#ifdef quadrant
-            x = abs(x);
-            y = abs(y);
 #endif
             //          cout << r << ", " << x << ", " << y << ", " << z << endl;
             pt->pos0x[p][na] = r * x;

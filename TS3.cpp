@@ -37,15 +37,16 @@ int main()
     omp_set_nested(true);
     nthreads = omp_get_max_threads(); // omp_set_num_threads(nthreads);
                                       // allocate memory for particles assume default value of cl_align.
-    static float *maxval_array = (float *)_aligned_malloc(sizeof(float) * n_cells_16, par->cl_align);
+    static float *maxval_array = (float *)_aligned_malloc(sizeof(float) * n2048, par->cl_align);
     par->maxval_array = maxval_array;
-    static int *nt_array = (int *)_aligned_malloc(sizeof(int) * n_part_2048, par->cl_align);
+    static int *nt_array = (int *)_aligned_malloc(sizeof(int) * n2048, par->cl_align);
     par->nt_array = nt_array;
     particles *pt = alloc_particles(par);
     fields *fi = alloc_fields(par);
     cl_set_build_options(par);
+    // getchar();
     cl_start(fi, pt, par);
-    //   getchar();
+
     try
     {
         if (!std::filesystem::create_directory(outpath1))
@@ -94,11 +95,14 @@ int main()
 #endif
     // generate E and B external fields within limits and spacing of Field cells
     generateField(fi, par);
+    cout << timer.elapsed() << "s\n ";
     //  getchar();
     int i_time = 0;
-    // cout << "get_densityfields: ";
-    timer.mark();
 
+    timer.mark();
+    cout << "get_densityfields: ";
+    commandQueue_g.enqueueFillBuffer(fi->buff_npi[0], 0, 0, n_cellsi);
+    commandQueue_g.enqueueFillBuffer(fi->buff_cji[0], 0, 0, n_cellsi * 3);
     get_densityfields(fi, pt, par);
     //   getchar();
     res = clEnqueueReadBuffer(commandQueue_g(), fi->buff_np_e[0](), CL_TRUE, 0, n_cellsf, fi->np[0], 0, NULL, NULL);
@@ -107,11 +111,13 @@ int main()
     // cout << "max density electron = " << max_ne << ", " << max_ne * r_part_spart / powf(a0, 3) << "m-3, ion = " << max_ni << ", " << max_ni * r_part_spart / powf(a0, 3) << endl;
     // float max_ni = maxvalf((reinterpret_cast<float *>(fi->np[1])), n_cells);
     // max_jc = maxvalf((reinterpret_cast<float *>(fi->jc)), n_cells * 3);
-    cout << "dt = " << par->dt[0] << ", " << par->dt[1] << endl;
+
     // float max_jc = maxvalf((reinterpret_cast<float *>(fi->jc)), n_cells * 3);
     // cout << "max current density  = " << max_jc << endl;
     cout << timer.elapsed() << "s\n ";
-    // cout << "calcEBV: ";
+    cout << "dt = " << par->dt[0] << ", " << par->dt[1] << endl;
+
+    cout << "calcEBV: ";
     timer.mark();
 
     int cdt = calcEBV(fi, par); // electric and magnetic fields this is incorporated into tnp which also moves particles. Need here just to estimate dt
@@ -177,14 +183,13 @@ int main()
 // cout << "U: " << timer.elapsed() << "s, ";
 #endif
 
-    info(par);                          // printout initial info.csv file re do this with updated info
-    save_files(i_time, t, fi, pt, par); // cout << "savefiles" << endl;
-   // cout << "logentry" << endl;
+    info(par);                            // printout initial info.csv file re do this with updated info
+    save_files(i_time, t, fi, pt, par);   // cout << "savefiles" << endl;
+                                          // cout << "logentry" << endl;
     log_headers();                        // log file start with headers
     log_entry(0, 0, total_ncalc, t, par); // Write everything to log
                                           //  getchar();
-    // nt0prev = par->nt[0];
-    //   cout << par->nt[0] << " " << nt0prev << endl;
+
 #pragma omp barrier
 
     cout
@@ -198,9 +203,7 @@ int main()
                           // float max_jc = maxvalf((reinterpret_cast<float *>(fi->jc)), n_cells * 3);
                           //  cout << "max current density  = " << max_jc << endl;
         // getchar();
-        for (int p = 0; p < 2; ++p)
-            total_ncalc[p] += par->nc * par->ncalcp[p];
-        t += par->dt[0] * par->ncalcp[0] * par->nc;
+        t+=par->ndeltat;
         cout << i_time << "." << par->nc << " t = " << t << "(compute_time = " << timer.elapsed() << "s) : ";
 
         timer.mark();

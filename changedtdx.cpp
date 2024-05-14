@@ -61,7 +61,7 @@ void recalcpos(particles *pt, par *par, float inc)
     kernel_recalcposchangedt.setArg(4, pt->buff_y1_e[0]);    // y1
     kernel_recalcposchangedt.setArg(5, pt->buff_z1_e[0]);    // z1
     kernel_recalcposchangedt.setArg(6, sizeof(float), &inc); // scale factor
-    commandQueue_g.enqueueNDRangeKernel(kernel_recalcposchangedt, cl::NullRange, cl::NDRange(par->n_part[0]), cl::NullRange);
+    commandQueue_g.enqueueNDRangeKernel(kernel_recalcposchangedt, cl::NullRange, cl::NDRange(par->n_part[0]/16), cl::NullRange);
     commandQueue_g.finish();
     kernel_recalcposchangedt.setArg(0, pt->buff_x0_i[0]);    // x0
     kernel_recalcposchangedt.setArg(1, pt->buff_y0_i[0]);    // y0
@@ -70,7 +70,7 @@ void recalcpos(particles *pt, par *par, float inc)
     kernel_recalcposchangedt.setArg(4, pt->buff_y1_i[0]);    // y1
     kernel_recalcposchangedt.setArg(5, pt->buff_z1_i[0]);    // z1
     kernel_recalcposchangedt.setArg(6, sizeof(float), &inc); // scale factor
-    commandQueue_g.enqueueNDRangeKernel(kernel_recalcposchangedt, cl::NullRange, cl::NDRange(par->n_part[1]), cl::NullRange);
+    commandQueue_g.enqueueNDRangeKernel(kernel_recalcposchangedt, cl::NullRange, cl::NDRange(par->n_part[1]/16), cl::NullRange);
     commandQueue_g.finish();
 }
 
@@ -106,7 +106,7 @@ void changedx(fields *fi, par *par)
     cl_int res;
     static cl_kernel kernel_buffer_muls;
     float Bb = 1 / (a0_ff * a0_ff);
-    size_t n = n_cells4 * 3 * 2 * 2; // 2 floats per complex 3 axis, 2 types E and B
+    size_t n = n_cells4 * 3 * 2 * 2/16; // 2 floats per complex 3 axis, 2 types E and B float16 vector
     if (first)
     {
         kernel_buffer_muls = clCreateKernel(program_g(), "buffer_muls", &res);
@@ -119,7 +119,7 @@ void changedx(fields *fi, par *par)
     clFinish(commandQueue_g());
 #ifdef Uon_
     Bb = 1 / (a0_ff);
-    n = n_cells4 * 2; // 2 floats per complex
+    n = n_cells4 * 2/16; // 2 floats per complex
     clSetKernelArg(kernel_buffer_muls, 0, sizeof(cl_mem), &fi->r2_buffer);
     clSetKernelArg(kernel_buffer_muls, 1, sizeof(float), &Bb);
     clEnqueueNDRangeKernel(commandQueue_g(), kernel_buffer_muls, 1, NULL, &n, NULL, 0, NULL, NULL); //  Enqueue NDRange kernel

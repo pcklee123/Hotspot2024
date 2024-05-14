@@ -7,7 +7,7 @@ cl::Device default_device_g;
 cl::Program program_g;
 cl::CommandQueue commandQueue_g;
 int device_id_g;
-bool fastIO;
+cl_bool fastIO;
 
 stringstream cl_build_options;
 void add_build_option(string name, string param)
@@ -134,9 +134,11 @@ void cl_start(fields *fi, particles *pt, par *par)
     }
     else if (deviceVendor.find("Advanced Micro Devices") != std::string::npos)
     {
-        cl_build_options << "-O3 -cl-mad-enable -cl-fast-relaxed-math -cl-no-signed-zeros -cl-denorms-are-zero -cl-single-precision-constant";
+        cout << "AMD" << endl;
+        //     cl_build_options << "-O3 -cl-mad-enable -cl-fast-relaxed-math -cl-no-signed-zeros -cl-denorms-are-zero -cl-single-precision-constant";
     }
     cl_int cl_err = program.build({default_device}, cl_build_options.str().c_str());
+    cout << "program.build " << cl_err << endl;
     info_file << "building: " << program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(default_device);
     if (cl_err != CL_SUCCESS)
     {
@@ -154,15 +156,15 @@ void cl_start(fields *fi, particles *pt, par *par)
     cl::CommandQueue queue(context_g, default_device_g);
     commandQueue_g = queue;
 
-    // cout << "check for unified memory " << endl;
+    cout << "check for unified memory " << endl;
     cl_bool temp;
     default_device_g.getInfo(CL_DEVICE_HOST_UNIFIED_MEMORY, &temp);
     if (temp == true)
-        info_file << "Using unified memory: " << temp << " \n";
+        info_file << "Using unified memory: " << ((temp == CL_TRUE) ? "TRUE" : "FALSE") << " \n";
     else
         info_file << "No unified memory: " << temp << " \n";
     fastIO = temp;
-    fastIO = false;
+    //    fastIO = CL_FALSE;
 
     // cout << "allocating buffers\n";
     //  create buffers on the device
@@ -176,6 +178,8 @@ void cl_start(fields *fi, particles *pt, par *par)
     static cl::Buffer buff_Ba(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cells3x8f, fastIO ? fi->Ba : NULL, &cl_err);
     static cl::Buffer buff_E(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cellsf * 3, fastIO ? fi->E : NULL, &cl_err);
     static cl::Buffer buff_B(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cellsf * 3, fastIO ? fi->B : NULL, &cl_err);
+    static cl::Buffer buff_E0(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cellsf * 3, fastIO ? fi->E0 : NULL, &cl_err);
+    static cl::Buffer buff_B0(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cellsf * 3, fastIO ? fi->B0 : NULL, &cl_err);
     static cl::Buffer buff_Ee(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cellsf * 3, fastIO ? fi->Ee : NULL, &cl_err);
     static cl::Buffer buff_Be(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cellsf * 3, fastIO ? fi->Be : NULL, &cl_err);
     static cl::Buffer buff_npt(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n_cellsf, fastIO ? fi->npt : NULL, &cl_err); // cannot be static?
@@ -197,6 +201,8 @@ void cl_start(fields *fi, particles *pt, par *par)
     static cl::Buffer buff_q_i(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n4, fastIO ? pt->q[1] : NULL); // q
 
     //  cout << "buffers " << endl;
+    //        pt->pos = reinterpret_cast<float(&)[2][3][2][n_partd]>(*((float *)_aligned_malloc(sizeof(float) * par->n_part[0] * 2 * 3 * 2, par->cl_align)));
+
     static cl::Buffer buff_x0_e(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n4, fastIO ? pt->pos0x[0] : NULL); // x0
     static cl::Buffer buff_y0_e(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n4, fastIO ? pt->pos0y[0] : NULL); // y0
     static cl::Buffer buff_z0_e(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, n4, fastIO ? pt->pos0z[0] : NULL); // z0
@@ -236,6 +242,8 @@ void cl_start(fields *fi, particles *pt, par *par)
     fi->buff_Ba = &buff_Ba;
     fi->buff_E = &buff_E;
     fi->buff_B = &buff_B;
+    fi->buff_E0 = &buff_E0;
+    fi->buff_B0 = &buff_B0;
     fi->buff_Ee = &buff_Ee;
     fi->buff_Be = &buff_Be;
     fi->buff_npt = &buff_npt;
@@ -270,9 +278,15 @@ void cl_start(fields *fi, particles *pt, par *par)
     // because some code is in C not C++
     fi->E_buffer = buff_E();
     fi->B_buffer = buff_B();
+    fi->E0_buffer = buff_E0();
+    fi->B0_buffer = buff_B0();
     fi->Ee_buffer = buff_Ee();
     fi->Be_buffer = buff_Be();
     fi->npt_buffer = buff_npt();
     fi->jc_buffer = buff_jc();
     fi->V_buffer = buff_V();
+    clEnqueueFillBuffer(commandQueue_g(), fi->E_buffer, 0, n_cellsf * 3, 0, 0, 0, 0, 0);
+    clEnqueueFillBuffer(commandQueue_g(), fi->B_buffer, 0, n_cellsf * 3, 0, 0, 0, 0, 0);
+    clEnqueueFillBuffer(commandQueue_g(), fi->E0_buffer, 0, n_cellsf * 3, 0, 0, 0, 0, 0);
+    clEnqueueFillBuffer(commandQueue_g(), fi->B0_buffer, 0, n_cellsf * 3, 0, 0, 0, 0, 0);
 }
