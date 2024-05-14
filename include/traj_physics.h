@@ -30,7 +30,7 @@ constexpr float Ez0 = 1.0e1;       // in V/m
 constexpr float vz0 = 2.0e7f;
 constexpr float a0 = 1e-6;                          // typical dimensions of a cell in m This needs to be smaller than debye length otherwise energy is not conserved if a particle moves across a cell
 constexpr float a0_ff = 1.0 + 1.0 / (float)n_space; // rescale cell size, if particles rollover this cannot encrement more than 1 cell otherwise will have fake "waves"
-constexpr float target_part = 1e10;                 // 3.5e22 particles per m^3 per torr of ideal gas. 7e22 electrons for 1 torr of deuterium
+constexpr float target_part = 1e11;                 // 3.5e22 particles per m^3 per torr of ideal gas. 7e22 electrons for 1 torr of deuterium
 constexpr float v0_r = 0;                           // initial directed radial velocity outwards is positive
 
 // The maximum expected E and B fields. If fields go beyond this, the the time step, cell size etc will be wrong. Should adjust and recalculate.
