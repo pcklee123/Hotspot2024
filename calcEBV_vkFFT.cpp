@@ -577,7 +577,7 @@ int calcEBV(fields *fi, par *par)
         res = clFinish(vkGPU.commandQueue);
 #ifdef dB_dton_
         // estimate dE/dt and add epsilon0 dE/dt to total current
-        float dBdtcoeff = 1e7 / (par->dt[0] * par->ncalcp[0]);
+        float dBdtcoeff = 1e-7/ (par->dt[0] * par->ncalcp[0]);
         clSetKernelArg(Bdot_kernel, 0, sizeof(cl_mem), &fi->B0_buffer); // real[0-2] is E field
         clSetKernelArg(Bdot_kernel, 1, sizeof(cl_mem), &fi->B_buffer);
         clSetKernelArg(Bdot_kernel, 2, sizeof(float), &dBdtcoeff);
