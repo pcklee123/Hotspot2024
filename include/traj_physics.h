@@ -62,7 +62,7 @@ constexpr int md_me = 60;       // ratio of electron speed/deuteron speed at the
 // #define UE_field // whether to calculate the total energy due to electric energy density
 // #define UE_cell // whether to calculate the EPE due to particles within a cell
 #define Bon_     // whether to calculate the internally generated magnetic (B) field
-//#define dE_dton_ // whether to calculate the displacement current only usefull if both Eon_ and Bon_
+#define dE_dton_ // whether to calculate the displacement current only usefull if both Eon_ and Bon_
 #define dB_dton_ // whether to calculate the displacement current only usefull if both Eon_ and Bon_
 // #define UB_field // whether to calculate the total energy due to magnetic energy density
 #define EFon_ // whether to apply electric force
