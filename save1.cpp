@@ -8,36 +8,10 @@
 
 void save_hist(int i_time, double t, particles *pt, par *par)
 {
-<<<<<<< HEAD
-  uint32_t histn = Hist_n;
-  long KEhist[2][Hist_n];
-  memset(KEhist, 0, sizeof(KEhist));
-  float coef[2];
-  clEnqueueFillBuffer(commandQueue_g(), pt->buff_KEhist[0], &zero, sizeof(long), 0, sizeof(long) * Hist_n, 0, NULL, NULL);
-  // cout << "save_hist"<<endl;
-  static cl::Kernel hist_kernel = cl::Kernel(program_g, "hist");
-  hist_kernel.setArg(0, pt->buff_x0_e[0]);         // x0
-  hist_kernel.setArg(1, pt->buff_y0_e[0]);         // y0
-  hist_kernel.setArg(2, pt->buff_z0_e[0]);         // z0
-  hist_kernel.setArg(3, pt->buff_x1_e[0]);         // x1
-  hist_kernel.setArg(4, pt->buff_y1_e[0]);         // y1
-  hist_kernel.setArg(5, pt->buff_z1_e[0]);         // z1
-  hist_kernel.setArg(6, par->buff_KEhist[0]);      // q
-  hist_kernel.setArg(8, par->buffKE[0]);           // scale factor
-  hist_kernel.setArg(9, sizeof(float), &coeff[0]); // scale factor
-  hist_kernel.setArg(10, sizeof(uint32_t), &histn); // scale factor
-  commandQueue_g.enqueueNDRangeKernel(hist_kernel, cl::NullRange, cl::NDRange(par->n_part[0] / 16), cl::NullRange);
-  commandQueue_g.finish();
-  res = clEnqueueReadBuffer(commandQueue_g(), KEhist[0], CL_TRUE, 0, sizeof(float) * n2048, par->maxval_array, 0, NULL, NULL);
-  if (res)
-    cout << "maxval3f_kernel readbuffer res: " << res << endl;
-
-=======
   // cout << "save_hist"<<endl;
   long KEhist[2][Hist_n];
   memset(KEhist, 0, sizeof(KEhist));
   float coef[2];
->>>>>>> b1b785be056a2120c830f59dd154b8b09dd5124e
   for (int p = 0; p < 2; ++p)
   {
     float KE = 0;
@@ -59,11 +33,7 @@ void save_hist(int i_time, double t, particles *pt, par *par)
       KEhist[p][index]++;
     }
     par->KEtot[p] = KE * 0.5 * mp[p] / (e_charge_mass * par->dt[p] * par->dt[p]) * r_part_spart; // as if these particles were actually samples of the greater thing
-<<<<<<< HEAD
-                                                                                                 // par->nt[p] = nt;// * r_part_spart;
-=======
    // par->nt[p] = nt;// * r_part_spart;
->>>>>>> b1b785be056a2120c830f59dd154b8b09dd5124e
     //   cout << "p = " << p << ", KE = " << par->KEtot[p] << ", npart[p]" << par->n_part[p] << endl;
   }
 
@@ -113,11 +83,6 @@ void save_hist(int i_time, double t, particles *pt, par *par)
   writer->Write();
 }
 
-<<<<<<< HEAD
-void save_vti_c(string filename, int i,
-                int ncomponents, double t,
-                float (*data1)[n_space_divz][n_space_divy][n_space_divx], par *par)
-=======
 // void save_vti_c(string filename, int i,
 //               int ncomponents, double t,
 //             float (*data1)[n_space_divz][n_space_divy][n_space_divz], par *par){
@@ -125,7 +90,6 @@ void save_vti_c(string filename, int i,
                 int ncomponents, double t,
                 float (*data1)[n_space_divz][n_space_divy][n_space_divx], par *par)
 //(const std::string& filename, int nx, int ny, int nz, double spacing, double origin[3], double (*electricVector)[3])
->>>>>>> b1b785be056a2120c830f59dd154b8b09dd5124e
 {
   // Create structured grid
   vtkSmartPointer<vtkStructuredGrid> structuredGrid = vtkSmartPointer<vtkStructuredGrid>::New();
@@ -156,17 +120,10 @@ void save_vti_c(string filename, int i,
   structuredGrid->SetPoints(points);
   // Set field vector data
   vtkSmartPointer<vtkDoubleArray> FieldVectorArray = vtkSmartPointer<vtkDoubleArray>::New();
-<<<<<<< HEAD
-  FieldVectorArray->SetName(filename.c_str());             // cout << filename << ", " <<nx*ny*nz << endl;
-  FieldVectorArray->SetNumberOfComponents(ncomponents);    // Three components (Ex, Ey, Ez)
-  FieldVectorArray->SetNumberOfTuples((nx) * (ny) * (nz)); // average cells shifted by half cell?
-  for (int k = 0; k < nz; ++k)
-=======
   FieldVectorArray->SetName(filename.c_str()); // cout << filename << ", " <<nx*ny*nz << endl;
    FieldVectorArray->SetNumberOfComponents(ncomponents); // Three components (Ex, Ey, Ez)
   FieldVectorArray->SetNumberOfTuples((nx) * (ny) * (nz)); //average cells shifted by half cell?
   for (int k = 0; k < nz; ++k) 
->>>>>>> b1b785be056a2120c830f59dd154b8b09dd5124e
   {
     for (int j = 0; j < ny; ++j)
     {
@@ -217,8 +174,6 @@ void save_vti_c(string filename, int i,
   writer->Write();
 }
 
-<<<<<<< HEAD
-=======
 /**
  * This corrects the order of dimensions for view in paraview, as opposed to save_vti which prints the raw data.
 
@@ -274,7 +229,6 @@ void save_vti_c(string filename, int i,
 }
 */
 
->>>>>>> b1b785be056a2120c830f59dd154b8b09dd5124e
 void save_vtp(string filename, int i, uint64_t num, double t, int p, particles *pt, par *par)
 {
   // cout << "save_vti_p"<<endl;
