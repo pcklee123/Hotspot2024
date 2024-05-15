@@ -523,7 +523,7 @@ int calcEBV(fields *fi, par *par)
     {
 #ifdef dE_dton_
         // add displacement current epsilon0 dE/dt to total current
-        float dedtcoeff = epsilon0 *powf(a0*par->a0_f,3) / (par->dt[0] * par->ncalcp[0]);
+        float dedtcoeff = epsilon0 * powf(a0 * par->a0_f, 3) / (par->dt[0] * par->ncalcp[0]);
         clSetKernelArg(jd_kernel, 0, sizeof(cl_mem), &fi->E0_buffer); // previous E field
         clSetKernelArg(jd_kernel, 1, sizeof(cl_mem), &fi->E_buffer);  // recently calculated E field
         clSetKernelArg(jd_kernel, 2, sizeof(cl_mem), &(fi->buff_jc[0]()));
@@ -578,7 +578,7 @@ int calcEBV(fields *fi, par *par)
         res = clFinish(vkGPU.commandQueue);
 #ifdef dB_dton_
         // estimate dE/dt and add epsilon0 dE/dt to total current
-        float dBdtcoeff = -1.0 *powf(a0*par->a0_f,3)/ (u0 * par->dt[0] * par->ncalcp[0]);
+        float dBdtcoeff = -1.0 * powf(a0 * par->a0_f, 3) / (u0 * par->dt[0] * par->ncalcp[0]);
         clSetKernelArg(Bdot_kernel, 0, sizeof(cl_mem), &fi->B0_buffer); // replace B0_buffer with -1/u0 * dB/dt
         clSetKernelArg(Bdot_kernel, 1, sizeof(cl_mem), &fi->B_buffer);
         clSetKernelArg(Bdot_kernel, 2, sizeof(float), &dBdtcoeff);
@@ -608,7 +608,11 @@ int calcEBV(fields *fi, par *par)
     if (res)
         cout << "EUEst_kernel   res: " << res << endl;
     res = clFinish(commandQueue_g());
-    res = clEnqueueReadBuffer(vkGPU.commandQueue, EUtot_buffer, CL_TRUE, 0, sizeof(float) * n_4, EUtot, 0, NULL, NULL);
+    if(!fastio ){
+        res = clEnqueueReadBuffer(vkGPU.commandQueue, EUtot_buffer, CL_TRUE, 0, sizeof(float) * n_4, EUtot, 0, NULL, NULL);
+        if (res)
+            cout << "EUEst_kernel readbuffer res: " << res << endl;
+    }
     for (int i = 0; i < n_4; ++i)
         EUtot1 += EUtot[i];
     EUtot1 *= 0.5f; // * e_charge / ev_to_j; <- this is just 1
@@ -624,9 +628,12 @@ int calcEBV(fields *fi, par *par)
     res = clFinish(commandQueue_g());
     if (res)
         cout << "maxval3f_kernel clfinish E res: " << res << endl;
-    res = clEnqueueReadBuffer(vkGPU.commandQueue, par->maxval_buffer, CL_TRUE, 0, sizeof(float) * n2048, par->maxval_array, 0, NULL, NULL);
-    if (res)
-        cout << "maxval3f_kernel readbuffer res: " << res << endl;
+    if (!fastio)
+    {
+        res = clEnqueueReadBuffer(vkGPU.commandQueue, par->maxval_buffer, CL_TRUE, 0, sizeof(float) * n2048, par->maxval_array, 0, NULL, NULL);
+        if (res)
+            cout << "maxval3f_kernel readbuffer res: " << res << endl;
+    }
     par->Emax = sqrtf(maxvalf(par->maxval_array, n2048));
     // cout << "Emax = " << par->Emax << endl;
 #endif
@@ -640,7 +647,12 @@ int calcEBV(fields *fi, par *par)
     res = clFinish(commandQueue_g());
     if (res)
         cout << "maxval3f_kernel clfinish B res: " << res << endl;
-    res = clEnqueueReadBuffer(vkGPU.commandQueue, par->maxval_buffer, CL_TRUE, 0, sizeof(float) * n2048, par->maxval_array, 0, NULL, NULL);
+    if (!fastio)
+    {
+        res = clEnqueueReadBuffer(vkGPU.commandQueue, par->maxval_buffer, CL_TRUE, 0, sizeof(float) * n2048, par->maxval_array, 0, NULL, NULL);
+        if (res)
+            cout << "maxval3f_kernel readbuffer res: " << res << endl;
+    }
     par->Bmax = sqrtf(maxvalf(par->maxval_array, n2048));
 #endif
 

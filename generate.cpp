@@ -261,6 +261,8 @@ void generateField(fields *fi, par *par)
     // generateStripedEField(Ee, Be);
     // generateConstantBField(Ee, Be);
     // write CPU generatedexternal  to opencl buffers
-    res = clEnqueueWriteBuffer(commandQueue_g(), fi->Ee_buffer, CL_TRUE, 0, n_cellsf * 3, fi->Ee, 0, NULL, NULL);
-    res = clEnqueueWriteBuffer(commandQueue_g(), fi->Be_buffer, CL_TRUE, 0, n_cellsf * 3, fi->Be, 0, NULL, NULL);
+    if(!fastIO){
+        res = clEnqueueWriteBuffer(commandQueue_g(), fi->Ee_buffer, CL_TRUE, 0, n_cellsf * 3, fi->Ee, 0, NULL, NULL);
+        res = clEnqueueWriteBuffer(commandQueue_g(), fi->Be_buffer, CL_TRUE, 0, n_cellsf * 3, fi->Be, 0, NULL, NULL);
+    }
 }
