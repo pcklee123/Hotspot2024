@@ -608,7 +608,7 @@ int calcEBV(fields *fi, par *par)
     if (res)
         cout << "EUEst_kernel   res: " << res << endl;
     res = clFinish(commandQueue_g());
-    if(!fastio ){
+    if(!fastIO ){
         res = clEnqueueReadBuffer(vkGPU.commandQueue, EUtot_buffer, CL_TRUE, 0, sizeof(float) * n_4, EUtot, 0, NULL, NULL);
         if (res)
             cout << "EUEst_kernel readbuffer res: " << res << endl;
@@ -628,7 +628,7 @@ int calcEBV(fields *fi, par *par)
     res = clFinish(commandQueue_g());
     if (res)
         cout << "maxval3f_kernel clfinish E res: " << res << endl;
-    if (!fastio)
+    if (!fastIO)
     {
         res = clEnqueueReadBuffer(vkGPU.commandQueue, par->maxval_buffer, CL_TRUE, 0, sizeof(float) * n2048, par->maxval_array, 0, NULL, NULL);
         if (res)
@@ -647,7 +647,7 @@ int calcEBV(fields *fi, par *par)
     res = clFinish(commandQueue_g());
     if (res)
         cout << "maxval3f_kernel clfinish B res: " << res << endl;
-    if (!fastio)
+    if (!fastIO)
     {
         res = clEnqueueReadBuffer(vkGPU.commandQueue, par->maxval_buffer, CL_TRUE, 0, sizeof(float) * n2048, par->maxval_array, 0, NULL, NULL);
         if (res)
