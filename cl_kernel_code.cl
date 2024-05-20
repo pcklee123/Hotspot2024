@@ -1260,7 +1260,7 @@ void kernel recalcposchangedt(global float16 *x0, global float16 *y0,
   y0[n] = fma(yprev - y, inc, y);
   z0[n] = fma(zprev - z, inc, z);
 }
-
+/*
 void kernel hist(global float16 *x0, global float16 *y0,
                  global float16 *z0, // prev pos
                  global const float16 *x1, global const float16 *y1,
@@ -1282,3 +1282,4 @@ void kernel hist(global float16 *x0, global float16 *y0,
     atomic_add(&KEhist[index[i]], 1);
   }
 }
+*/
