@@ -36,10 +36,15 @@ int main()
 
     omp_set_nested(true);
     nthreads = omp_get_max_threads(); // omp_set_num_threads(nthreads);
-                                      // allocate memory for particles assume default value of cl_align.
+// allocate memory for particles assume default value of cl_align.
+#ifdef _WIN32
     static float *maxval_array = (float *)_aligned_malloc(sizeof(float) * n2048, par->cl_align);
-    par->maxval_array = maxval_array;
     static int *nt_array = (int *)_aligned_malloc(sizeof(int) * n2048, par->cl_align);
+#else
+    static float *maxval_array = (float *)aligned_alloc(sizeof(float) * n2048, par->cl_align);
+    static int *nt_array = (int *)aligned_alloc(sizeof(int) * n2048, par->cl_align);
+#endif
+    par->maxval_array = maxval_array;
     par->nt_array = nt_array;
     particles *pt = alloc_particles(par);
     fields *fi = alloc_fields(par);
@@ -147,7 +152,7 @@ int main()
     float TDebye = Debye_Length / vel_e;
     acc_e = fabsf(e_charge_mass * par->Emax);
     TE = (sqrt(1 + 2 * a0 * par->a0_f * acc_e / pow(vel_e, 2)) - 1) * vel_e / acc_e; // time for electron to move across 1 cell
-    TE = ((TE <= 0) | (isnan(TE))) ? a0 * par->a0_f / vel_e : TE;                   // if acc is negligible i.e. in square root ~=1, use approximation is more accurate
+    TE = ((TE <= 0) | (isnan(TE))) ? a0 * par->a0_f / vel_e : TE;                    // if acc is negligible i.e. in square root ~=1, use approximation is more accurate
     // set time step to allow electrons to gyrate if there is B field or to allow electrons to move slowly throughout the plasma distance
     float TExB = a0 * par->a0_f / (par->Emax + .1) * (par->Bmax + .00001);
     info_file << "Tdebye=" << TDebye << ", Tcycloton/4=" << Tcyclotron << ", plasma period/4=" << plasma_period << ",TE=" << TE << ",TExB=" << TExB << endl;
@@ -203,7 +208,7 @@ int main()
                           // float max_jc = maxvalf((reinterpret_cast<float *>(fi->jc)), n_cells * 3);
                           //  cout << "max current density  = " << max_jc << endl;
         // getchar();
-        t+=par->ndeltat;
+        t += par->ndeltat;
         cout << i_time << "." << par->nc << " t = " << t << "(compute_time = " << timer.elapsed() << "s) : ";
 
         timer.mark();
