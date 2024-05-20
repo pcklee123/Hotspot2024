@@ -1261,6 +1261,7 @@ void kernel recalcposchangedt(global float16 *x0, global float16 *y0,
   z0[n] = fma(zprev - z, inc, z);
 }
 
+/*
 void kernel hist(global float16 *x0, global float16 *y0,
                  global float16 *z0, // prev pos
                  global const float16 *x1, global const float16 *y1,
@@ -1276,9 +1277,9 @@ void kernel hist(global float16 *x0, global float16 *y0,
   KE = fma(vy, vy, KE);
   KE = fma(vz, vz, KE);
   uint16 index = convert_uint16(KE * coeff);
-  uint16 hist_n_vector = (uint16)(hist_n);
-  index = index > hist_n ? hist_n : index;
+  //index = index > hist_n ? hist_n : index;
   for (int i = 0; i < 16; i++) {
     atomic_add(&KEhist[index[i]], 1);
   }
 }
+*/
