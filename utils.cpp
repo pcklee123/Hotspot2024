@@ -149,11 +149,15 @@ void info(par *par)
 particles *alloc_particles(par *par)
 {
     auto *pt = (particles *)malloc(sizeof(particles));
-    //[pos0,pos1][x,y,z][electrons,ions][n_partd]
-    // position of particle and velocity: stored as 2 positions at slightly different times [2 positions previous and current][3 components][2 types of particles][number of particles]
-    /** CL: Ensure that pos0/1.. contain multiple of 64 bytes, ie. multiple of 16 floats **/
-    //*
+//[pos0,pos1][x,y,z][electrons,ions][n_partd]
+// position of particle and velocity: stored as 2 positions at slightly different times [2 positions previous and current][3 components][2 types of particles][number of particles]
+/** CL: Ensure that pos0/1.. contain multiple of 64 bytes, ie. multiple of 16 floats **/
+//*
+#ifdef _WIN32
     pt->pos = reinterpret_cast<float(&)[2][3][2][n_partd]>(*((float *)_aligned_malloc(sizeof(float) * par->n_part[0] * 2 * 3 * 2, par->cl_align)));
+#else
+    pt->pos = reinterpret_cast<float(&)[2][3][2][n_partd]>(*((float *)aligned_alloc(sizeof(float) * par->n_part[0] * 2 * 3 * 2, par->cl_align)));
+#endif
     // convenience pointers pos0[3 components][2 types of particles][n-particles] as 1D
     pt->pos0 = reinterpret_cast<float(*)>(pt->pos[0]);
     pt->pos1 = reinterpret_cast<float(*)>(pt->pos[1]);

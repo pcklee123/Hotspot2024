@@ -147,7 +147,7 @@ int main()
     float TDebye = Debye_Length / vel_e;
     acc_e = fabsf(e_charge_mass * par->Emax);
     TE = (sqrt(1 + 2 * a0 * par->a0_f * acc_e / pow(vel_e, 2)) - 1) * vel_e / acc_e; // time for electron to move across 1 cell
-    TE = ((TE <= 0) | (isnanf(TE))) ? a0 * par->a0_f / vel_e : TE;                   // if acc is negligible i.e. in square root ~=1, use approximation is more accurate
+    TE = ((TE <= 0) | (isnan(TE))) ? a0 * par->a0_f / vel_e : TE;                   // if acc is negligible i.e. in square root ~=1, use approximation is more accurate
     // set time step to allow electrons to gyrate if there is B field or to allow electrons to move slowly throughout the plasma distance
     float TExB = a0 * par->a0_f / (par->Emax + .1) * (par->Bmax + .00001);
     info_file << "Tdebye=" << TDebye << ", Tcycloton/4=" << Tcyclotron << ", plasma period/4=" << plasma_period << ",TE=" << TE << ",TExB=" << TExB << endl;
