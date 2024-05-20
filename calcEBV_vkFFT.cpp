@@ -43,12 +43,20 @@ int calcEBV(fields *fi, par *par)
 {
     //  static fftwf_plan planforE, planforB, planbacE, planbacB;
     static int first = 1;
+#ifdef _WIN32
     static auto *fft_real = static_cast<float(*)[n_cells8]>(_aligned_malloc(sizeof(float) * n_cells8 * 4, 4096));                      // fft_real[4][n_cells8]
     static auto *fft_complex = static_cast<complex<float>(*)[n_cells4]>(_aligned_malloc(sizeof(complex<float>) * n_cells4 * 4, 4096)); // fft_complex[4][n_cells4]
     //  pre-calculate 1/ r3 to make it faster to calculate electric and magnetic fields
-    // static auto *precalc_r3 = static_cast<complex<float>(*)[3][n_cells4]>(_aligned_malloc(sizeof(complex<float>) * 2 * 3 * n_cells4, 4096)); // precalc_r3[2][3][n_cells4]
 #ifdef Uon_ // similar arrays for U, but kept separately in one ifdef
             // static auto *precalc_r2 = static_cast<complex<float>(*)>(_aligned_malloc(sizeof(complex<float>) * n_cells4, 4096));                      // precalc_r3[n_cells4]
+#endif
+#else
+    static auto *fft_real = static_cast<float(*)[n_cells8]>(aligned_alloc(sizeof(float) * n_cells8 * 4, 4096));                      // fft_real[4][n_cells8]
+    static auto *fft_complex = static_cast<complex<float>(*)[n_cells4]>(aligned_alloc(sizeof(complex<float>) * n_cells4 * 4, 4096)); // fft_complex[4][n_cells4]
+    //  pre-calculate 1/ r3 to make it faster to calculate electric and magnetic fields
+#ifdef Uon_ // similar arrays for U, but kept separately in one ifdef
+            // static auto *precalc_r2 = static_cast<complex<float>(*)>(aligned_alloc(sizeof(complex<float>) * n_cells4, 4096));                      // precalc_r3[n_cells4]
+#endif
 #endif
     static const size_t n_4 = n_cells / 4;
     static auto EUtot = new float[n_4];
@@ -608,7 +616,8 @@ int calcEBV(fields *fi, par *par)
     if (res)
         cout << "EUEst_kernel   res: " << res << endl;
     res = clFinish(commandQueue_g());
-    if(!fastIO ){
+    if (!fastIO)
+    {
         res = clEnqueueReadBuffer(vkGPU.commandQueue, EUtot_buffer, CL_TRUE, 0, sizeof(float) * n_4, EUtot, 0, NULL, NULL);
         if (res)
             cout << "EUEst_kernel readbuffer res: " << res << endl;
@@ -662,7 +671,7 @@ int calcEBV(fields *fi, par *par)
     float acc_e = fabsf(e_charge_mass * par->Emax);
     float vel_e = sqrt(kb * Temp_e / e_mass);
     float TE = (sqrt(1 + 2 * a0 * par->a0_f * acc_e / pow(vel_e, 2)) - 1) * vel_e / acc_e; // time for electron to move across 1 cell
-    TE = ((TE <= 0) | (isnanf(TE))) ? a0 * par->a0_f / vel_e : TE;                         // if acc is negligible i.e. in square root ~=1, use approximation is more accurate
+    TE = ((TE <= 0) | (isnan(TE))) ? a0 * par->a0_f / vel_e : TE;                          // if acc is negligible i.e. in square root ~=1, use approximation is more accurate
     // set time step to allow electrons to gyrate if there is B field or to allow electrons to move slowly throughout the plasma distance
 
     TE *= 1; // x times larger try to save time but makes it unstable.

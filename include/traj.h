@@ -7,8 +7,8 @@
 #include <chrono>
 #include <cmath>
 #include <algorithm>
-#include <gsl/gsl_rng.h>
-#include <gsl/gsl_randist.h>
+//#include <gsl/gsl_rng.h>//
+//#include <gsl/gsl_randist.h>
 #include <random>
 //#include <cmath>
 #include <iostream>
@@ -21,6 +21,7 @@
 #endif
 #include <CL/opencl.hpp>
 // #include <vtk/vtksys/Configure.hxx>
+#ifdef WIN32
 #include <vtk/vtkSmartPointer.h>
 #include <vtk/vtkFloatArray.h>
 #include <vtk/vtkDoubleArray.h>
@@ -38,6 +39,25 @@
 #include <vtk/vtkXMLPolyDataWriter.h>
 #include <vtk/vtkImageData.h>
 #include <vtk/vtkPointData.h>
+#else
+#include <vtkSmartPointer.h>
+#include <vtkFloatArray.h>
+#include <vtkDoubleArray.h>
+#include <vtkPolyData.h>
+#include <vtkCellData.h>
+#include <vtkSmartPointer.h>
+
+#include <vtkInformation.h>
+#include <vtkTable.h>
+
+#include <vtkDelimitedTextWriter.h>
+
+#include <vtkZLibDataCompressor.h>
+#include <vtkXMLImageDataWriter.h>
+#include <vtkXMLPolyDataWriter.h>
+#include <vtkImageData.h>
+#include <vtkPointData.h>
+#endif
 #include <complex>
 // #include <infft.h>
 
