@@ -7,8 +7,8 @@
 #include <chrono>
 #include <cmath>
 #include <algorithm>
-#include <gsl/gsl_rng.h>
-#include <gsl/gsl_randist.h>
+//#include <gsl/gsl_rng.h>//
+//#include <gsl/gsl_randist.h>
 #include <random>
 //#include <cmath>
 #include <iostream>
