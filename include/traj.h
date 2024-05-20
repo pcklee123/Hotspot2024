@@ -21,7 +21,7 @@
 #endif
 #include <CL/opencl.hpp>
 // #include <vtk/vtksys/Configure.hxx>
-#ifdef WIN32
+#ifdef _WIN32
 #include <vtk/vtkSmartPointer.h>
 #include <vtk/vtkFloatArray.h>
 #include <vtk/vtkDoubleArray.h>
