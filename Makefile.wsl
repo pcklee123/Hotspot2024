@@ -7,7 +7,7 @@ dir_guard=@mkdir -p $(@D)
 CC=g++
 #ucrt64
 #CFLAGS= -pg -no-pie -I$(IDIR) -I /ucrt64/include/vtk -L /ucrt64/lib/vtk -march=native -malign-double -std=c++2b  -fopenmp -fopenmp-simd 
-CFLAGS= -pg -no-pie -I$(IDIR) -I /usr/include/vtk-9.1 -L /usr/lib/x86_64-linux-gnu/vtk -march=native -malign-double -std=c++2b  -fopenmp -fopenmp-simd 
+CFLAGS= -pg -no-pie -I$(IDIR) -I /usr/include/vtk-9.1 -L /usr/lib/x86_64-linux-gnu/vtk -march=native -malign-double -std=c++2b # -fopenmp -fopenmp-simd 
 
 
 CFLAGS+= -O3 -ftree-parallelize-loops=8 
