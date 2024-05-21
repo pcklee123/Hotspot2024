@@ -64,7 +64,7 @@
 // #include <nfft3.h>
 //  #include "nfft3mp.h"
 // #include <fftw3_threads.h>
-#include <fftw3.h>
+//#include <fftw3.h>
 
 using namespace std;
 
