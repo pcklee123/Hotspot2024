@@ -59,8 +59,9 @@ void generate_rand_sphere(particles *pt, par *par)
             y = sinf(phi) * sinf(theta);
 #endif
             //          cout << r << ", " << x << ", " << y << ", " << z << endl;
-                            cout << "not crash yet" << endl;
+
             pt->pos0x[p][na] = r * x;
+            //cout << "not crash yet" << endl;
             pt->pos1x[p][na] = pt->pos0x[p][na] + v0[p][0] * par->dt[p];
             pt->pos0y[p][na] = r * y;
             pt->pos1y[p][na] = pt->pos0y[p][na] + v0[p][1] * par->dt[p];
