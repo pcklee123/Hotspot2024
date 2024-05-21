@@ -76,13 +76,17 @@ extern cl::CommandQueue commandQueue_g;
 extern int device_id_g;
 extern cl_bool fastIO;
 extern string outpath;
-// #ifdef RamDisk // save file info - initialize filepath
+#ifdef RamDisk // save file info - initialize filepath
 const string outpath1 = "R:\\Temp\\out\\";
+#else
 #if !defined(_WIN32) && (defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__)))
 /* UNIX-style OS. ------------------------------------------- */
+const string outpath1 = std::filesystem::temp_directory_path().string() + "/out/";
 const string outpath2 = std::filesystem::temp_directory_path().string() + "/out/";
 #else
+const string outpath1 = std::filesystem::temp_directory_path().string() + "out/";
 const string outpath2 = std::filesystem::temp_directory_path().string() + "out/";
+#endif
 #endif
 static int nthreads;
 constexpr int alignment = 64; // 512 bits / 8 bits per byte = 64 bytes
