@@ -74,7 +74,7 @@ int main()
     }
     cout << "Start up time = " << timer.replace() << "s\n";
     // startup stuff set output path opencl and print initial info
-    cout << "Set initial random positions: ";
+    cout << "Set initial random positions: "<<endl;
     timer.mark();
     // estimate dt. needed to set up initial particles with velocity actual value not important
     float vel_e = sqrt(kb * Temp_e / (mp[0] * e_mass) + vz0 * vz0 + v0_r * v0_r);
@@ -86,7 +86,7 @@ int main()
     // set time step to allow electrons to gyrate if there is B field or to allow electrons to move slowly throughout the plasma distance
     par->dt[0] = min(Tcyclotron, TE) / f1; // electron should not move more than 1 cell after ncalc*dt and should not make more than 1/4 gyration and must calculate E before the next 1/4 plasma period
     par->dt[1] = par->dt[0] * md_me;
-    // cout << "dt = " << par->dt[0] << ", " << par->dt[1] << endl;
+     cout << "dt = " << par->dt[0] << ", " << par->dt[1] << endl;
 #define generateRandom
 #ifdef generateRandom
 #ifdef sphere

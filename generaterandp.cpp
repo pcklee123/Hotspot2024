@@ -2,6 +2,7 @@
 void generate_rand_sphere(particles *pt, par *par)
 {
     // spherical plasma set plasma parameters
+
     float Temp[2] = {Temp_e, Temp_d}; // in K convert to eV divide by 1.160451812e4
     // initial bulk electron, ion velocity
     float v0[2][3] = {{0, 0, -vz0}, {0, 0, vz0 / 60}};
@@ -15,16 +16,40 @@ void generate_rand_sphere(particles *pt, par *par)
     std::weibull_distribution<float> weibull_dist(weibullb, 1.0f); // Weibull distribution 1st parameter is shape
 
     size_t na = 0;
+    if (fastIO)
+    {
+        // unmap memory buffers pos0x
+        commandQueue_g.enqueueUnmapMemObject(pt->buff_x0_e[0], pt->pos0x[0]);
+        commandQueue_g.enqueueUnmapMemObject(pt->buff_y0_e[0], pt->pos0y[0]);
+        commandQueue_g.enqueueUnmapMemObject(pt->buff_z0_e[0], pt->pos0z[0]);
+        commandQueue_g.enqueueUnmapMemObject(pt->buff_x1_e[0], pt->pos1x[0]);
+        commandQueue_g.enqueueUnmapMemObject(pt->buff_y1_e[0], pt->pos1y[0]);
+        commandQueue_g.enqueueUnmapMemObject(pt->buff_z1_e[0], pt->pos1z[0]);
+        commandQueue_g.enqueueUnmapMemObject(pt->buff_q_e[0], pt->q[0]);
+        commandQueue_g.enqueueUnmapMemObject(pt->buff_x0_i[0], pt->pos0x[1]);
+        commandQueue_g.enqueueUnmapMemObject(pt->buff_y0_i[0], pt->pos0y[1]);
+        commandQueue_g.enqueueUnmapMemObject(pt->buff_z0_i[0], pt->pos0z[1]);
+        commandQueue_g.enqueueUnmapMemObject(pt->buff_x1_i[0], pt->pos1x[1]);
+        commandQueue_g.enqueueUnmapMemObject(pt->buff_y1_i[0], pt->pos1y[1]);
+        commandQueue_g.enqueueUnmapMemObject(pt->buff_z1_i[0], pt->pos1z[1]);
+        commandQueue_g.enqueueUnmapMemObject(pt->buff_q_i[0], pt->q[1]);
+        // wait for unmap to finish
+        commandQueue_g.finish();
+    }
+
     for (int p = 0; p < 2; p++)
     {
-#pragma omp parallel for simd num_threads(nthreads)
+
+        // #pragma omp parallel for simd num_threads(nthreads)
         for (na = 0; na < nback; ++na) // set number of particles per cell in background
         {
+
             float r = r0[2] * pow(uniform_dist(gen), 0.5f);
             float x, y, z;
             z = uniform_dist(gen) * (par->posH_1[2] - par->posL_1[2]) + par->posL_1[2];
+
 #if defined(octant) || defined(quadrant)
-            float theta = 0.5* pi * uniform_dist(gen);
+            float theta = 0.5 * pi * uniform_dist(gen);
             x = cosf(theta);
             y = sinf(theta);
 #else
@@ -34,6 +59,7 @@ void generate_rand_sphere(particles *pt, par *par)
             y = sinf(phi) * sinf(theta);
 #endif
             //          cout << r << ", " << x << ", " << y << ", " << z << endl;
+                            cout << "not crash yet" << endl;
             pt->pos0x[p][na] = r * x;
             pt->pos1x[p][na] = pt->pos0x[p][na] + v0[p][0] * par->dt[p];
             pt->pos0y[p][na] = r * y;
@@ -43,7 +69,7 @@ void generate_rand_sphere(particles *pt, par *par)
             pt->q[p][na] = qs[p];
         }
 
-#pragma omp parallel for simd num_threads(nthreads)
+        // #pragma omp parallel for simd num_threads(nthreads)
         for (int n = nback; n < n_partd; n++)
         {
 #ifdef Weibull
@@ -82,7 +108,8 @@ void generate_rand_sphere(particles *pt, par *par)
             //   cout << pt->pos0x[p][n] - pt->pos1x[p][n] << ", " << normal_dist(gen) << endl;
         }
     }
-#pragma omp barrier
+    // #pragma omp barrier
+
     if (!fastIO) // write CPU generated particle positions to opencl buffers
     {            //  electrons
         commandQueue_g.enqueueWriteBuffer(pt->buff_x0_e[0], CL_TRUE, 0, n_partf, pt->pos0x[0]);
