@@ -245,6 +245,8 @@ fields *alloc_fields(par *par)
     return f;
 }
 
+/*
+
 void vector_muls(float *A, float Bb, int n)
 {
     // Create a command queue
@@ -298,6 +300,7 @@ void vector_muls(fftwf_complex *dst, fftwf_complex *A, fftwf_complex *B, int n)
     // read result arrays from the device to main memory
     queue.enqueueReadBuffer(buffer_A, CL_TRUE, 0, sizeof(fftwf_complex) * n, dst);
 }
+*/
 
 int checkInRange(string name, float data[3][n_space_divz][n_space_divy][n_space_divz], float minval, float maxval)
 {
