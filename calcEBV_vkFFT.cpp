@@ -643,7 +643,7 @@ int calcEBV(fields *fi, par *par)
         if (res)
             cout << "maxval3f_kernel readbuffer res: " << res << endl;
     }
-    par->Emax = sqrtf(maxvalf(par->maxval_array, n2048));
+    par->Emax = sqrtf(maxvalf(par->maxval_array, 2048));
     // cout << "Emax = " << par->Emax << endl;
 #endif
 
@@ -662,7 +662,7 @@ int calcEBV(fields *fi, par *par)
         if (res)
             cout << "maxval3f_kernel readbuffer res: " << res << endl;
     }
-    par->Bmax = sqrtf(maxvalf(par->maxval_array, n2048));
+    par->Bmax = sqrtf(maxvalf(par->maxval_array, 2048));
 #endif
 
     int E_exceeds = 0,
