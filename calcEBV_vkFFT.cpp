@@ -51,11 +51,11 @@ int calcEBV(fields *fi, par *par)
             // static auto *precalc_r2 = static_cast<complex<float>(*)>(_aligned_malloc(sizeof(complex<float>) * n_cells4, 4096));                      // precalc_r3[n_cells4]
 #endif
 #else
-    static auto *fft_real = static_cast<float(*)[n_cells8]>(aligned_alloc(sizeof(float) * n_cells8 * 4, 4096));                      // fft_real[4][n_cells8]
-    static auto *fft_complex = static_cast<complex<float>(*)[n_cells4]>(aligned_alloc(sizeof(complex<float>) * n_cells4 * 4, 4096)); // fft_complex[4][n_cells4]
+ //   static auto *fft_real = static_cast<float(*)[n_cells8]>(aligned_alloc(par->cl_align,sizeof(float) * n_cells8 * 4));                      // fft_real[4][n_cells8]
+ //   static auto *fft_complex = static_cast<complex<float>(*)[n_cells4]>(aligned_alloc(par->cl_align,sizeof(complex<float>) * n_cells4 * 4)); // fft_complex[4][n_cells4]
     //  pre-calculate 1/ r3 to make it faster to calculate electric and magnetic fields
 #ifdef Uon_ // similar arrays for U, but kept separately in one ifdef
-            // static auto *precalc_r2 = static_cast<complex<float>(*)>(aligned_alloc(sizeof(complex<float>) * n_cells4, 4096));                      // precalc_r3[n_cells4]
+            // static auto *precalc_r2 = static_cast<complex<float>(*)>(aligned_alloc(par->cl_align,sizeof(complex<float>) * n_cells4));                      // precalc_r3[n_cells4]
 #endif
 #endif
     static const size_t n_4 = n_cells / 4;

@@ -156,7 +156,7 @@ particles *alloc_particles(par *par)
 #ifdef _WIN32
     pt->pos = reinterpret_cast<float(&)[2][3][2][n_partd]>(*((float *)_aligned_malloc(sizeof(float) * par->n_part[0] * 2 * 3 * 2, par->cl_align)));
 #else
-    pt->pos = reinterpret_cast<float(&)[2][3][2][n_partd]>(*((float *)aligned_alloc(sizeof(float) * par->n_part[0] * 2 * 3 * 2, par->cl_align)));
+    pt->pos = reinterpret_cast<float(&)[2][3][2][n_partd]>(*((float *)aligned_alloc(par->cl_align, sizeof(float) * par->n_part[0] * 2 * 3 * 2)));
 #endif
     // convenience pointers pos0[3 components][2 types of particles][n-particles] as 1D
     pt->pos0 = reinterpret_cast<float(*)>(pt->pos[0]);
@@ -173,9 +173,8 @@ particles *alloc_particles(par *par)
     auto *q = static_cast<int(*)[n_partd]>(_aligned_malloc(2 * n_partd * sizeof(int), par->cl_align)); // charge of each particle +1 for H,D or T or -1 for electron can also be +2 for He for example
     auto *m = static_cast<int(*)[n_partd]>(_aligned_malloc(2 * n_partd * sizeof(int), par->cl_align)); // mass of of each particle not really useful unless we want to simulate many different types of particles
 #else
-    auto *q = static_cast<int(*)[n_partd]>(aligned_alloc(2 * n_partd * sizeof(int), par->cl_align)); // charge of each particle +1 for H,D or T or -1 for electron can also be +2 for He for example
-    auto *m = static_cast<int(*)[n_partd]>(aligned_alloc(2 * n_partd * sizeof(int), par->cl_align)); // mass of of each particle not really useful unless we want to simulate many different types of particles
-
+    auto *q = static_cast<int(*)[n_partd]>(aligned_alloc(par->cl_align, 2 * n_partd * sizeof(int))); // charge of each particle +1 for H,D or T or -1 for electron can also be +2 for He for example
+    auto *m = static_cast<int(*)[n_partd]>(aligned_alloc(par->cl_align, 2 * n_partd * sizeof(int))); // mass of of each particle not really useful unless we want to simulate many different types of particles
 #endif
 
     pt->q = q;
@@ -214,31 +213,31 @@ fields *alloc_fields(par *par)
     f->precalc_r2 = static_cast<float(*)>(_aligned_malloc(n_cells4 * sizeof(complex<float>), alignment)); // similar arrays for U, but kept separately in one ifdef
 #endif
 #else
-    f->E = static_cast<float(*)[n_space_divz][n_space_divy][n_space_divx]>(aligned_alloc(sizeof(float) * n_cells * 3, par->cl_align));                   // selfgenerated E field
-    f->Ee = static_cast<float(*)[n_space_divz][n_space_divy][n_space_divx]>(aligned_alloc(sizeof(float) * n_cells * 3, par->cl_align));                  // External E field
-    f->Ea = static_cast<float(*)[n_space_divz][n_space_divy][n_space_divx][ncoeff]>(aligned_alloc(sizeof(float) * n_cells * 3 * ncoeff, par->cl_align)); // coefficients for Trilinear interpolation Electric field
+    f->E = static_cast<float(*)[n_space_divz][n_space_divy][n_space_divx]>(aligned_alloc(par->cl_align, sizeof(float) * n_cells * 3));                   // selfgenerated E field
+    f->Ee = static_cast<float(*)[n_space_divz][n_space_divy][n_space_divx]>(aligned_alloc(par->cl_align, sizeof(float) * n_cells * 3));                  // External E field
+    f->Ea = static_cast<float(*)[n_space_divz][n_space_divy][n_space_divx][ncoeff]>(aligned_alloc(par->cl_align, sizeof(float) * n_cells * 3 * ncoeff)); // coefficients for Trilinear interpolation Electric field
 
-    f->B = static_cast<float(*)[n_space_divz][n_space_divy][n_space_divx]>(aligned_alloc(sizeof(float) * n_cells * 3, par->cl_align));                   // selfgenerated E field
-    f->Be = static_cast<float(*)[n_space_divz][n_space_divy][n_space_divx]>(aligned_alloc(sizeof(float) * n_cells * 3, par->cl_align));                  // External E field
-    f->Ba = static_cast<float(*)[n_space_divz][n_space_divy][n_space_divx][ncoeff]>(aligned_alloc(sizeof(float) * n_cells * 3 * ncoeff, par->cl_align)); // coefficients for Trilinear interpolation Magnetic field
+    f->B = static_cast<float(*)[n_space_divz][n_space_divy][n_space_divx]>(aligned_alloc(par->cl_align, sizeof(float) * n_cells * 3));                   // selfgenerated E field
+    f->Be = static_cast<float(*)[n_space_divz][n_space_divy][n_space_divx]>(aligned_alloc(par->cl_align, sizeof(float) * n_cells * 3));                  // External E field
+    f->Ba = static_cast<float(*)[n_space_divz][n_space_divy][n_space_divx][ncoeff]>(aligned_alloc(par->cl_align, sizeof(float) * n_cells * 3 * ncoeff)); // coefficients for Trilinear interpolation Magnetic field
 
-    f->E0 = static_cast<float(*)[n_space_divz][n_space_divy][n_space_divx]>(aligned_alloc(sizeof(float) * n_cells * 3, par->cl_align)); // E0 to calculate dE/dt
-    f->B0 = static_cast<float(*)[n_space_divz][n_space_divy][n_space_divx]>(aligned_alloc(sizeof(float) * n_cells * 3, par->cl_align)); // dB/dt
+    f->E0 = static_cast<float(*)[n_space_divz][n_space_divy][n_space_divx]>(aligned_alloc(par->cl_align, sizeof(float) * n_cells * 3)); // E0 to calculate dE/dt
+    f->B0 = static_cast<float(*)[n_space_divz][n_space_divy][n_space_divx]>(aligned_alloc(par->cl_align, sizeof(float) * n_cells * 3)); // dB/dt
 
-    f->V = static_cast<float(*)[n_space_divy][n_space_divx]>(aligned_alloc(sizeof(float) * n_cells, par->cl_align));
+    f->V = static_cast<float(*)[n_space_divy][n_space_divx]>(aligned_alloc(par->cl_align, sizeof(float) * n_cells));
 
-    f->np = static_cast<float(*)[n_space_divz][n_space_divy][n_space_divx]>(aligned_alloc(2 * n_cells * sizeof(float), alignment));
-    f->npi = static_cast<int(*)[n_space_divy][n_space_divx]>(aligned_alloc(n_cells * sizeof(int), alignment));
-    f->np_centeri = static_cast<int(*)[n_space_divz][n_space_divy][n_space_divx]>(aligned_alloc(n_cells * 3 * sizeof(int), alignment));
-    f->npt = static_cast<float(*)[n_space_divy][n_space_divx]>(aligned_alloc(n_cells * sizeof(float), alignment));
-    f->currentj = static_cast<float(*)[3][n_space_divz][n_space_divy][n_space_divx]>(aligned_alloc(2 * 3 * n_cells * sizeof(float), alignment));
-    f->cji = static_cast<int(*)[n_space_divz][n_space_divy][n_space_divx]>(aligned_alloc(n_cells * sizeof(int) * 3, alignment));
-    f->cj_centeri = static_cast<int(*)[3][n_space_divz][n_space_divy][n_space_divx]>(aligned_alloc(n_cells * sizeof(int) * 3 * 3, alignment));
-    f->jc = static_cast<float(*)[n_space_divz][n_space_divy][n_space_divx]>(aligned_alloc(3 * n_cells * sizeof(float), alignment));
+    f->np = static_cast<float(*)[n_space_divz][n_space_divy][n_space_divx]>(aligned_alloc(par->cl_align, 2 * n_cells * sizeof(float)));
+    f->npi = static_cast<int(*)[n_space_divy][n_space_divx]>(aligned_alloc(par->cl_align, n_cells * sizeof(int)));
+    f->np_centeri = static_cast<int(*)[n_space_divz][n_space_divy][n_space_divx]>(aligned_alloc(par->cl_align, n_cells * 3 * sizeof(int)));
+    f->npt = static_cast<float(*)[n_space_divy][n_space_divx]>(aligned_alloc(par->cl_align, n_cells * sizeof(float)));
+    f->currentj = static_cast<float(*)[3][n_space_divz][n_space_divy][n_space_divx]>(aligned_alloc(par->cl_align, 2 * 3 * n_cells * sizeof(float)));
+    f->cji = static_cast<int(*)[n_space_divz][n_space_divy][n_space_divx]>(aligned_alloc(par->cl_align, n_cells * sizeof(int) * 3));
+    f->cj_centeri = static_cast<int(*)[3][n_space_divz][n_space_divy][n_space_divx]>(aligned_alloc(par->cl_align, n_cells * sizeof(int) * 3 * 3));
+    f->jc = static_cast<float(*)[n_space_divz][n_space_divy][n_space_divx]>(aligned_alloc(par->cl_align, 3 * n_cells * sizeof(float)));
     // float *precalc_r3; //  pre-calculate 1/ r3 to make it faster to calculate electric and magnetic fields
-    f->precalc_r3 = static_cast<float(*)>(aligned_alloc(2 * 3 * n_cells4 * sizeof(complex<float>), alignment));
+    f->precalc_r3 = static_cast<float(*)>(aligned_alloc(par->cl_align, 2 * 3 * n_cells4 * sizeof(complex<float>)));
 #ifdef Uon_
-    f->precalc_r2 = static_cast<float(*)>(aligned_alloc(n_cells4 * sizeof(complex<float>), alignment)); // similar arrays for U, but kept separately in one ifdef
+    f->precalc_r2 = static_cast<float(*)>(aligned_alloc(par->cl_align, n_cells4 * sizeof(complex<float>), alignment)); // similar arrays for U, but kept separately in one ifdef
 #endif
 #endif
 
