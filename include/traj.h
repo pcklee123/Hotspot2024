@@ -78,6 +78,12 @@ extern cl_bool fastIO;
 extern string outpath;
 #ifdef RamDisk // save file info - initialize filepath
 const string outpath1 = "R:\\Temp\\out\\";
+#if !defined(_WIN32) && (defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__)))
+/* UNIX-style OS. ------------------------------------------- */
+const string outpath2 = std::filesystem::temp_directory_path().string() + "/out/";
+#else
+const string outpath2 = std::filesystem::temp_directory_path().string() + "out/";
+#endif
 #else
 #if !defined(_WIN32) && (defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__)))
 /* UNIX-style OS. ------------------------------------------- */
