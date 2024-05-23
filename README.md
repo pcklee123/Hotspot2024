@@ -7,22 +7,18 @@
 
 ## Introduction
 This project aims to develop a Particle in Cell plasma code.
-Original code in 2021 by Hilary,Yin Yue and Chloe, extensive improvements by Samuel,Ananth and Vishwa.
+Original code in 2021 by Hilary,Yin Yue and Chloe, extensive improvements by Samuel, Ananth and Vishwa.
 
 ## Getting Started
 ### Prerequisites for windows
 - MSYS2
 - to avoid confusion, use either of "mingw64" or "ucrt" and do not mix the two. The following examples make use of ucrt  
 - Tools: 
-    - > pacman -S base-devel git mingw-w64-ucrt-x86_64-cmake mingw-w64-ucrt-x86_64-gcc 
+    - > pacman -S base-devel git mingw-w64-ucrt-x86_64-gcc 
     - install windows native paraview, visual studio code
 
-- Libs (Opencl, OpenMP, gsl, fftw, vtk, nfftw)
-    - > pacman -S mingw-w64-ucrt-x86_64-opencl-headers mingw-w64-ucrt-x86_64-opencl-clhpp mingw-w64-ucrt-x86_64-opencl-icd mingw-w64-ucrt-x86_64-openmp mingw-w64-ucrt-x86_64-gsl mingw-w64-ucrt-x86_64-fftw mingw-w64-ucrt-x86_64-vtk 
-
-    - If using float version of nfftw3f. should install from source using ./configure --enable-float
-    https://www-user.tu-chemnitz.de/~potts/nfft/installation.php
-
+- Libs (Opencl, OpenMP, vtk)
+    - > pacman -S mingw-w64-ucrt-x86_64-opencl-headers mingw-w64-ucrt-x86_64-opencl-clhpp mingw-w64-ucrt-x86_64-opencl-icd mingw-w64-ucrt-x86_64-openmp mingw-w64-ucrt-x86_64-vtk 
 
 - GCC added to PATH in MSYS
     - In the root directory, run 
@@ -30,8 +26,14 @@ Original code in 2021 by Hilary,Yin Yue and Chloe, extensive improvements by Sam
     - this can also be added in windows "edit system environment variables" , "Path". Add C:\msys64\usr\bin and C:\msys64\ucrt64\bin
 
 ### Prerequisites for Linux
+- Tools: (GCC, code paraview)
+
+- Libs: (Opencl, OpenMP, vtk)
 
 ## Usage
+modify include/traj_physics.h
+run make
+run the executable e.g. TS3.exe on windows or TS3
 
 ## Todo
 - Setup particles for hot rod project
