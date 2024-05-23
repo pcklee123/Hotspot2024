@@ -166,7 +166,7 @@ struct par // useful parameters
     uint32_t ncalcp[2] = {md_me, 1};
     uint32_t nc = nc1;
     uint32_t n_partp[2] = {n_parte, n_partd}; // 0,number of "super" electrons, electron +deuteriom ions, total
-    unsigned int cl_align = 2048;
+    unsigned int cl_align = 64;
     std::string outpath;
     float a0_f = 1.0; // factor to scale cell size
     cl_mem maxval_buffer = 0;
