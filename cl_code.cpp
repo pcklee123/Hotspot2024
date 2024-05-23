@@ -102,7 +102,9 @@ void cl_start(fields *fi, particles *pt, par *par)
     // cout << "getplatforms\n";
     cl::Platform::get(&platforms);
 
+    //    cl::Platform default_platform = platforms[1];
     cl::Platform default_platform = platforms[0];
+
     info_file << "Using platform: " << default_platform.getInfo<CL_PLATFORM_NAME>() << "\n";
     // cout << "getdevice\n";
     default_platform.getDevices(CL_DEVICE_TYPE_ALL, &devices);
@@ -232,12 +234,12 @@ void cl_start(fields *fi, particles *pt, par *par)
     fi->fft_real_buffer = fft_real_buffer;
     fi->fft_complex_buffer = fft_complex_buffer;
     fi->fft_p_buffer = fft_p_buffer;
-    static cl::Buffer buff_maxval(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, sizeof(float)*n2048, fastIO ? par->maxval_array : NULL); // x0
+    static cl::Buffer buff_maxval(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, sizeof(float) * n2048, fastIO ? par->maxval_array : NULL); // x0
     static cl_mem maxval_buffer = buff_maxval();
     // clCreateBuffer(context_g(), CL_MEM_READ_WRITE, n2048 * sizeof(float), 0, &res);
     par->maxval_buffer = maxval_buffer;
     // static cl_mem nt_buffer = clCreateBuffer(context_g(), CL_MEM_READ_WRITE, n2048 * sizeof(int), 0, &res);
-    static cl::Buffer buff_nt(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE,sizeof(int) * n2048, fastIO ? par->nt_array : NULL); // x0
+    static cl::Buffer buff_nt(context_g, (fastIO ? CL_MEM_USE_HOST_PTR : 0) | CL_MEM_READ_WRITE, sizeof(int) * n2048, fastIO ? par->nt_array : NULL); // x0
     static cl_mem nt_buffer = buff_nt();
     par->nt_buffer = nt_buffer;
     if (res)
