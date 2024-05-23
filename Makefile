@@ -12,12 +12,12 @@ CFLAGS= -pg -no-pie -I$(IDIR) -I /usr/include/vtk-9.1 -L /usr/lib/x86_64-linux-g
 LIBS+= -lvtkCommonCore-9.1  -lvtksys-9.1 -lvtkIOXML-9.1 -lvtkCommonDataModel-9.1 -lvtkIOCore-9.1
 else
 #ucrt64
-CFLAGS= -pg -no-pie -I$(IDIR) -I /ucrt64/include/vtk -L /ucrt64/lib/vtk -march=native -malign-double -std=c++2b  -fopenmp -fopenmp-simd 
+CFLAGS= -pg -no-pie -I$(IDIR) -I /ucrt64/include/vtk -L /ucrt64/lib/vtk -march=native -malign-double -std=c++2b -fopenmp -fopenmp-simd 
 LIBS+= -lvtkCommonCore.dll  -lvtksys.dll -lvtkIOXML.dll -lvtkCommonDataModel.dll -lvtkIOCore.dll
 endif 
 
 CFLAGS+= -O3 -ftree-parallelize-loops=8 
-CFLAGS+= -mavx -mavx2 -mfma -ffast-math -ftree-vectorize -fno-omit-frame-pointer #-finline-functions
+CFLAGS+= -mavx -mavx2 -mavx512f -mfma -ffast-math -ftree-vectorize -fno-omit-frame-pointer #-finline-functions
 
 
 AFLAGS= -flto=$(CPUS) -funroll-loops -fno-signed-zeros -fno-trapping-math -D_GLIBCXX_PARALLEL -fgcse-sm -fgcse-las 
