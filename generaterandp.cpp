@@ -40,7 +40,7 @@ void generate_rand_sphere(particles *pt, par *par)
     for (int p = 0; p < 2; p++)
     {
 
-        // #pragma omp parallel for simd num_threads(nthreads)
+#pragma omp parallel for simd num_threads(nthreads)
         for (na = 0; na < nback; ++na) // set number of particles per cell in background
         {
 
@@ -61,7 +61,7 @@ void generate_rand_sphere(particles *pt, par *par)
             //          cout << r << ", " << x << ", " << y << ", " << z << endl;
 
             pt->pos0x[p][na] = r * x;
-            //cout << "not crash yet" << endl;
+            // cout << "not crash yet" << endl;
             pt->pos1x[p][na] = pt->pos0x[p][na] + v0[p][0] * par->dt[p];
             pt->pos0y[p][na] = r * y;
             pt->pos1y[p][na] = pt->pos0y[p][na] + v0[p][1] * par->dt[p];
@@ -70,7 +70,7 @@ void generate_rand_sphere(particles *pt, par *par)
             pt->q[p][na] = qs[p];
         }
 
-        // #pragma omp parallel for simd num_threads(nthreads)
+#pragma omp parallel for simd num_threads(nthreads)
         for (int n = nback; n < n_partd; n++)
         {
 #ifdef Weibull
@@ -109,7 +109,7 @@ void generate_rand_sphere(particles *pt, par *par)
             //   cout << pt->pos0x[p][n] - pt->pos1x[p][n] << ", " << normal_dist(gen) << endl;
         }
     }
-    // #pragma omp barrier
+#pragma omp barrier
 
     if (!fastIO) // write CPU generated particle positions to opencl buffers
     {            //  electrons

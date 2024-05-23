@@ -7,10 +7,10 @@
 #include <chrono>
 #include <cmath>
 #include <algorithm>
-//#include <gsl/gsl_rng.h>//
-//#include <gsl/gsl_randist.h>
+// #include <gsl/gsl_rng.h>//
+// #include <gsl/gsl_randist.h>
 #include <random>
-//#include <cmath>
+// #include <cmath>
 #include <iostream>
 #include <omp.h>
 #include <string>
@@ -64,7 +64,7 @@
 // #include <nfft3.h>
 //  #include "nfft3mp.h"
 // #include <fftw3_threads.h>
-//#include <fftw3.h>
+// #include <fftw3.h>
 
 using namespace std;
 
@@ -76,18 +76,20 @@ extern cl::CommandQueue commandQueue_g;
 extern int device_id_g;
 extern cl_bool fastIO;
 extern string outpath;
-#ifdef RamDisk // save file info - initialize filepath
-const string outpath1 = "R:\\Temp\\out\\";
-#else
+
 #if !defined(_WIN32) && (defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__)))
 /* UNIX-style OS. ------------------------------------------- */
 const string outpath1 = std::filesystem::temp_directory_path().string() + "/out/";
 const string outpath2 = std::filesystem::temp_directory_path().string() + "/out/";
 #else
+#ifdef RamDisk // save file info - initialize filepath
+const string outpath1 = "R:\\Temp\\out\\";
+#else
 const string outpath1 = std::filesystem::temp_directory_path().string() + "out/";
+#endif
 const string outpath2 = std::filesystem::temp_directory_path().string() + "out/";
 #endif
-#endif
+
 static int nthreads;
 constexpr int alignment = 64; // 512 bits / 8 bits per byte = 64 bytes
 
@@ -161,6 +163,6 @@ void changedx(fields *fi, par *par);
 particles *alloc_particles(par *par);
 fields *alloc_fields(par *par);
 
-void recalcpos(particles *pt, par *par,float inc);
+void recalcpos(particles *pt, par *par, float inc);
 
 #endif // TRAJ_H_INCLUDED
