@@ -69,10 +69,11 @@ std::pair<int, int> getFastestDevice()
             bool is_gpu = devices[device_num].getInfo<CL_DEVICE_TYPE>() == CL_DEVICE_TYPE_GPU;
             string name = devices[device_num].getInfo<CL_DEVICE_NAME>();
             string vendor = devices[device_num].getInfo<CL_DEVICE_VENDOR>();
-            uint ipc = is_gpu ? 2u : 32u; // IPC (instructions per cycle) is 2 for GPUs and 32 for most modern CPUs
+            unsigned int ipc = is_gpu ? 2u : 32u; // IPC (instructions per cycle) is 2 for GPUs and 32 for most modern CPUs
             bool intel_16_cores_per_cu = (name.find("gpu max") != std::string::npos);
             float intel = (float)(vendor.find("Intel") != std::string::npos) * (is_gpu ? (intel_16_cores_per_cu ? 16.0f : 8.0f) : 0.5f); // Intel GPUs have 16 cores/CU (PVC) or 8 cores/CU (integrated/Arc), Intel CPUs (with HT) have 1/2 core/CU
-            int performance = (frequency * compute_units * ipc * (intel))/1000;
+            float amd=1;
+            int performance = (frequency * compute_units * ipc * (intel+amd))/1000;
             cout << "device " << platform_num << ", " << device_num << " perf=" << performance << " ipc=" << ipc << " intel=" << intel << endl;
             if (performance > max_performance)
             {
@@ -151,7 +152,7 @@ void cl_start(fields *fi, particles *pt, par *par)
     cl::Platform default_platform = platforms[platformn];
     info_file << "Using platform: " << default_platform.getInfo<CL_PLATFORM_NAME>() << "\n";
     // cout << "getdevice\n";
-    //  default_platform.getDevices(CL_DEVICE_TYPE_ALL, &devices);
+     default_platform.getDevices(CL_DEVICE_TYPE_ALL, &devices);
     cl::Device default_device;
     // device_id--;
     // device_id = (device_id >= cldevice) ? cldevice : (device_id >= 0 ? device_id : 0); // use dGPU only if available
