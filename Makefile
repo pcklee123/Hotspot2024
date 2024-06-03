@@ -4,23 +4,27 @@ _OBJ = utils.o TS3.o tnp.o generate.o generaterandp.o  save.o cl_code.o changedt
 IDIR = include
 dir_guard=@mkdir -p $(@D)
 #https://stackoverflow.com/questions/14492436/g-optimization-beyond-o3-ofast
-CC=g++
+
 LIBS= -lm  -lOpenCL  -lgomp #-lgsl# -lfftw3f -lfftw3f_omp 
 UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S),Linux)
+CC=clang++
 CFLAGS= -pg -no-pie -I$(IDIR) -I /usr/include/vtk-9.1 -L /usr/lib/x86_64-linux-gnu/vtk -march=native -malign-double -std=c++2b -fopenmp -fopenmp-simd 
 LIBS+= -lvtkCommonCore-9.1  -lvtksys-9.1 -lvtkIOXML-9.1 -lvtkCommonDataModel-9.1 -lvtkIOCore-9.1
+AFLAGS= -funroll-loops -fno-signed-zeros -fno-trapping-math #-D_GLIBCXX_PARALLEL -fgcse-sm -fgcse-las  -flto=$(CPUS)
 else
 #ucrt64
+CC=g++
 CFLAGS= -pg -no-pie -I$(IDIR) -I /ucrt64/include/vtk -L /ucrt64/lib/vtk -march=native -malign-double -std=c++2b -fopenmp -fopenmp-simd 
 LIBS+= -lvtkCommonCore.dll  -lvtksys.dll -lvtkIOXML.dll -lvtkCommonDataModel.dll -lvtkIOCore.dll
+AFLAGS= -flto=$(CPUS) -funroll-loops -fno-signed-zeros -fno-trapping-math -D_GLIBCXX_PARALLEL -fgcse-sm -fgcse-las 
 endif 
 
 CFLAGS+= -O3 -ftree-parallelize-loops=8 
 CFLAGS+= -mavx -mavx2 -mfma -ffast-math -ftree-vectorize -fno-omit-frame-pointer #-finline-functions
 
 
-AFLAGS= -flto=$(CPUS) -funroll-loops -fno-signed-zeros -fno-trapping-math -D_GLIBCXX_PARALLEL -fgcse-sm -fgcse-las 
+
 #-Wl,--stack,4294967296
 
 CFLAGS += $(AFLAGS)
