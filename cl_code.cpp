@@ -73,7 +73,7 @@ std::pair<int, int> getFastestDevice()
             bool intel_16_cores_per_cu = (name.find("gpu max") != std::string::npos);
             float intel = (float)(vendor.find("Intel") != std::string::npos) * (is_gpu ? (intel_16_cores_per_cu ? 16.0f : 8.0f) : 0.5f); // Intel GPUs have 16 cores/CU (PVC) or 8 cores/CU (integrated/Arc), Intel CPUs (with HT) have 1/2 core/CU
             int performance = (frequency * compute_units * ipc * (intel))/1000;
-            cout << "device " << platform_num << ", " << device_num << " performance " << performance << "ipc=" << ipc << "intel=" << intel << endl;
+            cout << "device " << platform_num << ", " << device_num << " perf=" << performance << " ipc=" << ipc << " intel=" << intel << endl;
             if (performance > max_performance)
             {
                 max_performance = performance;
