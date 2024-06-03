@@ -20,10 +20,10 @@ LIBS+= -lvtkCommonCore.dll -lvtksys.dll -lvtkIOXML.dll -lvtkCommonDataModel.dll 
 endif 
 
 CFLAGS+= -O3 
-CFLAGS+= -mavx -mavx2 -mavx512f -mfma -ffast-math -ftree-vectorize -fno-omit-frame-pointer #-finline-functions
+#CFLAGS+= -mavx -mavx2 -mavx512f -mfma -ffast-math -ftree-vectorize -fno-omit-frame-pointer #-finline-functions
 #CFLAGS+= -ftree-parallelize-loops=8 
 
-AFLAGS= -funroll-loops -fno-signed-zeros -fno-trapping-math -D_GLIBCXX_PARALLEL -v #-flto
+#AFLAGS= -funroll-loops -fno-signed-zeros -fno-trapping-math -D_GLIBCXX_PARALLEL -v #-flto
 # -flto=$(CPUS) -fgcse-sm -fgcse-las 
 #-Wl,--stack,4294967296
 
