@@ -1142,7 +1142,7 @@ static inline void appendDCTIV_odd_write_processing (VkFFTSpecializationConstant
 		
 		temp_double.data.d = pfFPinit("1.41421356237309504880168872420969807856967");
 		PfMul(sc, &regID->data.c[0], &regID->data.c[0], &temp_double, 0);
-		/*temp_int.data.i = fftDim.data.i / 4;
+		temp_int.data.i = fftDim.data.i / 4;// slash star at the beginning of this line
 		PfIf_lt_start(sc, &sc->stageInvocationID, &temp_int);
 
 		temp_int.data.i = 1;

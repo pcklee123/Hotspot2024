@@ -8,6 +8,7 @@ cl::Program program_g;
 cl::CommandQueue commandQueue_g;
 int device_id_g;
 cl_bool fastIO;
+int platformn=2;// choose a good one based on info.csv, GPU is usually best. 
 
 stringstream cl_build_options;
 void add_build_option(string name, string param)
@@ -47,6 +48,7 @@ void cl_set_build_options(par *par)
 
 void cl_start(fields *fi, particles *pt, par *par)
 {
+    /*
     int AA[1] = {-1};
 #pragma omp target
     AA[0] = omp_is_initial_device();
@@ -54,6 +56,7 @@ void cl_start(fields *fi, particles *pt, par *par)
         info_file << "Able to use GPU offloading with OMP!\n";
     else
         info_file << "\nNo GPU on OMP\n";
+        */
     // get all platforms (drivers)
     cl::vector<cl::Platform> platforms;
     cl::Platform::get(&platforms);
@@ -103,7 +106,7 @@ void cl_start(fields *fi, particles *pt, par *par)
     cl::Platform::get(&platforms);
 
     //    cl::Platform default_platform = platforms[1];
-    cl::Platform default_platform = platforms[0];
+    cl::Platform default_platform = platforms[platformn];
 
     info_file << "Using platform: " << default_platform.getInfo<CL_PLATFORM_NAME>() << "\n";
     // cout << "getdevice\n";

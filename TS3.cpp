@@ -34,7 +34,7 @@ int main()
     cerr << std::scientific;
     cerr.precision(3);
 
-    omp_set_nested(true);
+    //omp_set_nested(true);
     nthreads = omp_get_max_threads(); // omp_set_num_threads(nthreads);
                                       // allocate memory for particles assume default value of cl_align.
     std::cout << alignof(std::max_align_t) << endl;
