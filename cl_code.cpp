@@ -8,7 +8,7 @@ cl::Program program_g;
 cl::CommandQueue commandQueue_g;
 int device_id_g;
 cl_bool fastIO;
-int platformn=2;// choose a good one based on info.csv, GPU is usually best. 
+int platformn=0;// choose a good one based on info.csv, GPU is usually best. 
 
 stringstream cl_build_options;
 void add_build_option(string name, string param)
