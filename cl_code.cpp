@@ -2,13 +2,14 @@
 #include <string>
 #include <fstream>
 #include <streambuf>
+
 cl::Context context_g;
 cl::Device default_device_g;
 cl::Program program_g;
 cl::CommandQueue commandQueue_g;
 int device_id_g;
 cl_bool fastIO;
-int platformn=0;// choose a good one based on info.csv, GPU is usually best. 
+int platformn = 0; // choose a good one based on info.csv, GPU is usually best.
 
 stringstream cl_build_options;
 void add_build_option(string name, string param)
@@ -45,7 +46,45 @@ void cl_set_build_options(par *par)
     add_build_option("NC4", (int)n_cells4);
     add_build_option("NPART", (int)n_partd);
 }
+std::pair<int, int> getFastestDevice()
+{
+    std::vector<cl::Platform> platforms;
+    cl::Platform::get(&platforms);
 
+    int max_performance = 0;
+    int fastest_device_num = -1;
+    int fastest_platform_num = -1;
+
+    for (int platform_num = 0; platform_num < platforms.size(); ++platform_num)
+    {
+        std::vector<cl::Device> devices;
+        platforms[platform_num].getDevices(CL_DEVICE_TYPE_ALL, &devices);
+
+        for (int device_num = 0; device_num < devices.size(); ++device_num)
+        {
+            int frequency = devices[device_num].getInfo<CL_DEVICE_MAX_CLOCK_FREQUENCY>();
+            int compute_units = devices[device_num].getInfo<CL_DEVICE_MAX_COMPUTE_UNITS>();
+
+            bool is_cpu = devices[device_num].getInfo<CL_DEVICE_TYPE>() == CL_DEVICE_TYPE_CPU;
+            bool is_gpu = devices[device_num].getInfo<CL_DEVICE_TYPE>() == CL_DEVICE_TYPE_GPU;
+            string name = devices[device_num].getInfo<CL_DEVICE_NAME>();
+            string vendor = devices[device_num].getInfo<CL_DEVICE_VENDOR>();
+            uint ipc = is_gpu ? 2u : 32u; // IPC (instructions per cycle) is 2 for GPUs and 32 for most modern CPUs
+            bool intel_16_cores_per_cu = (name.find("gpu max") != std::string::npos);
+            float intel = (float)(vendor.find("Intel") != std::string::npos) * (is_gpu ? (intel_16_cores_per_cu ? 16.0f : 8.0f) : 0.5f); // Intel GPUs have 16 cores/CU (PVC) or 8 cores/CU (integrated/Arc), Intel CPUs (with HT) have 1/2 core/CU
+            float performance = 1e-6 * (float)(frequency * compute_units * ipc * (intel));
+            cout << "device " << platform_num << ", " << device_num << " performance " << performance << "ipc=" << ipc << "intel=" << intel << endl;
+            if (performance > max_performance)
+            {
+                max_performance = performance;
+                fastest_device_num = device_num;
+                fastest_platform_num = platform_num;
+            }
+        }
+    }
+
+    return {fastest_platform_num, fastest_device_num};
+}
 void cl_start(fields *fi, particles *pt, par *par)
 {
     /*
@@ -76,9 +115,8 @@ void cl_start(fields *fi, particles *pt, par *par)
         info_file << "Platform Name: " << platform.getInfo<CL_PLATFORM_NAME>() << std::endl;
         info_file << "Platform Vendor: " << platform.getInfo<CL_PLATFORM_VENDOR>() << std::endl;
 
-        //     platform.getDevices(CL_DEVICE_TYPE_GPU | CL_DEVICE_TYPE_CPU, &devices);
-        platform.getDevices(CL_DEVICE_TYPE_GPU, &devices);
-        //       platform.getDevices(CL_DEVICE_TYPE_GPU, &devices);
+        platform.getDevices(CL_DEVICE_TYPE_GPU | CL_DEVICE_TYPE_CPU, &devices);
+        // platform.getDevices(CL_DEVICE_TYPE_GPU, &devices);
         int i = 0;
         for (cl::vector<cl::Device>::iterator it2 = devices.begin(); it2 != devices.end(); ++it2)
         {
@@ -94,7 +132,7 @@ void cl_start(fields *fi, particles *pt, par *par)
             info_file << "\t\tDevice Global Memory: MB " << device.getInfo<CL_DEVICE_GLOBAL_MEM_SIZE>() / 1024 / 1024 << std::endl;
             info_file << "\t\tDevice Max Clock Frequency: MHz " << device.getInfo<CL_DEVICE_MAX_CLOCK_FREQUENCY>() << std::endl;
             info_file << "\t\tDevice Max Allocateable Memory MB: " << device.getInfo<CL_DEVICE_MAX_MEM_ALLOC_SIZE>() / 1024 / 1024 << std::endl;
-            //par->cl_align = device.getInfo<CL_DEVICE_MEM_BASE_ADDR_ALIGN>();
+            // par->cl_align = device.getInfo<CL_DEVICE_MEM_BASE_ADDR_ALIGN>();
             info_file << "\t\tDevice addr_align: kB " << device.getInfo<CL_DEVICE_MEM_BASE_ADDR_ALIGN>() << std::endl;
             info_file << "\t\tDevice Local Memory: kB " << device.getInfo<CL_DEVICE_LOCAL_MEM_SIZE>() / 1024 << std::endl;
             info_file << "\t\tDevice Available: " << device.getInfo<CL_DEVICE_AVAILABLE>() << std::endl;
@@ -105,15 +143,18 @@ void cl_start(fields *fi, particles *pt, par *par)
     // cout << "getplatforms\n";
     cl::Platform::get(&platforms);
 
+    // choose the fastest device
+    pair<int, int> fastest_device = getFastestDevice();
+    platformn = fastest_device.first;
+    device_id = fastest_device.second;
     //    cl::Platform default_platform = platforms[1];
     cl::Platform default_platform = platforms[platformn];
-
     info_file << "Using platform: " << default_platform.getInfo<CL_PLATFORM_NAME>() << "\n";
     // cout << "getdevice\n";
-    default_platform.getDevices(CL_DEVICE_TYPE_ALL, &devices);
+    //  default_platform.getDevices(CL_DEVICE_TYPE_ALL, &devices);
     cl::Device default_device;
-    device_id--;
-    device_id = (device_id >= cldevice) ? cldevice : (device_id >= 0 ? device_id : 0); // use dGPU only if available
+    // device_id--;
+    // device_id = (device_id >= cldevice) ? cldevice : (device_id >= 0 ? device_id : 0); // use dGPU only if available
     cout << "device_id = " << device_id << ", devices.size = " << devices.size() << ", cl_align = " << par->cl_align << endl;
     default_device = devices[device_id];
     info_file << "\t\tDevice Name: " << default_device.getInfo<CL_DEVICE_NAME>() << "\ndevice_id =" << device_id << endl;
