@@ -212,11 +212,14 @@ void cl_start(fields *fi, particles *pt, par *par)
     cl::CommandQueue queue(context_g, default_device_g);
     commandQueue_g = queue;
 
-    cout << "check for unified memory " << endl;
+    cout << "check for unified memory ";
     cl_bool temp;
     default_device_g.getInfo(CL_DEVICE_HOST_UNIFIED_MEMORY, &temp);
     if (temp == true)
+    {
         info_file << "Using unified memory: " << ((temp == CL_TRUE) ? "TRUE" : "FALSE") << " \n";
+        cout << ((temp == CL_TRUE) ? "TRUE" : "FALSE") << endl;
+    }
     else
         info_file << "No unified memory: " << temp << " \n";
     fastIO = temp;
