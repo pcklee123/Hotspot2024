@@ -52,8 +52,8 @@ std::pair<int, int> getFastestDevice()
     cl::Platform::get(&platforms);
 
     int max_performance = 0;
-    int fastest_device_num = -1;
-    int fastest_platform_num = -1;
+    int fastest_device_num = 0;
+    int fastest_platform_num = 0;
 
     for (int platform_num = 0; platform_num < platforms.size(); ++platform_num)
     {
@@ -69,15 +69,17 @@ std::pair<int, int> getFastestDevice()
             bool is_gpu = devices[device_num].getInfo<CL_DEVICE_TYPE>() == CL_DEVICE_TYPE_GPU;
             string name = devices[device_num].getInfo<CL_DEVICE_NAME>();
             string vendor = devices[device_num].getInfo<CL_DEVICE_VENDOR>();
+            //cout << vendor << endl;
             unsigned int ipc = is_gpu ? 2u : 32u; // IPC (instructions per cycle) is 2 for GPUs and 32 for most modern CPUs
             bool intel_16_cores_per_cu = (name.find("gpu max") != std::string::npos);
             float intel = (float)(vendor.find("Intel") != std::string::npos) * (is_gpu ? (intel_16_cores_per_cu ? 16.0f : 8.0f) : 0.5f); // Intel GPUs have 16 cores/CU (PVC) or 8 cores/CU (integrated/Arc), Intel CPUs (with HT) have 1/2 core/CU
-            bool amd_128_cores_per_dualcu = (name.find("gfx10") != std::string::npos);                                                   // identify RDNA/RDNA2 GPUs where dual CUs are reported
-            bool amd_256_cores_per_dualcu = (name.find("gfx11") != std::string::npos);                                                   // identify RDNA3 GPUs where dual CUs are reported
-            float amd = (float)(vendor.find("Advanced") != std::string::npos) * (is_gpu ? (amd_256_cores_per_dualcu ? 256.0f : amd_128_cores_per_dualcu ? 128.0f
-                                                                                                                                                   : 64.0f)
-                                                                                   : 0.5f); // AMD GPUs have 64 cores/CU (GCN, CDNA), 128 cores/dualCU (RDNA, RDNA2) or 256 cores/dualCU (RDNA3), AMD CPUs (with SMT) have 1/2 core/CU
-
+            //cout << "intel" << endl;
+            bool amd_128_cores_per_dualcu = (name.find("gfx10") != std::string::npos); // identify RDNA/RDNA2 GPUs where dual CUs are reported
+            bool amd_256_cores_per_dualcu = (name.find("gfx11") != std::string::npos); // identify RDNA3 GPUs where dual CUs are reported
+            float amd = (float)(vendor.find("Advanced") != std::string::npos | vendor.find("AMD") != std::string::npos ) * (is_gpu ? (amd_256_cores_per_dualcu ? 256.0f : amd_128_cores_per_dualcu ? 128.0f
+                                                                                                                                                        : 64.0f)                                               
+                                                                                               : 0.5f); // AMD GPUs have 64 cores/CU (GCN, CDNA), 128 cores/dualCU (RDNA, RDNA2) or 256 cores/dualCU (RDNA3), AMD CPUs (with SMT) have 1/2 core/CU
+            //cout << "amd" << endl;
             int performance = (frequency * compute_units * ipc * (intel + amd)) / 1000;
             cout << "device " << platform_num << ", " << device_num << " perf=" << performance << " ipc=" << ipc;
             if (intel != 0)
@@ -150,7 +152,7 @@ void cl_start(fields *fi, particles *pt, par *par)
         }
         info_file << std::endl;
     }
-    // cout << "getplatforms\n";
+    //cout << "getplatforms\n";
     cl::Platform::get(&platforms);
 
     // choose the fastest device
@@ -159,7 +161,7 @@ void cl_start(fields *fi, particles *pt, par *par)
     device_id = fastest_device.second;
     cl::Platform default_platform = platforms[platformn];
     info_file << "Using platform: " << default_platform.getInfo<CL_PLATFORM_NAME>() << "\n";
-    // cout << "getdevice\n";
+    //cout << "getdevice\n";
     default_platform.getDevices(CL_DEVICE_TYPE_ALL, &devices);
     cl::Device default_device;
     cout << "device_id = " << platformn << ", " << device_id << ", devices.size = " << devices.size() << ", cl_align = " << par->cl_align << endl;
