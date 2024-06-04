@@ -10,23 +10,22 @@ UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S),Linux)
 CC=clang++
 #CFLAGS= -pg -no-pie -L /usr/lib/x86_64-linux-gnu/vtk
-CFLAGS= -pg -I$(IDIR) -I /usr/include/vtk-9.1  -march=native -malign-double -std=c++2b -fopenmp -fopenmp-simd 
-CFLAGS+= -O3 -mavx -mavx2 -mfma -ftree-vectorize -fno-omit-frame-pointer
-LIBS+= -lomp -lvtkCommonCore-9.1  -lvtksys-9.1 -lvtkIOXML-9.1 -lvtkCommonDataModel-9.1 -lvtkIOCore-9.1
-AFLAGS= -funroll-loops -fno-signed-zeros -fno-trapping-math #-D_GLIBCXX_PARALLEL -fgcse-sm -fgcse-las  -flto=$(CPUS)
+CFLAGS= -I$(IDIR) -I /usr/include/vtk-9.1  -march=native -malign-double -std=c++2b -fopenmp -fopenmp-simd 
+CFLAGS+= -O3 -mavx -mavx2 -mfma -ftree-vectorize -fno-omit-frame-pointer -funroll-loops -fno-signed-zeros -fno-trapping-math #-D_GLIBCXX_PARALLEL -fgcse-sm -fgcse-las  -flto=$(CPUS)
+LIBS+= -lomp -lvtkCommonCore-9.1 -lvtksys-9.1 -lvtkIOXML-9.1 -lvtkCommonDataModel-9.1 -lvtkIOCore-9.1
+AFLAGS= -fuse-ld=lld 
 else
 #ucrt64
 CC=clang++
 CFLAGS= -I$(IDIR) -I /ucrt64/include/vtk -march=native -malign-double -std=c++2b -fopenmp -fopenmp-simd 
 CFLAGS+= -O3 #-ftree-parallelize-loops 
-CFLAGS+= -mavx -mavx2 -mfma -ftree-vectorize -fno-omit-frame-pointer -finline-functions
+CFLAGS+= -mavx -mavx2 -mfma -ftree-vectorize -fno-omit-frame-pointer -finline-functions -funroll-loops -fno-signed-zeros -fno-trapping-math -D_GLIBCXX_PARALLEL
 LIBS+= -lomp -lvtkCommonCore.dll -lvtksys.dll -lvtkIOXML.dll -lvtkCommonDataModel.dll -lvtkIOCore.dll
-AFLAGS= -fuse-ld=lld -funroll-loops -fno-signed-zeros -fno-trapping-math -D_GLIBCXX_PARALLEL
-
+AFLAGS= -fuse-ld=lld 
 endif 
 
 #-Wl,--stack,4294967296
-CFLAGS += $(AFLAGS)
+#CFLAGS += $(AFLAGS)
 CPUS ?= $(shell (nproc --all || sysctl -n hw.ncpu) 2>/dev/null || echo 1)
 MAKEFLAGS += --jobs=$(CPUS)
 
@@ -46,10 +45,10 @@ $(ODIR)/%.o: %.cpp $(DEPS)
 
 $(DODIR)/%.o: %.cpp $(DEPS)
 	$(dir_guard)
-	$(CC) -g -c -o $@ $< $(CFLAGSd)
+	$(CC) -c -o $@ $< $(CFLAGSd)
 
 TS3: $(OBJ)
-	$(CC) -o $@ $^ $(CFLAGS) $(LIBS)
+	$(CC) -o $@ $^ $(CFLAGS) $(AFLAGS) $(LIBS)
 
 
 debug: $(DOBJ)
