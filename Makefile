@@ -1,4 +1,3 @@
-3
 _DEPS = traj.h traj_physics.h
 _OBJ = utils.o TS3.o tnp.o generate.o generaterandp.o  save.o cl_code.o changedtdx.o calcEBV_vkFFT.o calcU.o  get_densityfields.o utils_VkFFT.o
 
