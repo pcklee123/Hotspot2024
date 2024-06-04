@@ -1,10 +1,10 @@
 #include "include/traj.h"
 // #include <iostream>
 // #include <vtkSmartPointer.h>
-#include <vtkStructuredGrid.h>
 // #include <vtkPoints.h>
 // #include <vtkDoubleArray.h>
 #include <vtkXMLStructuredGridWriter.h>
+#include <vtkStructuredGrid.h>
 
 void save_hist(int i_time, double t, particles *pt, par *par)
 {

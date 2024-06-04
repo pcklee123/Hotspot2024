@@ -13,7 +13,7 @@ CFLAGS= -I$(IDIR) -I /usr/include/vtk-9.1 -L /usr/lib/x86_64-linux-gnu/vtk -marc
 LIBS+= -lvtkCommonCore-9.1  -lvtksys-9.1 -lvtkIOXML-9.1 -lvtkCommonDataModel-9.1 -lvtkIOCore-9.1
 else
 #ucrt64
-CFLAGS= -I$(IDIR) -I /clang64/include/vtk -march=native -malign-double -std=c++2b -fopenmp -fopenmp-simd 
+CFLAGS= -I$(IDIR)  -march=native -malign-double -std=c++2b -fopenmp -fopenmp-simd -I /ucrt64/include/vtk -L /ucrt64/lib
 LIBS+= -lvtksys.dll -lvtkIOXML.dll -lvtkIOCore.dll -lvtkCommonDataModel.dll -lvtkCommonCore.dll  #-lvtkAcceleratorsVTKmDataModel.dll
 #LIBS+= -lvtkCommonCore -lvtksys -lvtkIOXML -lvtkCommonDataModel -lvtkIOCore
 
@@ -24,7 +24,7 @@ endif
 #CFLAGS+= -ftree-parallelize-loops=8 
 
 #AFLAGS= -funroll-loops -fno-signed-zeros -fno-trapping-math -D_GLIBCXX_PARALLEL -v #-flto
-AFLAGS= -v
+#AFLAGS= -v
 
 CFLAGS += $(AFLAGS)
 CPUS ?= $(shell (nproc --all || sysctl -n hw.ncpu) 2>/dev/null || echo 1)
