@@ -72,9 +72,18 @@ std::pair<int, int> getFastestDevice()
             unsigned int ipc = is_gpu ? 2u : 32u; // IPC (instructions per cycle) is 2 for GPUs and 32 for most modern CPUs
             bool intel_16_cores_per_cu = (name.find("gpu max") != std::string::npos);
             float intel = (float)(vendor.find("Intel") != std::string::npos) * (is_gpu ? (intel_16_cores_per_cu ? 16.0f : 8.0f) : 0.5f); // Intel GPUs have 16 cores/CU (PVC) or 8 cores/CU (integrated/Arc), Intel CPUs (with HT) have 1/2 core/CU
-            float amd=1;
-            int performance = (frequency * compute_units * ipc * (intel+amd))/1000;
-            cout << "device " << platform_num << ", " << device_num << " perf=" << performance << " ipc=" << ipc << " intel=" << intel << endl;
+            bool amd_128_cores_per_dualcu = (name.find("gfx10") != std::string::npos);                                                   // identify RDNA/RDNA2 GPUs where dual CUs are reported
+            bool amd_256_cores_per_dualcu = (name.find("gfx11") != std::string::npos);                                                   // identify RDNA3 GPUs where dual CUs are reported
+            float amd = (float)(vendor.find("amd") != std::string::npos) * (is_gpu ? (amd_256_cores_per_dualcu ? 256.0f : amd_128_cores_per_dualcu ? 128.0f
+                                                                                                                                                   : 64.0f)
+                                                                                   : 0.5f); // AMD GPUs have 64 cores/CU (GCN, CDNA), 128 cores/dualCU (RDNA, RDNA2) or 256 cores/dualCU (RDNA3), AMD CPUs (with SMT) have 1/2 core/CU
+
+            int performance = (frequency * compute_units * ipc * (intel + amd)) / 1000;
+            cout << "device " << platform_num << ", " << device_num << " perf=" << performance << " ipc=" << ipc;
+            if (intel != 0)
+                cout << " intel=" << intel << endl;
+            if (amd != 0)
+                cout << " amd=" << amd << endl;
             if (performance > max_performance)
             {
                 max_performance = performance;
@@ -152,7 +161,7 @@ void cl_start(fields *fi, particles *pt, par *par)
     cl::Platform default_platform = platforms[platformn];
     info_file << "Using platform: " << default_platform.getInfo<CL_PLATFORM_NAME>() << "\n";
     // cout << "getdevice\n";
-     default_platform.getDevices(CL_DEVICE_TYPE_ALL, &devices);
+    default_platform.getDevices(CL_DEVICE_TYPE_ALL, &devices);
     cl::Device default_device;
     // device_id--;
     // device_id = (device_id >= cldevice) ? cldevice : (device_id >= 0 ? device_id : 0); // use dGPU only if available
