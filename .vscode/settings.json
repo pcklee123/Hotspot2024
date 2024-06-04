@@ -68,7 +68,10 @@
         "typeinfo": "cpp",
         "*.txx": "cpp",
         "bitset": "cpp",
-        "regex": "cpp"
+        "regex": "cpp",
+        "list": "cpp",
+        "source_location": "cpp",
+        "text_encoding": "cpp"
     },
     "CodeGPT.apiKey": "CodeGPT Plus Beta"
 }

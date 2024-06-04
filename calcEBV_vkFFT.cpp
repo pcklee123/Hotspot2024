@@ -51,8 +51,8 @@ int calcEBV(fields *fi, par *par)
             // static auto *precalc_r2 = static_cast<complex<float>(*)>(_aligned_malloc(sizeof(complex<float>) * n_cells4, 4096));                      // precalc_r3[n_cells4]
 #endif
 #else
- //   static auto *fft_real = static_cast<float(*)[n_cells8]>(aligned_alloc(par->cl_align,sizeof(float) * n_cells8 * 4));                      // fft_real[4][n_cells8]
- //   static auto *fft_complex = static_cast<complex<float>(*)[n_cells4]>(aligned_alloc(par->cl_align,sizeof(complex<float>) * n_cells4 * 4)); // fft_complex[4][n_cells4]
+    //   static auto *fft_real = static_cast<float(*)[n_cells8]>(aligned_alloc(par->cl_align,sizeof(float) * n_cells8 * 4));                      // fft_real[4][n_cells8]
+    //   static auto *fft_complex = static_cast<complex<float>(*)[n_cells4]>(aligned_alloc(par->cl_align,sizeof(complex<float>) * n_cells4 * 4)); // fft_complex[4][n_cells4]
     //  pre-calculate 1/ r3 to make it faster to calculate electric and magnetic fields
 #ifdef Uon_ // similar arrays for U, but kept separately in one ifdef
             // static auto *precalc_r2 = static_cast<complex<float>(*)>(aligned_alloc(par->cl_align,sizeof(complex<float>) * n_cells4));                      // precalc_r3[n_cells4]
@@ -309,7 +309,7 @@ int calcEBV(fields *fi, par *par)
         posL2[2] = -par->dd[2] * ((float)n_space_divz - 0.5);
 
 // precalculate r_vector/r^3 (field) and 1/r^2 (energy)
-#pragma omp parallel for simd num_threads(nthreads)
+#pragma omp parallel for num_threads(nthreads)
         for (k = -n_space_divz; k < n_space_divz; k++)
         {
             loc_k = k + (k < 0 ? n_space_divz2 : 0); // The "logical" array position
@@ -321,6 +321,7 @@ int calcEBV(fields *fi, par *par)
                 loc_j = j + (j < 0 ? n_space_divy2 : 0);
                 ry = j * par->dd[1];
                 ry2 = ry * ry + rz2;
+//#pragma omp simd
                 for (i = -n_space_divx; i < n_space_divx; i++)
                 {
                     loc_i = i + (i < 0 ? n_space_divx2 : 0);

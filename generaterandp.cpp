@@ -40,7 +40,7 @@ void generate_rand_sphere(particles *pt, par *par)
     for (int p = 0; p < 2; p++)
     {
 
-#pragma omp parallel for simd num_threads(nthreads)
+#pragma omp parallel for num_threads(nthreads)
         for (na = 0; na < nback; ++na) // set number of particles per cell in background
         {
 
@@ -70,7 +70,7 @@ void generate_rand_sphere(particles *pt, par *par)
             pt->q[p][na] = qs[p];
         }
 
-#pragma omp parallel for simd num_threads(nthreads)
+#pragma omp parallel for num_threads(nthreads)
         for (int n = nback; n < n_partd; n++)
         {
 #ifdef Weibull
@@ -109,7 +109,6 @@ void generate_rand_sphere(particles *pt, par *par)
             //   cout << pt->pos0x[p][n] - pt->pos1x[p][n] << ", " << normal_dist(gen) << endl;
         }
     }
-#pragma omp barrier
 
     if (!fastIO) // write CPU generated particle positions to opencl buffers
     {            //  electrons
@@ -194,46 +193,48 @@ void generate_rand_cylinder(particles *pt, par *par)
     double sigma[2] = {sqrt(kb * Temp[0] / (mp[0] * e_mass)), sqrt(kb * Temp[1] / (mp[1] * e_mass))};
     std::random_device rd;
     std::mt19937 gen(rd());
+    std::mt19937 gen1(rd());
+    std::mt19937 gen2(rd());
+    std::mt19937 gen3(rd());
+    std::mt19937 gen4(rd());
     std::uniform_real_distribution<> dis(0, 1);
     std::uniform_real_distribution<> dis_minus1_1(-1.0, 1.0);
     std::normal_distribution<> normal_dis(0, 1);
 
     size_t na = 0;
+
     for (int p = 0; p < 2; p++)
     {
-// #pragma omp parallel for
-#pragma omp parallel for simd num_threads(nthreads)
+        #pragma omp parallel for num_threads(nthreads)
         for (na = 0; na < nback; ++na) // set number of particles per cell in background
         {
             pt->pos1x[p][na] = pt->pos0x[p][na] = dis(gen) * (par->posH_15[0] - par->posL_15[0]) + par->posL_15[0];
-            pt->pos1y[p][na] = pt->pos0y[p][na] = dis(gen) * (par->posH_15[1] - par->posL_15[1]) + par->posL_15[1];
-            pt->pos1z[p][na] = pt->pos0z[p][na] = dis(gen) * (par->posH_15[2] - par->posL_15[2]) + par->posL_15[2];
+            pt->pos1y[p][na] = pt->pos0y[p][na] = dis(gen1) * (par->posH_15[1] - par->posL_15[1]) + par->posL_15[1];
+            pt->pos1z[p][na] = pt->pos0z[p][na] = dis(gen2) * (par->posH_15[2] - par->posL_15[2]) + par->posL_15[2];
             pt->q[p][na] = qs[p];
             // pt->m[p][na] = mp[p];
         }
-
-// #pragma omp parallel for ordered
-#pragma omp parallel for simd num_threads(nthreads)
+#pragma omp parallel for num_threads(nthreads)
         for (int n = na; n < n_partd; n++)
         {
             float r = r0[p] * pow(dis(gen), 0.5);
             double x, y, z;
             z = dis_minus1_1(gen) * a0 * (n_space - 3) * 0.5;
-            double theta = 2 * pi * dis(gen);
+            double theta = 2 * pi * dis(gen1);
             x = cos(theta);
             y = sin(theta);
             pt->pos0x[p][n] = r * x;
-            pt->pos1x[p][n] = pt->pos0x[p][n] + (normal_dis(gen) * sigma[p] + v0[p][0]) * par->dt[p];
+            pt->pos1x[p][n] = pt->pos0x[p][n] + (normal_dis(gen2) * sigma[p] + v0[p][0]) * par->dt[p];
             pt->pos0y[p][n] = r * y;
-            pt->pos1y[p][n] = pt->pos0y[p][n] + (normal_dis(gen) * sigma[p] + v0[p][1]) * par->dt[p];
+            pt->pos1y[p][n] = pt->pos0y[p][n] + (normal_dis(gen3) * sigma[p] + v0[p][1]) * par->dt[p];
             pt->pos0z[p][n] = z;
-            pt->pos1z[p][n] = pt->pos0z[p][n] + (normal_dis(gen) * sigma[p] + v0[p][2]) * par->dt[p];
+            pt->pos1z[p][n] = pt->pos0z[p][n] + (normal_dis(gen4) * sigma[p] + v0[p][2]) * par->dt[p];
             pt->q[p][n] = qs[p];
             //         pt->m[p][n] = mp[p];
         }
         //        nt[p] +=  pt->q[p][n];
     }
-    // #pragma omp barrier
+
     if (!fastIO) // write CPU generated particle positions to opencl buffers
     {            //  electrons
         commandQueue_g.enqueueWriteBuffer(pt->buff_x0_e[0], CL_TRUE, 0, n_partf, pt->pos0x[0]);
