@@ -41,9 +41,9 @@ void save_hist(int i_time, double t, particles *pt, par *par)
   vtkSmartPointer<vtkFieldData> fieldData = polyData->GetFieldData();
   vtkSmartPointer<vtkDoubleArray> timevalue = vtkSmartPointer<vtkDoubleArray>::New();
   timevalue->SetName("TimeValue");
-  timevalue->SetNumberOfValues(1);
-  timevalue->SetValue(0, t);
-//  timevalue->InsertNextValue(t);
+  // timevalue->SetNumberOfTuples(1);
+  timevalue->InsertNextTuple1(t);
+  // timevalue->InsertNextValue(t);
   fieldData->AddArray(timevalue);
 
   // Create a vtkPoints object to store the bin centers
@@ -63,8 +63,8 @@ void save_hist(int i_time, double t, particles *pt, par *par)
   {
     double z = ((double)(i + 0.5) * (double)Hist_max) / (double)(Hist_n); // Calculate the center of the i-th bin
     points->InsertNextPoint(0.0, 0.0, z);                                 // Set the i-th point to the center of the i-th bin
-    //ecounts->InsertNextValue((double)(log(KEhist[0][i] + 1)));
-   // icounts->InsertNextValue((double)(log(KEhist[1][i] + 1)));
+    ecounts->InsertNextTuple1((double)(log(KEhist[0][i] + 1)));
+    icounts->InsertNextTuple1((double)(log(KEhist[1][i] + 1)));
   }
 
   // Set the arrays as the data for the polyData object
@@ -149,12 +149,12 @@ void save_vti_c(string filename, int i,
   }
   structuredGrid->GetCellData()->AddArray(FieldVectorArray);
   // Create a vtkDoubleArray to hold the field data
-//  vtkSmartPointer<vtkDoubleArray> timeArray = vtkSmartPointer<vtkDoubleArray>::New();
- vtkSmartPointer<vtkDoubleArray> timeArray = vtkSmartPointer<vtkDoubleArray>::New();
+  //  vtkSmartPointer<vtkDoubleArray> timeArray = vtkSmartPointer<vtkDoubleArray>::New();
+  vtkSmartPointer<vtkDoubleArray> timeArray = vtkSmartPointer<vtkDoubleArray>::New();
 
   timeArray->SetName("TimeValue");
   timeArray->SetNumberOfTuples(1);
-  //timeArray->SetValue(0, t);
+  timeArray->InsertNextTuple1(t);
 
   // Add the field data to the FieldVectorArray data
   vtkSmartPointer<vtkFieldData> fieldData = structuredGrid->GetFieldData();
@@ -189,7 +189,8 @@ void save_vtp(string filename, int i, uint64_t num, double t, int p, particles *
   vtkSmartPointer<vtkDoubleArray> timeArray = vtkSmartPointer<vtkDoubleArray>::New();
   timeArray->SetName("TimeValue");
   timeArray->SetNumberOfTuples(1);
-  //timeArray->SetValue(0, t);
+  // timeArray->SetValue(0, t);
+  timeArray->InsertNextTuple1(t);
   fieldData->AddArray(timeArray);
 
   vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
@@ -214,7 +215,8 @@ void save_vtp(string filename, int i, uint64_t num, double t, int p, particles *
     KE = 0.5 * mp[p] * (dpos2) / (e_charge_mass * par->dt[p] * par->dt[p]);
     if (KE >= 0)
     {
-     // kineticEnergy->InsertNextValue(KE);
+      // kineticEnergy->InsertNextValue(KE);
+      kineticEnergy->InsertNextTuple1(KE);
       // in units of eV
       points->InsertNextPoint(pt->pos1x[p][n], pt->pos1y[p][n], pt->pos1z[p][n]);
     }
