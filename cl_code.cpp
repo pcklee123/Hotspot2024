@@ -74,7 +74,7 @@ std::pair<int, int> getFastestDevice()
             float intel = (float)(vendor.find("Intel") != std::string::npos) * (is_gpu ? (intel_16_cores_per_cu ? 16.0f : 8.0f) : 0.5f); // Intel GPUs have 16 cores/CU (PVC) or 8 cores/CU (integrated/Arc), Intel CPUs (with HT) have 1/2 core/CU
             bool amd_128_cores_per_dualcu = (name.find("gfx10") != std::string::npos);                                                   // identify RDNA/RDNA2 GPUs where dual CUs are reported
             bool amd_256_cores_per_dualcu = (name.find("gfx11") != std::string::npos);                                                   // identify RDNA3 GPUs where dual CUs are reported
-            float amd = (float)(vendor.find("amd") != std::string::npos) * (is_gpu ? (amd_256_cores_per_dualcu ? 256.0f : amd_128_cores_per_dualcu ? 128.0f
+            float amd = (float)(vendor.find("Advanced") != std::string::npos) * (is_gpu ? (amd_256_cores_per_dualcu ? 256.0f : amd_128_cores_per_dualcu ? 128.0f
                                                                                                                                                    : 64.0f)
                                                                                    : 0.5f); // AMD GPUs have 64 cores/CU (GCN, CDNA), 128 cores/dualCU (RDNA, RDNA2) or 256 cores/dualCU (RDNA3), AMD CPUs (with SMT) have 1/2 core/CU
 
