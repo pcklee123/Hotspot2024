@@ -36,12 +36,13 @@ void generate_rand_sphere(particles *pt, par *par)
         // wait for unmap to finish
         commandQueue_g.finish();
     }
-//#pragma omp parallel for 
+
     for (int p = 0; p < 2; p++)
     {
         // #pragma omp parallel for num_threads(nthreads)
         for (na = 0; na < nback; ++na) // set number of particles per cell in background
         {
+
             float r = r0[2] * pow(uniform_dist(gen), 0.5f);
             float x, y, z;
             z = uniform_dist(gen) * (par->posH_1[2] - par->posL_1[2]) + par->posL_1[2];
@@ -52,17 +53,16 @@ void generate_rand_sphere(particles *pt, par *par)
             y = sinf(theta);
 #else
             float theta = 2.0f * pi * uniform_dist(gen);
-            float zt= 2.0f * uniform_dist(gen) - 1.0f;
-            float sinphi = r*sqrtf(1.0f - zt * zt);
-            x = sinphi * cosf(theta);
-            y = sinphi * sinf(theta);
+            float phi = acosf(2.0f * uniform_dist(gen) - 1.0f);
+            x = sinf(phi) * cosf(theta);
+            y = sinf(phi) * sinf(theta);
 #endif
             //          cout << r << ", " << x << ", " << y << ", " << z << endl;
 
-            pt->pos0x[p][na] = x;
+            pt->pos0x[p][na] = r * x;
             // cout << "not crash yet" << endl;
             pt->pos1x[p][na] = pt->pos0x[p][na] + v0[p][0] * par->dt[p];
-            pt->pos0y[p][na] = y;
+            pt->pos0y[p][na] = r * y;
             pt->pos1y[p][na] = pt->pos0y[p][na] + v0[p][1] * par->dt[p];
             pt->pos0z[p][na] = z;
             pt->pos1z[p][na] = pt->pos0z[p][na] + v0[p][2] * par->dt[p];
@@ -85,9 +85,8 @@ void generate_rand_sphere(particles *pt, par *par)
 #endif
             float x, y, z;
             float theta = 2 * pi * uniform_dist(gen);
-            //            float phi = acos(2 * uniform_dist(gen) - 1);
-            z = 2 * uniform_dist(gen) - 1;
-            float sinphi = sqrtf(1 - z * z);
+            z = (2 * uniform_dist(gen) - 1);
+            float sinphi = r * sqrtf(1 - z * z); // sin(acos(z));
             x = sinphi * cosf(theta);
             y = sinphi * sinf(theta);
 
@@ -101,9 +100,9 @@ void generate_rand_sphere(particles *pt, par *par)
             y = abs(y);
 #endif
             //  cout << r << ", " << x * x + y * y + z * z << ", " << y << ", " << z << endl;
-            pt->pos0x[p][n] = r * x;
+            pt->pos0x[p][n] = x;
             pt->pos1x[p][n] = pt->pos0x[p][n] + (normal_dist(gen) * sigma[p] + v0[p][0] + x * v0_r) * par->dt[p];
-            pt->pos0y[p][n] = r * y;
+            pt->pos0y[p][n] = y;
             pt->pos1y[p][n] = pt->pos0y[p][n] + (normal_dist(gen) * sigma[p] + v0[p][1] + y * v0_r) * par->dt[p];
             pt->pos0z[p][n] = r * z;
             pt->pos1z[p][n] = pt->pos0z[p][n] + (normal_dist(gen) * sigma[p] + v0[p][2] + z * v0_r) * par->dt[p];
@@ -111,7 +110,7 @@ void generate_rand_sphere(particles *pt, par *par)
             //   cout << pt->pos0x[p][n] - pt->pos1x[p][n] << ", " << normal_dist(gen) << endl;
         }
     }
-   // #pragma omp barrier
+    // #pragma omp barrier
     if (!fastIO) // write CPU generated particle positions to opencl buffers
     {            //  electrons
         commandQueue_g.enqueueWriteBuffer(pt->buff_x0_e[0], CL_TRUE, 0, n_partf, pt->pos0x[0]);

@@ -157,15 +157,12 @@ void cl_start(fields *fi, particles *pt, par *par)
     pair<int, int> fastest_device = getFastestDevice();
     platformn = fastest_device.first;
     device_id = fastest_device.second;
-    //    cl::Platform default_platform = platforms[1];
     cl::Platform default_platform = platforms[platformn];
     info_file << "Using platform: " << default_platform.getInfo<CL_PLATFORM_NAME>() << "\n";
     // cout << "getdevice\n";
     default_platform.getDevices(CL_DEVICE_TYPE_ALL, &devices);
     cl::Device default_device;
-    // device_id--;
-    // device_id = (device_id >= cldevice) ? cldevice : (device_id >= 0 ? device_id : 0); // use dGPU only if available
-    cout << "device_id = " << device_id << ", devices.size = " << devices.size() << ", cl_align = " << par->cl_align << endl;
+    cout << "device_id = " << platformn << ", " << device_id << ", devices.size = " << devices.size() << ", cl_align = " << par->cl_align << endl;
     default_device = devices[device_id];
     info_file << "\t\tDevice Name: " << default_device.getInfo<CL_DEVICE_NAME>() << "\ndevice_id =" << device_id << endl;
     info_file << "OpenCL Version: " << default_device.getInfo<CL_DEVICE_VERSION>() << std::endl;
@@ -186,7 +183,8 @@ void cl_start(fields *fi, particles *pt, par *par)
     std::string deviceVendor = default_device.getInfo<CL_DEVICE_VENDOR>();
     if (deviceVendor.find("Intel") != std::string::npos)
     {
-        cl_build_options << "-cl-mad-enable -cl-fast-relaxed-math -cl-no-signed-zeros -cl-denorms-are-zero -cl-single-precision-constant";
+        cout << "Intel" << endl;
+        //        cl_build_options << "-cl-mad-enable -cl-fast-relaxed-math -cl-no-signed-zeros -cl-denorms-are-zero -cl-single-precision-constant";
     }
     else if (deviceVendor.find("Advanced Micro Devices") != std::string::npos)
     {

@@ -204,9 +204,9 @@ int calcEBV(fields *fi, par *par)
         configuration.performZeropadding[0] = false;
         configuration.performZeropadding[1] = false;
         configuration.performZeropadding[2] = false;
-        // configuration.performZeropadding[0] = true;
-        // configuration.performZeropadding[1] = true;
-        // configuration.performZeropadding[2] = true;
+        //       configuration.performZeropadding[0] = true;
+        //       configuration.performZeropadding[1] = true;
+        //      configuration.performZeropadding[2] = true;
 
         configuration.frequencyZeroPadding = false; // true
         configuration.fft_zeropad_left[0] = (uint64_t)ceil(configuration.size[0] / 2.0);
@@ -215,14 +215,14 @@ int calcEBV(fields *fi, par *par)
         configuration.fft_zeropad_right[1] = configuration.size[1];
         configuration.fft_zeropad_left[2] = (uint64_t)ceil(configuration.size[2] / 2.0);
         configuration.fft_zeropad_right[2] = configuration.size[2];
-
-        configuration.fft_zeropad_left[0] = 0;
-        configuration.fft_zeropad_right[0] = (uint64_t)ceil(configuration.size[0] / 2.0);
-        configuration.fft_zeropad_left[1] = 0;
-        configuration.fft_zeropad_right[1] = (uint64_t)ceil(configuration.size[1] / 2.0);
-        configuration.fft_zeropad_left[2] = 0;
-        configuration.fft_zeropad_right[2] = (uint64_t)ceil(configuration.size[2] / 2.0);
-
+        /*
+                configuration.fft_zeropad_left[0] = 0;
+                configuration.fft_zeropad_right[0] = (uint64_t)ceil(configuration.size[0] / 2.0);
+                configuration.fft_zeropad_left[1] = 0;
+                configuration.fft_zeropad_right[1] = (uint64_t)ceil(configuration.size[1] / 2.0);
+                configuration.fft_zeropad_left[2] = 0;
+                configuration.fft_zeropad_right[2] = (uint64_t)ceil(configuration.size[2] / 2.0);
+        */
         configuration.inputBuffer = &fi->fft_real_buffer;
         configuration.inputBufferSize = &bufferSize_R;
         configuration.buffer = &fi->fft_complex_buffer;
@@ -321,7 +321,7 @@ int calcEBV(fields *fi, par *par)
                 loc_j = j + (j < 0 ? n_space_divy2 : 0);
                 ry = j * par->dd[1];
                 ry2 = ry * ry + rz2;
-//#pragma omp simd
+                // #pragma omp simd
                 for (i = -n_space_divx; i < n_space_divx; i++)
                 {
                     loc_i = i + (i < 0 ? n_space_divx2 : 0);

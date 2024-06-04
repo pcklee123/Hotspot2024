@@ -34,7 +34,7 @@ int main()
     cerr << std::scientific;
     cerr.precision(3);
 
-    //omp_set_nested(true);
+    // omp_set_nested(true);
     nthreads = omp_get_max_threads(); // omp_set_num_threads(nthreads);
                                       // allocate memory for particles assume default value of cl_align.
     std::cout << alignof(std::max_align_t) << endl;
@@ -44,7 +44,7 @@ int main()
     static int *nt_array = (int *)_aligned_malloc(sizeof(int) * n2048, par->cl_align);
 #else
     static float *maxval_array = (float *)aligned_alloc(par->cl_align, sizeof(float) * n2048);
-    static int *nt_array = (int *)aligned_alloc(par->cl_align,sizeof(int) * n2048);
+    static int *nt_array = (int *)aligned_alloc(par->cl_align, sizeof(int) * n2048);
 #endif
     par->maxval_array = maxval_array;
     par->nt_array = nt_array;
@@ -76,8 +76,7 @@ int main()
     }
     cout << "Start up time = " << timer.replace() << "s\n";
     // startup stuff set output path opencl and print initial info
-    cout << "Set initial random positions: " << endl;
-    timer.mark();
+
     // estimate dt. needed to set up initial particles with velocity actual value not important
     float vel_e = sqrt(kb * Temp_e / (mp[0] * e_mass) + vz0 * vz0 + v0_r * v0_r);
     float Tcyclotron = 2.0 * pi * mp[0] / (e_charge_mass * Bmax0);
@@ -89,6 +88,8 @@ int main()
     par->dt[0] = min(Tcyclotron, TE) / f1; // electron should not move more than 1 cell after ncalc*dt and should not make more than 1/4 gyration and must calculate E before the next 1/4 plasma period
     par->dt[1] = par->dt[0] * md_me;
     cout << "dt = " << par->dt[0] << ", " << par->dt[1] << endl;
+    cout << "Set initial random positions: ";
+    timer.mark();
 #define generateRandom
 #ifdef generateRandom
 #ifdef sphere
@@ -103,6 +104,7 @@ int main()
     // generate E and B external fields within limits and spacing of Field cells
     generateField(fi, par);
     cout << timer.elapsed() << "s\n ";
+
     //  getchar();
     int i_time = 0;
 

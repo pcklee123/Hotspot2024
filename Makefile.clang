@@ -5,7 +5,7 @@ IDIR = include
 dir_guard=@mkdir -p $(@D)
 #https://stackoverflow.com/questions/14492436/g-optimization-beyond-o3-ofast
 CC=clang++
-LIBS= -lm -lOpenCL -lgomp
+LIBS= -lm -lOpenCL -lomp
 UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S),Linux)
 CFLAGS= -I$(IDIR) -I /usr/include/vtk-9.1 -L /usr/lib/x86_64-linux-gnu/vtk -march=native -malign-double -std=c++2b -fopenmp -fopenmp-simd 
@@ -13,20 +13,19 @@ CFLAGS= -I$(IDIR) -I /usr/include/vtk-9.1 -L /usr/lib/x86_64-linux-gnu/vtk -marc
 LIBS+= -lvtkCommonCore-9.1  -lvtksys-9.1 -lvtkIOXML-9.1 -lvtkCommonDataModel-9.1 -lvtkIOCore-9.1
 else
 #ucrt64
-CFLAGS= -I$(IDIR)  -march=native -malign-double -std=c++2b -fopenmp -fopenmp-simd -I /ucrt64/include/vtk -L /ucrt64/lib
+CFLAGS= -I$(IDIR)  -march=native -malign-double -std=c++2b -fopenmp -fopenmp-simd -I /ucrt64/include/vtk 
 LIBS+= -lvtksys.dll -lvtkIOXML.dll -lvtkIOCore.dll -lvtkCommonDataModel.dll -lvtkCommonCore.dll  #-lvtkAcceleratorsVTKmDataModel.dll
 #LIBS+= -lvtkCommonCore -lvtksys -lvtkIOXML -lvtkCommonDataModel -lvtkIOCore
 
 endif 
 
-#CFLAGS+= -O3 
 #CFLAGS+= -mavx -mavx2 -mavx512f -mfma -ffast-math -ftree-vectorize -fno-omit-frame-pointer #-finline-functions
 #CFLAGS+= -ftree-parallelize-loops=8 
 
 #AFLAGS= -funroll-loops -fno-signed-zeros -fno-trapping-math -D_GLIBCXX_PARALLEL -v #-flto
-#AFLAGS= -v
+AFLAGS= -L /ucrt64/bin -v -fuse-ld=lld
 
-CFLAGS += $(AFLAGS)
+#CFLAGS += $(AFLAGS)
 CPUS ?= $(shell (nproc --all || sysctl -n hw.ncpu) 2>/dev/null || echo 1)
 MAKEFLAGS += --jobs=$(CPUS)
 
@@ -46,10 +45,10 @@ $(ODIR)/%.o: %.cpp $(DEPS)
 
 $(DODIR)/%.o: %.cpp $(DEPS)
 	$(dir_guard)
-	$(CC) -g -c -o $@ $< $(CFLAGSd)
+	$(CC) -c -o $@ $< $(CFLAGSd)
 
 TS3: $(OBJ)
-	$(CC) -o $@ $^ $(CFLAGS) $(LIBS)
+	$(CC) -O3 -o $@ $^ $(CFLAGS) $(AFLAGS) $(LIBS)
 
 
 debug: $(DOBJ)
