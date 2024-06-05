@@ -213,8 +213,8 @@ int main()
                           //  cout << "max current density  = " << max_jc << endl;
         // getchar();
         t += par->ndeltat;
-        total_ncalc[0] += par->ncalcp[0];
-        total_ncalc[1] += par->ncalcp[1];
+        total_ncalc[0] += par->ncalcp[0]*nc1;
+        total_ncalc[1] += par->ncalcp[1]*nc1;
         cout << i_time << "." << par->nc << " t = " << t << "(compute_time = " << timer.elapsed() << "s) : ";
 
         timer.mark();
