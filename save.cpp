@@ -41,7 +41,6 @@ void save_hist(int i_time, double t, particles *pt, par *par)
   vtkSmartPointer<vtkFieldData> fieldData = polyData->GetFieldData();
   vtkSmartPointer<vtkDoubleArray> timevalue = vtkSmartPointer<vtkDoubleArray>::New();
   timevalue->SetName("TimeValue");
-  // timevalue->SetNumberOfTuples(1);
   timevalue->InsertNextTuple1(t);
   // timevalue->InsertNextValue(t);
   fieldData->AddArray(timevalue);
@@ -153,9 +152,9 @@ void save_vti_c(string filename, int i,
   vtkSmartPointer<vtkDoubleArray> timeArray = vtkSmartPointer<vtkDoubleArray>::New();
 
   timeArray->SetName("TimeValue");
-  timeArray->SetNumberOfTuples(1);
+  //timeArray->SetNumberOfTuples(1);
   timeArray->InsertNextTuple1(t);
-
+  // timeArray->InsertNextValue(t);
   // Add the field data to the FieldVectorArray data
   vtkSmartPointer<vtkFieldData> fieldData = structuredGrid->GetFieldData();
   fieldData->AddArray(timeArray);
@@ -188,8 +187,9 @@ void save_vtp(string filename, int i, uint64_t num, double t, int p, particles *
   vtkSmartPointer<vtkFieldData> fieldData = polyData->GetFieldData();
   vtkSmartPointer<vtkDoubleArray> timeArray = vtkSmartPointer<vtkDoubleArray>::New();
   timeArray->SetName("TimeValue");
-  timeArray->SetNumberOfTuples(1);
+  //timeArray->SetNumberOfTuples(1);
   // timeArray->SetValue(0, t);
+    // timeArray->InsertNextValue(t);
   timeArray->InsertNextTuple1(t);
   fieldData->AddArray(timeArray);
 
