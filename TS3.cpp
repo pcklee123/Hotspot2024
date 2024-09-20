@@ -218,6 +218,12 @@ int main()
         cout << i_time << "." << par->nc << " t = " << t << "(compute_time = " << timer.elapsed() << "s) : ";
 
         timer.mark();
+         res = clEnqueueReadBuffer(commandQueue_g(), fi->E_buffer, CL_TRUE, 0, n_cellsf * 3, fi->E, 0, NULL, NULL);
+    if (res)
+        cout << "clEnqueueReadBuffer res: " << res << endl;
+    res = clEnqueueReadBuffer(commandQueue_g(), fi->B_buffer, CL_TRUE, 0, n_cellsf * 3, fi->B, 0, NULL, NULL);
+    if (res)
+        cout << "clEnqueueReadBuffer res: " << res << endl;
         save_files(i_time, t, fi, pt, par); // print out all files for paraview also get number of particles in cells.
 
 #ifdef Uon_
