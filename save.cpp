@@ -243,6 +243,7 @@ void save_files(int i_time, double t, fields *fi, particles *pt, par *par)
 #ifdef printDensity
 #pragma omp section
     save_vti_c("Ne", i_time, 1, t, &fi->np[0], par);
+//       save_vti_c("Npt", i_time, 1, t, fi->npt, par);
 #pragma omp section
     save_vti_c("je", i_time, 3, t, fi->currentj[0], par);
 #endif
