@@ -1062,10 +1062,10 @@ void kernel df(global float *np, global int *npi, global float *currentj,
   uint idx00 = get_global_id(0);
   uint idx01 = idx00 + NXNYNZ;
   uint idx02 = idx01 + NXNYNZ;
-  np[idx00] = dn * npi[idx00];
-  currentj[idx00] = dx * cji[idx00];
-  currentj[idx01] = dy * cji[idx01];
-  currentj[idx02] = dz * cji[idx02];
+  np[idx00] = dn * (float)npi[idx00];
+  currentj[idx00] = dx * (float)cji[idx00];
+  currentj[idx01] = dy * (float)cji[idx01];
+  currentj[idx02] = dz * (float)cji[idx02];
   npi[idx00] = 0;
   cji[idx00] = 0;
   cji[idx01] = 0;
