@@ -225,7 +225,7 @@ struct fields                                                      // particles
     float (*np)[n_space_divz][n_space_divy][n_space_divx];
     int32_t (*npi)[n_space_divy][n_space_divx];
     int32_t (*np_centeri)[n_space_divz][n_space_divy][n_space_divx];
-    float (*npt)[n_space_divy][n_space_divx];
+    float (*npt)[n_space_divz][n_space_divy][n_space_divx];
     float (*currentj)[3][n_space_divz][n_space_divy][n_space_divx];
     int32_t (*cji)[n_space_divz][n_space_divy][n_space_divx]; //[3][z][y][x]
     int32_t (*cj_centeri)[3][n_space_divz][n_space_divy][n_space_divx];
