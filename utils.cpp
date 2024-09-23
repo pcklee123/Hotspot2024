@@ -202,7 +202,7 @@ fields *alloc_fields(par *par)
     f->np = static_cast<float(*)[n_space_divz][n_space_divy][n_space_divx]>(_aligned_malloc(2 * n_cells * sizeof(float), alignment));
     f->npi = static_cast<int(*)[n_space_divy][n_space_divx]>(_aligned_malloc(n_cells * sizeof(int), alignment));
     f->np_centeri = static_cast<int(*)[n_space_divz][n_space_divy][n_space_divx]>(_aligned_malloc(n_cells * 3 * sizeof(int), alignment));
-    f->npt = static_cast<float(*)[n_space_divy][n_space_divx]>(_aligned_malloc(n_cells * sizeof(float), alignment));
+    f->npt = static_cast<float(*)[n_space_divz][n_space_divy][n_space_divx]>(_aligned_malloc(n_cells * sizeof(float), alignment));
     f->currentj = static_cast<float(*)[3][n_space_divz][n_space_divy][n_space_divx]>(_aligned_malloc(2 * 3 * n_cells * sizeof(float), alignment));
     f->cji = static_cast<int(*)[n_space_divz][n_space_divy][n_space_divx]>(_aligned_malloc(n_cells * sizeof(int) * 3, alignment));
     f->cj_centeri = static_cast<int(*)[3][n_space_divz][n_space_divy][n_space_divx]>(_aligned_malloc(n_cells * sizeof(int) * 3 * 3, alignment));
