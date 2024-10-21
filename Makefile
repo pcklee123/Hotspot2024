@@ -15,7 +15,7 @@ LIBS+= -lvtkCommonCore-9.1 -lvtksys-9.1 -lvtkIOXML-9.1 -lvtkCommonDataModel-9.1 
 #AFLAGS= -fuse-ld=lld 
 else
 #ucrt64 add -g to cflags for debug
-CC=g++
+CC=clang++
 CFLAGS= -I$(IDIR) -I /ucrt64/include/vtk -march=native -malign-double -std=c++2b -fopenmp -fopenmp-simd 
 CFLAGS+= -O3 #-ftree-parallelize-loops 
 CFLAGS+= -mavx -mavx2 -mfma -ftree-vectorize -fno-omit-frame-pointer -finline-functions -funroll-loops -fno-signed-zeros -fno-trapping-math -D_GLIBCXX_PARALLEL
