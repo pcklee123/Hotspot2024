@@ -4,15 +4,18 @@ _OBJ = utils.o TS3.o tnp.o generate.o generaterandp.o  save.o cl_code.o changedt
 IDIR = include
 dir_guard=@mkdir -p $(@D)
 #https://stackoverflow.com/questions/14492436/g-optimization-beyond-o3-ofast
-LIBS= -lm  -lOpenCL#  -lomp  
+LIBS= -lm  -lamdocl64 #-lOpenCL#  -lomp  
 UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S),Linux)
 CC=clang++
-#CFLAGS= -pg -no-pie -L /usr/lib/x86_64-linux-gnu/vtk
-CFLAGS= -I$(IDIR) -I /usr/include/vtk-9.1  -march=native -malign-double -std=c++2b -fopenmp -fopenmp-simd 
+#-pg -nopie
+#CFLAGS= -L /usr/lib/x86_64-linux-gnu/vtk 
+CFLAGS= -I$(IDIR) -I /usr/include/vtk-9.3  -I /opt/rocm/include -march=native -malign-double -std=c++2b -fopenmp -fopenmp-simd 
 CFLAGS+= -O3 -mavx -mavx2 -mfma -ftree-vectorize -fno-omit-frame-pointer -funroll-loops -fno-signed-zeros -fno-trapping-math #-D_GLIBCXX_PARALLEL -fgcse-sm -fgcse-las  -flto=$(CPUS)
-LIBS+= -lvtkCommonCore-9.1 -lvtksys-9.1 -lvtkIOXML-9.1 -lvtkCommonDataModel-9.1 -lvtkIOCore-9.1
-#AFLAGS= -fuse-ld=lld 
+
+LIBS+= -lvtkCommonCore-9.3 -lvtksys-9.3 -lvtkIOXML-9.3 -lvtkCommonDataModel-9.3 -lvtkIOCore-9.3
+AFLAGS= -fuse-ld=lld 
+AFLAGS+= -L /opt/rocm/lib
 else
 #ucrt64 add -g to cflags for debug
 CC=clang++ #change this to clang++ instead of g++
@@ -30,7 +33,7 @@ MAKEFLAGS += --jobs=$(CPUS)
 
 ODIR=obj
 DODIR=obj_debug
-LDIR=lib
+LDIR=lib 
 
 DEPS = $(patsubst %,$(IDIR)/%,$(_DEPS))
 

@@ -229,7 +229,7 @@ fields *alloc_fields(par *par)
     f->np = static_cast<float(*)[n_space_divz][n_space_divy][n_space_divx]>(aligned_alloc(par->cl_align, 2 * n_cells * sizeof(float)));
     f->npi = static_cast<int(*)[n_space_divy][n_space_divx]>(aligned_alloc(par->cl_align, n_cells * sizeof(int)));
     f->np_centeri = static_cast<int(*)[n_space_divz][n_space_divy][n_space_divx]>(aligned_alloc(par->cl_align, n_cells * 3 * sizeof(int)));
-    f->npt = static_cast<float(*)[n_space_divy][n_space_divx]>(aligned_alloc(par->cl_align, n_cells * sizeof(float)));
+    f->npt = static_cast<float(*)[n_space_divz][n_space_divy][n_space_divx]>(aligned_alloc(par->cl_align, n_cells * sizeof(float)));
     f->currentj = static_cast<float(*)[3][n_space_divz][n_space_divy][n_space_divx]>(aligned_alloc(par->cl_align, 2 * 3 * n_cells * sizeof(float)));
     f->cji = static_cast<int(*)[n_space_divz][n_space_divy][n_space_divx]>(aligned_alloc(par->cl_align, n_cells * sizeof(int) * 3));
     f->cj_centeri = static_cast<int(*)[3][n_space_divz][n_space_divy][n_space_divx]>(aligned_alloc(par->cl_align, n_cells * sizeof(int) * 3 * 3));
