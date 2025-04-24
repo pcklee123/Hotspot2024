@@ -14,11 +14,11 @@ Original code in 2021 by Hilary,Yin Yue and Chloe, extensive improvements by Sam
 - MSYS2
 - to avoid confusion, use either of "mingw64" or "ucrt" and do not mix the two. The following examples make use of ucrt  
 - Tools: 
-    - > pacman -S base-devel git mingw-w64-ucrt-x86_64-gcc 
+    - > pacman -S base-devel git mingw-w64-ucrt-x86_64-gcc  mingw-w64-ucrt-x86_64-clang
     - install windows native paraview, visual studio code
 
 - Libs (Opencl, OpenMP, vtk)
-    - > pacman -S mingw-w64-ucrt-x86_64-opencl-headers mingw-w64-ucrt-x86_64-opencl-clhpp mingw-w64-ucrt-x86_64-opencl-icd mingw-w64-ucrt-x86_64-openmp mingw-w64-ucrt-x86_64-vtk 
+    - > pacman -S mingw-w64-ucrt-x86_64-opencl-headers mingw-w64-ucrt-x86_64-opencl-clhpp mingw-w64-ucrt-x86_64-opencl-icd mingw-w64-ucrt-x86_64-openmp mingw-w64-ucrt-x86_64-vtk mingw-w64-ucrt-x86_64-llvm-openmp mingw-w64-ucrt-x86_64-nlohmann-json
 
 - GCC added to PATH in MSYS
     - In the root directory, run 
