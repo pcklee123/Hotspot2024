@@ -4,7 +4,8 @@ _OBJ = utils.o TS3.o tnp.o generate.o generaterandp.o  save.o cl_code.o changedt
 IDIR = include
 dir_guard=@mkdir -p $(@D)
 #https://stackoverflow.com/questions/14492436/g-optimization-beyond-o3-ofast
-LIBS= -lm  -lamdocl64 #-lOpenCL#  -lomp  
+#LIBS= -lm  -lamdocl64 #-lOpenCL#  -lomp  
+LIBS= -lm  -lOpenCL#  -lomp  
 UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S),Linux)
 CC=clang++
